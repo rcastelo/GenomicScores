@@ -1,0 +1,78 @@
+import(methods)
+import(BiocGenerics)
+import(S4Vectors)
+
+importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
+importClassesFrom(GenomicRanges, GRanges, GRangesList)
+importClassesFrom(AnnotationHubData, AnnotationHubMetadata)
+
+importMethodsFrom(BSgenome, snpcount,
+                            snplocs,
+                            snpsByOverlaps,
+                            referenceGenome)
+importMethodsFrom(GenomeInfoDb, "seqinfo<-",
+                                seqlevels,
+                                "seqlevels<-",
+                                seqlevelsStyle,
+                                "seqlevelsStyle<-",
+                                "isCircular",
+                                "isCircular<-",
+                                genome,
+                                "genome<-",
+                                provider,
+                                providerVersion,
+                                releaseName)
+importMethodsFrom(IRanges, start,
+                           width,
+                           flank,
+                           nchar,
+                           unlist,
+                           which,
+                           order,
+                           togroup,
+                           values,
+                           findOverlaps,
+                           as.vector,
+                           coverage,
+                           Views,
+                           viewMeans)
+importMethodsFrom(GenomicRanges, resize,
+                                 pintersect,
+                                 "ranges<-",
+                                 ranges,
+                                 show)
+
+importFrom(utils, data)
+
+importFrom(GenomeInfoDb, seqnames,
+                         keepStandardChromosomes,
+                         keepSeqlevels,
+                         renameSeqlevels,
+                         restoreSeqlevels,
+                         extractSeqlevelsByGroup,
+                         seqlengths,
+                         seqinfo,
+                         Seqinfo)
+importFrom(GenomicRanges, GRanges)
+
+importFrom(IRanges, IRanges,
+                    IRangesList,
+                    RleList,
+                    IntegerList,
+                    CharacterList)
+
+importFrom(AnnotationHubData, AnnotationHubMetadata)
+
+exportMethods(provider,
+              providerVersion,
+              referenceGenome,
+              organism,
+              seqinfo,
+              seqnames,
+              seqlengths,
+              seqlevelsStyle,
+              scores,
+              show)
+
+export(GScores,
+       makePhastConsToAHM)
