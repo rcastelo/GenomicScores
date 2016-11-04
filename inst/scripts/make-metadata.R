@@ -1,6 +1,4 @@
-
-## adapted from AnnotationHubData:::.inparanoidMetadataFromUrl
-.phastConsMetadataFromUrl <- function(baseUrl, justRunUnitTest) {
+.phastConsMetadataFromUrl <- function(baseUrl) {
   baseUrl <- 'http://functionalgenomics.upf.edu/annotationhub/phastCons'
   subDirs <- AnnotationForge:::.getSubDirs(baseUrl)
   subDirs <- subDirs[!subDirs %in% "/annotationhub/"]
@@ -37,49 +35,33 @@
     pcmetadf <- rbind(pcmetadf, metadf)
   }
   rownames(pcmetadf) <- NULL
-
-  if (justRunUnitTest)
-    pcmetadf <- pcmetadf[1:2, ]
-
   pcmetadf
 }
 
-## here should go the transformation from the Rle objects to the GScores object
-.RleToGScoresRecipe <- function(ahm) {
-
-  AnnotationHubData::outputFile(ahm)
+makeMetadata <- function() 
+{
+  baseUrl="http://functionalgenomics.upf.edu/annotationhub/phastCons"
+  meta <- .phastConsMetadataFromUrl(baseUrl)
+  n <- nrow(meta)
+  data.frame(
+    BiocVersion=rep("3.4", n),
+    Description=meta$description,
+    Genome=meta$genome,
+    SourceUrl=meta$sourceUrl,
+    SourceType=rep("FIXME", n),
+    SourceVersion=meta$sourceVersion,
+    Species=meta$species,
+    TaxonomyId=meta$taxonomyId,
+    Title=meta$title,
+    RDataPath=meta$rDataPath,
+    Coordinate_1_based=rep(TRUE, n),
+    DataProvider=rep("UCSC", n),
+    Maintainer=rep("Robert Castelo <robert.castelo@upf.edu>", n),
+    RDataClass=rep("Rle", n),
+    Recipe=rep(NA, n),
+    DispatchClass=rep("GenomicScores", n),
+    Location_Prefix=meta$sourceUrl,
+    Tags=rep(paste("phastCons", "Annotation", sep=","), n))
 }
-
-
-## adapted from https://www.bioconductor.org/packages/3.3/bioc/vignettes/AnnotationHub/inst/doc/AnnotationHubRecipes.html
-makePhastConsToAHM <-
-  function(justRunUnitTest=FALSE,
-           BiocVersion=BiocInstaller::biocVersion(),
-           baseUrl="http://functionalgenomics.upf.edu/annotationhub/phastCons",
-           ...) {
-
-  ## fetch metadata
-  meta <- .phastConsMetadataFromUrl(baseUrl, justRunUnitTest, ...)
-
-  ## create list of AnnotationHubMetadata objects
-  Map(AnnotationHubMetadata,
-      Description=meta$description,
-      Genome=meta$genome,
-      SourceUrl=meta$sourceUrl,
-      SourceType="RData",
-      SourceVersion=meta$sourceVersion,
-      Species=meta$species,
-      TaxonomyId=meta$taxonomyId,
-      Title=meta$title,
-      RDataPath=meta$rDataPath,
-      MoreArgs=list(
-        Coordinate_1_based=TRUE,
-        DataProvider="UCSC",
-        Maintainer="Robert Castelo <robert.castelo@upf.edu>",
-        RDataClass="Rle",
-        RDataDateAdded=Sys.time(),
-        Recipe="GenomicScores:::.RleToGScoresRecipe",
-        DispatchClass="GenomicScores",
-        Location_Prefix=baseUrl,
-        Tags=c("phastCons", "Annotation")))
-}
+metadata <- makeMetadata()
+write.csv(metadata, file="../extdata/metadata.csv", row.names=FALSE)
