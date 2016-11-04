@@ -1,4 +1,5 @@
 .phastConsMetadataFromUrl <- function(baseUrl) {
+  require(GenomeInfoDb)
   baseUrl <- 'http://functionalgenomics.upf.edu/annotationhub/phastCons'
   subDirs <- AnnotationForge:::.getSubDirs(baseUrl)
   subDirs <- subDirs[!subDirs %in% "/annotationhub/"]
@@ -48,7 +49,7 @@ makeMetadata <- function()
     Description=meta$description,
     Genome=meta$genome,
     SourceUrl=meta$sourceUrl,
-    SourceType=rep("FIXME", n),
+    SourceType=rep("BigWig", n),
     SourceVersion=meta$sourceVersion,
     Species=meta$species,
     TaxonomyId=meta$taxonomyId,
