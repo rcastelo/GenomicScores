@@ -21,15 +21,25 @@
 
 \description{
 Provide support to store and retrieve genomic scores associated
-to nucleotide positions along a genome
+to nucleotide positions along a genome.
 }
 \usage{
+GScores(provider, provider_version, download_url,
+        download_date, reference_genome,
+        data_pkgname, data_dirpath)
 \S4method{scores}{GScores,GRanges}(object, gpos,
                                    summaryFun="mean",
                                    coercionFun="as.numeric",
                                    caching=TRUE)
 }
 \arguments{
+  \item{provider}{Data provider.}
+  \item{provider_version}{Version of the data, as given by the data provider.}
+  \item{download_url}{URL from where data were downloaded.}
+  \item{download_date}{Date when data were downloaded.}
+  \item{reference_genome}{GenomeDescription object containing information about the reference genome to where data belongs to.}
+  \item{data_pkgname}{Name of the package storing the data.}
+  \item{data_dirpath}{Path to the directory where the actual data is stored.}
   \item{object}{A \code{GScores} object.}
   \item{gpos}{A \code{GRanges} object with positions from where to retrieve
               genomic scores.}
@@ -63,6 +73,9 @@ phastCons conservation scores. Two such annotation packages are:
     to 99 vertebrate species.
   }
 }
+
+The function \code{GScores()} is a constructor for a \code{GScores-class} object
+and it is for internal use only. The end-user needs not to call this function.
 }
 
 \author{R. Castelo}

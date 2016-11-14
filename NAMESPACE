@@ -74,5 +74,4 @@ exportMethods(provider,
               scores,
               show)
 
-export(GScores,
-       makePhastConsToAHM)
+export(GScores)
