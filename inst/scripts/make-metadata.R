@@ -1,6 +1,5 @@
 .phastConsMetadataFromUrl <- function(baseUrl) {
   require(GenomeInfoDb)
-  baseUrl <- 'http://functionalgenomics.upf.edu/annotationhub/phastCons'
   subDirs <- AnnotationForge:::.getSubDirs(baseUrl)
   subDirs <- subDirs[!subDirs %in% "/annotationhub/"]
   phastConsTracks <- sub("/", "", subDirs)
@@ -15,9 +14,9 @@
                          description=character(0), rDataPath=character(0))
 
   for (pct in phastConsTracks) {
-    gd <- readRDS(gzcon(url(sprintf("%s/%s/refgenomeGD.rds", baseUrl, pct),
+    gd <- readRDS(gzcon(url(sprintf("%s%s/refgenomeGD.rds", baseUrl, pct),
                             open="rb")))
-    pcRDSfiles <- AnnotationForge:::.getSubDirs(sprintf("%s/%s", baseUrl, pct))
+    pcRDSfiles <- AnnotationForge:::.getSubDirs(sprintf("%s%s", baseUrl, pct))
     pcRDSfiles <- pcRDSfiles[grep(pct, pcRDSfiles)]
     taxonId <- as.integer(subset(speciesMap, species == organism(gd))$taxon)
     rDataPath <- sprintf("%s/%s", pct, pcRDSfiles)
@@ -27,7 +26,7 @@
                          species=rep(organism(gd), length(pcRDSfiles)),
                          taxonomyId=rep(taxonId, length(pcRDSfiles)),
                          genome=rep(providerVersion(gd), length(pcRDSfiles)),
-                         sourceUrl=sprintf("%s/%s/%s", baseUrl, pct, pcRDSfiles),
+                         sourceUrl=sprintf("%s%s/%s", baseUrl, pct, pcRDSfiles),
                          sourceVersion=rep("3.4.0", length(pcRDSfiles)),
                          description=sprintf("phastCons scores for %s on %s",
                                              organism(gd), chr),
@@ -41,11 +40,11 @@
 
 makeMetadata <- function() 
 {
-  baseUrl="http://functionalgenomics.upf.edu/annotationhub/phastCons"
+  baseUrl="http://functionalgenomics.upf.edu/annotationhub/phastCons/"
   meta <- .phastConsMetadataFromUrl(baseUrl)
   n <- nrow(meta)
   data.frame(
-    BiocVersion=rep("3.4", n),
+    BiocVersion=rep("3.5", n),
     Description=meta$description,
     Genome=meta$genome,
     SourceUrl=meta$sourceUrl,
@@ -54,14 +53,14 @@ makeMetadata <- function()
     Species=meta$species,
     TaxonomyId=meta$taxonomyId,
     Title=meta$title,
+    ResourceName=meta$title,
     RDataPath=meta$rDataPath,
     Coordinate_1_based=rep(TRUE, n),
     DataProvider=rep("UCSC", n),
     Maintainer=rep("Robert Castelo <robert.castelo@upf.edu>", n),
     RDataClass=rep("Rle", n),
-    Recipe=rep(NA, n),
     DispatchClass=rep("GenomicScores", n),
-    Location_Prefix=meta$sourceUrl,
+    Location_Prefix=baseUrl,
     Tags=rep(paste("phastCons", "Annotation", sep=","), n))
 }
 metadata <- makeMetadata()
