@@ -103,8 +103,9 @@ setMethod("scores", c("GScores", "GRanges"),
 
             snames <- unique(as.character(runValue(seqnames(gpos))))
             if (any(!snames %in% seqnames(object)))
-              stop("Sequence names %s in GRanges object not present in GScores object.",
-                   paste(snames[!snames %in% seqnames(object)], collapse=", "))
+              stop(sprintf("Sequence names %s in GRanges object not present in reference genome %s.",
+                           paste(snames[!snames %in% seqnames(object)], collapse=", "),
+                           providerVersion(referenceGenome(object))))
 
             scorlelist <- get(object@data_pkgname, envir=object@.data_cache)
             missingMask <- !snames %in% names(scorlelist)
