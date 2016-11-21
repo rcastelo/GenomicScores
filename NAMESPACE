@@ -1,9 +1,9 @@
 import(methods)
 import(BiocGenerics)
 import(S4Vectors)
+import(GenomicRanges)
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
-importClassesFrom(GenomicRanges, GRanges, GRangesList)
 importClassesFrom(AnnotationHubData, AnnotationHubMetadata)
 
 importMethodsFrom(BSgenome, snpcount,
@@ -36,11 +36,6 @@ importMethodsFrom(IRanges, start,
                            coverage,
                            Views,
                            viewMeans)
-importMethodsFrom(GenomicRanges, resize,
-                                 pintersect,
-                                 "ranges<-",
-                                 ranges,
-                                 show)
 
 importFrom(utils, data)
 
@@ -53,7 +48,6 @@ importFrom(GenomeInfoDb, seqnames,
                          seqlengths,
                          seqinfo,
                          Seqinfo)
-importFrom(GenomicRanges, GRanges)
 
 importFrom(IRanges, IRanges,
                     IRangesList,

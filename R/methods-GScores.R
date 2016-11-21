@@ -95,6 +95,9 @@ rleGetValues <- function(rlelst, gr, summaryFun="mean",
 setMethod("scores", c("GScores", "GRanges"),
           function(object, gpos, summaryFun="mean", coercionFun="as.numeric",
                    caching=TRUE) {
+            if (length(gpos) == 0)
+              return(numeric(0))
+
             if (seqlevelsStyle(gpos) != seqlevelsStyle(object))
               seqlevelsStyle(gpos) <- seqlevelsStyle(object)
 
