@@ -93,8 +93,21 @@ rleGetValues <- function(rlelst, gr, summaryFun="mean",
 }
 
 setMethod("scores", c("GScores", "GRanges"),
-          function(object, gpos, summaryFun="mean", coercionFun="as.numeric",
-                   caching=TRUE) {
+          function(object, gpos, ...) {
+            objectname <- deparse(substitute(object))
+            ## default non-generic arguments
+            summaryFun <- "mean"
+            coercionFun <- "as.numeric"
+            caching <- TRUE
+            blablaarg <- "hola"
+
+            ## get arguments
+            arglist <- list(...)
+            mask <- nchar(names(arglist)) == 0
+            if (any(mask))
+              names(arglist)[mask] <- paste0("X", 1:sum(mask))
+            list2env(arglist, envir=sys.frame(sys.nframe()))
+
             if (length(gpos) == 0)
               return(numeric(0))
 
@@ -109,15 +122,18 @@ setMethod("scores", c("GScores", "GRanges"),
 
             scorlelist <- get(object@data_pkgname, envir=object@.data_cache)
             missingMask <- !snames %in% names(scorlelist)
+            slengths <- seqlengths(object)
             for (sname in snames[missingMask]) {
               fp <- file.path(object@data_dirpath,
                               sprintf("%s.%s.rds", object@data_pkgname, sname))
               if (file.exists(fp))
                 scorlelist[[sname]] <- readRDS(fp)
               else {
-                warning(sprintf("No %s scores for chromosome %s.",
-                                object@data_pkgname, sname))
-                scorlelist[[sname]] <- Rle(raw())
+                warning(sprintf("No %s scores for sequence %s in %s object '%s'.",
+                                object@data_pkgname, sname, class(object),
+                                objectname))
+                scorlelist[[sname]] <- Rle(lengths=slengths[sname],
+                                           values=as.raw(255L))
               }
             }
 
