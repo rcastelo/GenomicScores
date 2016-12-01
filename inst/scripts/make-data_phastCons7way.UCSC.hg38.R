@@ -1,6 +1,6 @@
 ## This file explains the steps to download and freeze the phastCons
 ## conservation scores for human genome version hg38, calculated on
-## 100 vertebrate species. If you use these data on your own research
+## 7 vertebrate species. If you use these data on your own research
 ## please cite the following publication:
 
 ## Siepel A, Bejerano G, Pedersen JS, Hinrichs AS, Hou M, Rosenbloom K, Clawson H,
@@ -12,8 +12,8 @@
 ## command as follows
 ##
 ## $ rsync -avz --progress \
-##     rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/ \
-##     ./hg38.100way.phastCons
+##     rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons7way/hg38.phastCons7way.wigFix.gz \
+##     ./hg38.7way.phastCons
 
 ## The following R script processes the downloaded data to
 ## store the phastCons scores in raw-Rle objects
@@ -22,16 +22,13 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 library(rtracklayer)
 library(doParallel)
 
-downloadURL <- "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons"
+downloadURL <- "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons7way"
 
 registerDoParallel(cores=4) ## each process may need up to 20Gb of RAM
 
 ## transform WIG to BIGWIG format
 si <- Seqinfo(seqnames=seqnames(Hsapiens), seqlengths=seqlengths(Hsapiens))
-foreach (chr=seqnames(Hsapiens)) %dopar% {
-  cat(chr, "\n")
-  wigToBigWig(file.path("hg38.100way.phastCons", sprintf("%s.phastCons100way.wigFix.gz", chr)), seqinfo=si)
-}
+wigToBigWig(file.path("hg38.7way.phastCons", "hg38.phastCons7way.wigFix.gz"), seqinfo=si)
 
 ## freeze the GenomeDescription data for Hsapiens
 
@@ -46,7 +43,7 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
                                                  isCircular=isCircular(Hsapiens),
                                                  genome=releaseName(Hsapiens)))
 
-saveRDS(refgenomeGD, file=file.path("hg38.100way.phastCons", "refgenomeGD.rds"))
+saveRDS(refgenomeGD, file=file.path("hg38.7way.phastCons", "refgenomeGD.rds"))
 
 ## transform BIGWIG into Rle objects coercing phastCons scores into
 ## 1-decimal digit raw-encoded values to reduce memory requirements
@@ -57,21 +54,22 @@ saveRDS(refgenomeGD, file=file.path("hg38.100way.phastCons", "refgenomeGD.rds"))
 foreach (chr=seqnames(Hsapiens)) %dopar% {
   cat(chr, "\n")
   tryCatch({
-    assign(sprintf("phastCons100way_%s", chr),
-           10*round(import.bw(BigWigFile(file.path("hg38.100way.phastCons", sprintf("%s.phastCons100way.bw", chr))), as="RleList")[[chr]], digits=1))
-    assign(sprintf("phastCons100way_%s", chr),
-           do.call("runValue<-", list(get(sprintf("phastCons100way_%s", chr)),
-                                      as.raw(runValue(get(sprintf("phastCons100way_%s", chr)))))))
-    metadata(get(sprintf("phastCons100way_%s", chr))) <- list(seqname=chr,
-                                                              provider="UCSC",
-                                                              provider_version="11May2015", ## it'd better to grab the date from downloaded file
-                                                              download_url=downloadURL,
-                                                              download_date=format(Sys.Date(), "%b %d, %Y"),
-                                                              reference_genome=refgenomeGD,
-                                                              data_pkgname="phastCons100way.UCSC.hg38")
-    saveRDS(get(sprintf("phastCons100way_%s", chr)),
-            file=file.path("hg38.100way.phastCons", sprintf("phastCons100way.UCSC.hg38.%s.rds", chr)))
-    rm(list=sprintf("phastCons100way_%s", chr))
+    assign(sprintf("phastCons7way_%s", chr),
+           10*round(import.bw(BigWigFile(file.path("hg38.7way.phastCons", "hg38.phastCons7way.bw")),
+                              as="RleList", which=GRanges(seqnames=chr, IRanges(1, seqlengths(Hsapiens)[chr])))[[chr]], digits=1))
+    assign(sprintf("phastCons7way_%s", chr),
+           do.call("runValue<-", list(get(sprintf("phastCons7way_%s", chr)),
+                                      as.raw(runValue(get(sprintf("phastCons7way_%s", chr)))))))
+    metadata(get(sprintf("phastCons7way_%s", chr))) <- list(seqname=chr,
+                                                            provider="UCSC",
+                                                            provider_version="04Jun2014", ## it'd better to grab the date from downloaded file
+                                                            download_url=downloadURL,
+                                                            download_date=format(Sys.Date(), "%b %d, %Y"),
+                                                            reference_genome=refgenomeGD,
+                                                            data_pkgname="phastCons7way.UCSC.hg38")
+    saveRDS(get(sprintf("phastCons7way_%s", chr)),
+            file=file.path("hg38.7way.phastCons", sprintf("phastCons7way.UCSC.hg38.%s.rds", chr)))
+    rm(list=sprintf("phastCons7way_%s", chr))
     gc()
   }, error=function(err) {
       message(chr, " ", conditionMessage(err), call.=TRUE)
