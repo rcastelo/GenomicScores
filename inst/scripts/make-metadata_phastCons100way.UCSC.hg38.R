@@ -54,9 +54,9 @@ makeMetadata_phastCons100way.UCSC.hg38 <- function()
     DataProvider=rep("UCSC", n),
     Maintainer=rep("Robert Castelo <robert.castelo@upf.edu>", n),
     RDataClass=rep("Rle", n),
-    DispatchClass=rep("GenomicScores", n),
+    DispatchClass=rep("Rda", n),
     Location_Prefix=baseUrl,
-    Tags=rep(paste("phastCons", "Annotation", sep=","), n))
+    Tags=rep(paste("phastCons", "GScores", sep=","), n))
 }
 metadata <- makeMetadata_phastCons100way.UCSC.hg38()
 write.csv(metadata, file="../extdata/metadata_phastCons100way.UCSC.hg38.csv", row.names=FALSE)

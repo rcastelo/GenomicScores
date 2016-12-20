@@ -36,6 +36,8 @@ importMethodsFrom(IRanges, start,
                            coverage,
                            Views,
                            viewMeans)
+importMethodsFrom(AnnotationHub, query,
+                                 cache)
 
 importFrom(utils, data)
 
@@ -55,6 +57,9 @@ importFrom(IRanges, IRanges,
                     IntegerList,
                     CharacterList)
 
+importFrom(AnnotationHub, AnnotationHub,
+                          getAnnotationHubOption)
+
 importFrom(AnnotationHubData, AnnotationHubMetadata)
 
 exportMethods(provider,
@@ -68,4 +73,6 @@ exportMethods(provider,
               scores,
               show)
 
-export(GScores)
+export(GScores,
+       availableGScores,
+       getGScores)

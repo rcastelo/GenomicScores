@@ -1,8 +1,8 @@
 ## GScores constructor
 GScores <- function(provider, provider_version, download_url,
                     download_date, reference_genome,
-                    data_pkgname, data_dirpath) {
-  data_serialized_objnames <- data_pkgname
+                    data_pkgname, data_dirpath,
+                    data_serialized_objnames=character(0)) {
   data_cache <- new.env(hash=TRUE, parent=emptyenv())
 
   assign(data_pkgname, RleList(compress=FALSE), envir=data_cache)
@@ -124,10 +124,13 @@ setMethod("scores", c("GScores", "GRanges"),
             missingMask <- !snames %in% names(scorlelist)
             slengths <- seqlengths(object)
             for (sname in snames[missingMask]) {
-              fp <- file.path(object@data_dirpath,
-                              sprintf("%s.%s.rds", object@data_pkgname, sname))
-              if (file.exists(fp))
-                scorlelist[[sname]] <- readRDS(fp)
+              fname <- sprintf("%s.%s.rds", object@data_pkgname, sname)
+              if (length(object@data_serialized_objnames) > 0 &&
+                  fname %in% names(object@data_serialized_objnames))
+                fname <- object@data_serialized_objnames[fname]
+              fpath <- file.path(object@data_dirpath, fname)
+              if (file.exists(fpath))
+                scorlelist[[sname]] <- readRDS(fpath)
               else {
                 warning(sprintf("No %s scores for sequence %s in %s object '%s'.",
                                 object@data_pkgname, sname, class(object),

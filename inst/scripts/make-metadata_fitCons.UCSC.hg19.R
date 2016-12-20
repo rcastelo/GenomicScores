@@ -54,9 +54,9 @@ makeMetadata_fitCons.UCSC.hg19 <- function()
     DataProvider=rep("UCSC", n),
     Maintainer=rep("Robert Castelo <robert.castelo@upf.edu>", n),
     RDataClass=rep("Rle", n),
-    DispatchClass=rep("GenomicScores", n),
+    DispatchClass=rep("Rda", n),
     Location_Prefix=baseUrl,
-    Tags=rep(paste("fitCons", "Annotation", sep=","), n))
+    Tags=rep(paste("fitCons", "GScores", sep=","), n))
 }
 metadata <- makeMetadata_fitCons.UCSC.hg19()
 write.csv(metadata, file="../extdata/metadata_fitCons.UCSC.hg19.csv", row.names=FALSE)

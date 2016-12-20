@@ -16,6 +16,8 @@
 \alias{seqlevelsStyle,GScores-method}
 \alias{show,GScores-method}
 \alias{makePhastConsToAHM}
+\alias{availableGScores}
+\alias{getGScores}
 
 \title{The GenomicScores package and the GScores class}
 
@@ -26,7 +28,7 @@ to nucleotide positions along a genome.
 \usage{
 GScores(provider, provider_version, download_url,
         download_date, reference_genome,
-        data_pkgname, data_dirpath)
+        data_pkgname, data_dirpath, data_serialized_objnames)
 \S4method{scores}{GScores,GRanges}(object, gpos, ...)
 }
 \arguments{
@@ -37,6 +39,7 @@ GScores(provider, provider_version, download_url,
   \item{reference_genome}{GenomeDescription object containing information about the reference genome to where data belongs to.}
   \item{data_pkgname}{Name of the package storing the data.}
   \item{data_dirpath}{Path to the directory where the actual data is stored.}
+  \item{data_serialized_objnames}{Serialized object names.}
   \item{object}{A \code{GScores} object.}
   \item{gpos}{A \code{GRanges} object with positions from where to retrieve
               genomic scores.}
