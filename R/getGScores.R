@@ -18,6 +18,9 @@ getGScores <- function(x) {
   ah <- AnnotationHub()
   ah <- query(ah, x)
 
+  if (length(ah) == 0)
+    stop("'x' is not available in this snapshot of the annotation hub. Please try to update the metadata of the annotation hub.")
+
   ## use the AnnotationHub metadata to figure out the correspondence
   ## between downloaded filenames and object names
   mdah <- mcols(ah)

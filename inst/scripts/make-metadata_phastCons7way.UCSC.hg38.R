@@ -54,7 +54,7 @@ makeMetadata_phastCons7way.UCSC.hg38 <- function()
     DataProvider=rep("UCSC", n),
     Maintainer=rep("Robert Castelo <robert.castelo@upf.edu>", n),
     RDataClass=rep("Rle", n),
-    DispatchClass=rep("Rda", n),
+    DispatchClass=rep("RDS", n),
     Location_Prefix=baseUrl,
     Tags=rep(paste("phastCons", "GScores", sep=","), n))
 }
