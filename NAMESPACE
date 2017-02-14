@@ -62,15 +62,15 @@ importFrom(AnnotationHub, AnnotationHub,
 
 importFrom(AnnotationHubData, AnnotationHubMetadata)
 
-exportMethods(provider,
+exportMethods(organism,
+              provider,
               providerVersion,
               referenceGenome,
-              organism,
+              scores,
               seqinfo,
-              seqnames,
               seqlengths,
               seqlevelsStyle,
-              scores,
+              seqnames,
               show)
 
 export(GScores,

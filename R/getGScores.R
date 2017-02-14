@@ -41,7 +41,7 @@ getGScores <- function(x) {
                   data_pkgname=mdobj$data_pkgname,
                   data_dirpath=getAnnotationHubOption("CACHE"),
                   data_serialized_objnames=serializedobjs)
-  scorlelist <- get(gsco@data_pkgname, envir=gsco@.data_cache)
+  scorlelist <- get(mdobj$data_pkgname, envir=gsco@.data_cache)
   scorlelist[[mdobj$seqname]] <- obj
   assign(mdobj$data_pkgname, scorlelist, envir=gsco@.data_cache)
 
