@@ -155,6 +155,15 @@ setMethod("scores", c("GScores", "GRanges"),
 ## show method
 setMethod("show", "GScores",
           function(object) {
-            cat(class(object), " object for ", organism(object), " (",
-                provider(object), ")\n", sep="")
+              cat(class(object), " object \n",
+                  "# organism: ", organism(referenceGenome(object)), " (", provider(object), ")\n",
+                  "# provider: ", provider(object), "\n",
+                  "# provider version: ", providerVersion(referenceGenome(object)), "\n",
+                  "# release date: ", releaseDate(referenceGenome(object)), "\n",
+                  "# release name: ", releaseName(referenceGenome(object)),"\n",
+                  "# ", length(seqinfo(object)), " sequences", "\n",
+                  "# Use 'seqnames()' to list all sequence names", "\n", sep="")
           })
+
+
+

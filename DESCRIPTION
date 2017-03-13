@@ -3,7 +3,7 @@ Type: Package
 Title: Classes and methods to work with genomewide position-specific scores
 Description: Provide support to store and retrieve genomic scores associated
     with nucleotide positions along a genome.
-Version: 0.99.14
+Version: 0.99.15
 Authors@R: c(person("Robert", "Castelo", role=c("aut", "cre"),
     email="robert.castelo@upf.edu"))
 License: Artistic-2.0
