@@ -49,7 +49,9 @@ importFrom(GenomeInfoDb, seqnames,
                          extractSeqlevelsByGroup,
                          seqlengths,
                          seqinfo,
-                         Seqinfo)
+                         Seqinfo,
+			 releaseDate,
+			 releaseName)
 
 importFrom(IRanges, IRanges,
                     IRangesList,

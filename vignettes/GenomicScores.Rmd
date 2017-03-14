@@ -1,10 +1,12 @@
 ---
 title: "Genomic Scores"
 author:
-- name: "Robert Castelo"
+- name: Robert Castelo
   affiliation: 
-  - Pompeu Fabra University, Barcelona, Spain
+  - &id Pompeu Fabra University, Barcelona, Spain
   email: robert.castelo@upf.edu
+- name: Pau Puigdevall
+  affiliation: *id
 package: Genomic Scores
 abstract: >
   Instructions on the usage of GenomicScores package. It provides the infrastructure to download, store and manipulate genomic score positions in Bioconductor with an efficient and straightforward way.
