@@ -1,0 +1,354 @@
+---
+title: "Genomic Scores"
+author:
+- name: Robert Castelo
+  affiliation: 
+  - &id Pompeu Fabra University, Barcelona, Spain
+  email: robert.castelo@upf.edu
+- name: Pau Puigdevall
+  affiliation: *id
+package: Genomic Scores
+abstract: >
+  Instructions on the usage of GenomicScores package. It provides the infrastructure to download, store and manipulate genomic score positions in Bioconductor with an efficient and straightforward way.
+output: 
+  BiocStyle::html_document2:
+    toc: true
+    toc_float: true
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Genomic Scores}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Getting started
+
+GenomicScores is an R package distributed as part of the Bioconductor project. To install the package, start R and enter:
+
+```{r library_install, message=FALSE, cache=FALSE, eval=FALSE}
+source("http://bioconductor.org/biocLite.R")
+biocLite("GenomicScores")
+```
+
+Once GenomicScores is installed, it can be loaded by the following command.
+
+```{r library_upload, message=FALSE, cache=FALSE}
+library(GenomicScores)
+```
+
+# Genomewide position-specific scores
+
+Genomewide scores assign each genomic position a score based on an indicator denoting its estimated impact on variation. Indicators can be built based on different strategies such as sequence homology, functional domains, physical-chemical changes of amino acid residues, etc.
+
+This package is created to enable the usage of __phastCons__ scores, which is essentially a base-by-base conservation score obtained from a particular multiple alignment using the program phastCons (_PHylogenetic Analysis with Space/Time models_)[^1]. It is possible to retrieve these scores through annotation packages (Section \@ref(retrieval-of-genomic-scores-through-annotation-packages)) or via AnnotationHub infrastructure (Section \@ref(retrieval-of-genomic-scores-through-annotationhub-resources)).
+
+[^1]: Siepel A, Bejerano G, Pedersen JS, Hinrichs AS, Hou M, Rosenbloom K, Clawson H, Spieth J, Hillier LW, Richards S, et al. Evolutionarily conserved elements in vertebrate, insect, worm, and yeast genomes. Genome Res. 2005 Aug;15(8):1034-50. (http://www.genome.org/cgi/doi/10.1101/gr.3715005)
+
+The usage of conservation data can be used for different proposals. On one hand, conservation can be used as a criteria for filtering variants. It is well described that the level of sequence conservation highly correlates with its function. Thus, mutations on highly-conserved regions among different species can be an indicator for a critical impact on function. In this context, phastCons scores provide an additional valuable prediction to help with this assessment of pathogenicity. On the other hand, comparisons on conservation levels are also used to study sequence features.
+
+In summary, this package allows the integration of phastCons data to the R/Bioconductor infrastructure thanks to its easy accessibility and an efficient storage (Section \@ref(storage-of-genomic-scores-with-compressed-vectors)). Thus, phastCons scores can interestingly be used together with other statistical existing resources. 
+
+
+# Storage of genomic scores with compressed vectors 
+
+The big volume of genome wide data is a big constraint for data storage. This raises a need for compression efforts to pursue an efficient use on storage resources as well as to allow simultaneous access to the data.
+
+As for genomic scores, this is important regarding the length of the human genome (> 3 billion base pairs). Thus, storing the score for each position is not a simple task due to the high memory requirements. In this case, big compression is achieved by the usage of Rle (run-length-encoded) vectors coupled with a lossy compression strategy. 
+
+Rle vectors[^2]  is a particular representation of a vector in which a set of different values are described together with the length of its consecutive repetitions. This strategy is particularly useful when a vector is very long and a lot of consecutive repetitons can be found.
+
+[^2]: http://web.mit.edu/~r/current/arch/i386_linux26/lib/R/library/S4Vectors/html/Rle-class.html
+
+```{r rle_objects, message=FALSE, cache=FALSE}
+
+rl <- Rle(c(1,1,0,0,0,0,0,0,0,0,3,3,3,3,3,2,2))
+rl
+
+as.numeric(rl)
+
+```
+
+
+Lossy compression (also called quantization) is a compression method in which some precision is lost without compromising the scientific integrity of the data. 
+
+Measurements and the output of certain models can generate false precision[^3]. False precision is essentialy noise that wastes storage spaces and it is meaningless from the scientific point of view. To overcome this issue, lossy compression can be used to remove this false precision and at the same time, save memory space. In addition, it can also be used to exploit the gap between the precision associated to the value stored and the lower precision needed for a certain analysis. This is specially true for those analysis where cumulated density distribution of a certain variable is more informative than its exact measure (i.e. filtering of potential disease-causing variants based on allele frequency)
+
+[^3]: http://www.geosci-model-dev.net/9/3199/2016/gmd-9-3199-2016.pdf
+
+From the different existing lossy methods, it has ben chosen one very basic and uniform quantizer as it is rounding numbers to a significative decimal digit. This quantizer allows to control the maximum error and establishes a "trade off" between compression and the required precision. In this package, one decimal is set as the significative digit for genomic scores and consequently the maximum rounding error is fixed to 0.05. In Section \@ref(comparison-with-original-scores), the advantages and drawbacks of this lossy compression on our data is discussed.
+
+
+# Retrieval of genomic scores through annotation packages
+
+There are four different annotation packages that support genomic scores right now (Table \@ref(tab:table)):
+
+Annotation Package          | Description
+--------------------------- | --------------------------------------------------------------------------------------------
+phastCons100way.UCSC.hg19   | phastCons scores: UCSC for the human genome (hg19) + 99 vertebrate species (Alignment) [^4]
+phastCons100way.UCSC.hg38   | phastCons scores: UCSC for the human genome (hg38) + 99 vertebrate species (Alignment) [^5]
+phastCons7way.UCSC.hg38     | phastCons scores: UCSC for the human genome (hg38) + 6 mammal species (Alignment) [^6]
+fitCons.UCSC.hg19           | UCSC fitCons fitness consequences scores for the human genome (hg19) [^7] 
+
+: (\#tab:table) Annotation packages to retrieve genomic scores
+
+[^4]: http://hgdownload-test.cse.ucsc.edu/goldenPath/hg19/phastCons100way/
+[^5]: http://hgdownload-test.cse.ucsc.edu/goldenPath/hg38/phastCons100way/
+[^6]: http://hgdownload-test.cse.ucsc.edu/goldenPath/hg38/phastCons7way/
+[^7]: Gulko B, Gronau I and Siepel A (2015). “Probabilities of fitness consequences for point mutations across the human genome.” Nature Genetics, 47, pp. 276-283.
+
+This is an example of how genomic scores can be retrieved from _phastCons100way.UCSC.hg19_ package. Here, a GScores object is uploaded and then the phastCons score of a particular genomic position is computed.
+
+```{r retrieve1, message=FALSE, cache=FALSE}
+
+require(phastCons100way.UCSC.hg19)
+require(GenomicRanges)
+
+gsco <- phastCons100way.UCSC.hg19
+gsco
+
+scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
+
+```
+
+
+# Retrieval of genomic scores through AnnotationHub resources
+
+Another way to retrieve genomic scores is by using AnnotationHub. AnnotationHub is a web resource that provides a central location where genomic files (e.g., VCF, bed, wig) and other resources from standard locations (e.g., UCSC, Ensembl) can be found. Bioconductor AnnotationHub web resource provides a client that creates and manages a local cache of files retrieved by the user, helping with quick and reproducible access. [^8]
+
+[^8]: https://bioconductor.org/packages/release/bioc/html/AnnotationHub.html
+
+The first step to retrieve genomic scores is to check the ones available to download.
+
+```{r retrieve2, message=FALSE, cache=FALSE}
+
+availableGScores()
+
+```
+
+Once selected the required resource, it can be downloaded by using the getGScores() function. The first time that the resource is retrieved it will take a while to be running on the system. After that, the generation of a cache will enable to retrieve it quicker.
+
+```{r retrieve3, message=FALSE, cache=FALSE}
+
+gsco <- getGScores("phastCons100way.UCSC.hg19")
+
+```
+
+Finally, the phastCons score of a particular genomic position is retrieved as it has been seen before.
+
+```{r retrieve4, message=FALSE, cache=FALSE}
+
+scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
+
+```
+
+
+# Comparison with original scores
+
+Lossy compression evaluation is required to avoid problems on the scientific integrity of data regarding its effects on downstream research. According to that, here it is presented a comparison between original scores downloaded from UCSC-phastCons100-hg19 and the compressed ones stored in GenomicScores.
+
+The original scores were sampled randomly from 1000 genomic positions on CDS and 3'UTR regions from the whole genome (two "*.rds" files are attached in the vignettes folder with its respective phastCons scores to reproduce the comparison).
+
+Interestingly, as for the CDS region, only 198 unique genomic scores were found among those 1000 genomic scores. In addition, most of them were integers or 0's (637), while the other scores showed really long decimal parts (maximum of 14). 
+
+
+```{r showpositions, message=FALSE, cache=FALSE}
+
+origpcscoCDS <- readRDS("origphastCons100wayhg19CDS.rds")
+origpcscoCDS
+
+length(unique(origpcscoCDS$score))
+
+numDecimals <- function(x) {
+  spl <- strsplit(as.character(x+1), "\\.")
+  spl <- sapply(spl, "[", 2)
+  spl[is.na(spl)] <- ""
+  nchar(spl)
+}
+
+nd1 <- numDecimals(origpcscoCDS$score)
+table(nd1)
+
+```
+
+Similarly, in 3'UTR region, only 209 unique scores were observed. Again, about the half of the scores were integers or 0's and the other half were scores with long decimal parts (12-14).
+
+```{r showpositions2, message=FALSE, cache=FALSE}
+
+origpcsco3UTRs <- readRDS("origphastCons100wayhg193UTR.rds")
+origpcsco3UTRs
+
+length(table(origpcsco3UTRs$score))
+
+nd2 <- numDecimals(origpcsco3UTRs$score)
+table(nd2)
+
+```
+
+By visually comparing original and compressed phastCons scores in CDS and 3'UTR, it is clearly observed the discretization effect of quantization compared to the continous trend that non-compressed scores follow (first row Figure \@ref(fig:plot1)). However, where the effect of compression can be better analyzed is with the cumulated density distribuiton comparison (second row Figure \@ref(fig:plot1)).
+
+In these figures, CDS and 3'UTR behave differently. In CDS, most of the genomic scores (>60%) are found above 0.9 phastCons score and around 25% are found below 0.1. Indeed, these are the ranges where lossy compression impacts more on precison, specially the first one. Here, the error generated by the decimal rounding does not separate properly scores that get cumulated in this small ranges. 
+The cumulated distribution of 3'UTR shows the same critical points, with the difference that most of scores are found below 0.1 (>70%) instead of above 0.9 (<20%).
+
+```{r plot1, fig.cap = "Original and compressed phastCons scores. First row: comparison, second row: Cumulated density distrution comparison", echo = FALSE, fig.height=12, fig.wide = TRUE}
+
+origpcsco3UTRs <- readRDS("origphastCons100wayhg193UTR.rds")
+origpcscoCDS <- readRDS("origphastCons100wayhg19CDS.rds")
+
+pkgpcsco3UTRs <- scores(gsco, origpcsco3UTRs)
+pkgpcscoCDS <- scores(gsco, origpcscoCDS)
+
+par(mfrow=c(2, 2))
+plot(origpcscoCDS$score, jitter(pkgpcscoCDS), pch=19, cex=1,
+     xaxt="n", yaxt="n", xlab="Original phastCons scores (CDS)",
+     ylab="Compressed phastCons scores (CDS)")
+axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
+abline(0, 1)
+plot(origpcsco3UTRs$score, jitter(pkgpcsco3UTRs), pch=19, cex=1,
+     xaxt="n", yaxt="n", xlab="Original phastCons scores (3' UTR)",
+     ylab="Compressed phastCons scores (3' UTR)")
+axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
+abline(0, 1)
+ForigCDS <- ecdf(origpcscoCDS$score)
+FpkgCDS <- ecdf(pkgpcscoCDS)
+plot(sort(origpcscoCDS$score), ForigCDS(sort(origpcscoCDS$score)), xaxt="n", yaxt="n",
+     pch=".", cex=4, xlab="phastCons scores (CDS)", ylab="F(x)", ylim=c(0, 1))
+axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
+points(sort(pkgpcscoCDS), FpkgCDS(sort(pkgpcscoCDS)), pch=19, cex=1)
+legend("topleft", c("Original score", "Compressed score"), pch=c(46, 19),
+       pt.cex=c(4, 1), inset=0.01, bg="white")
+Forig3UTRs <- ecdf(origpcsco3UTRs$score)
+Fpkg3UTRs <- ecdf(pkgpcsco3UTRs)
+plot(sort(origpcsco3UTRs$score), Forig3UTRs(sort(origpcsco3UTRs$score)), xaxt="n", yaxt="n",
+     pch=".", cex=4, xlab="phastCons scores (3'UTR)", ylab="F(x)", ylim=c(0, 1))
+axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
+abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
+points(sort(pkgpcsco3UTRs), Fpkg3UTRs(sort(pkgpcsco3UTRs)), pch=19, cex=1)
+legend("topleft", c("Original score", "Compressed score"), pch=c(46, 19),
+       pt.cex=c(4, 1), inset=0.01, bg="white")
+
+```
+
+
+The cumulated distribution is indirectly applied when threshold values are used to remove elements from a group. This is a widespread approach in filtering pipelines since we usually select thresholds based on the number of elements that are filtered-in or filtered-out. The usage of compressed phastCons scores under these conditions perfectly outperforms the limiations quantization sets for precision on certain ranges. One common example of this approach is the filtering of variants taking into account the conservation level of their genomic position.
+
+# Multiple-alignment effect on original genomic scores  
+
+phastCons genomic scores are created originally from a multiple sequence alignment (MSA) among different species. Those species are selected based on the level of conservation that is found among them. Thus, depending on the extent of the conservation to be interrogated, different phastCons can be created and downloaded from UCSC repository. In this section, two extreme cases for the hg38 human reference genome version is presented: way 100 (MSA between 100 vertebrates ) and way 7 (MSA between 7 mammals). Here, original data from both versions is compared to see how the number of alignments influences genetic scores and its precision.
+
+To reproduce this analysis, four different files ("*.rds") with original phastCons scores were attached to the vignettes folder. They were created by sampling randomly 1000 genomic positions from CDS and 3'UTR in all chromosomes.
+
+* origphastCons100wayhg38CDS.rds
+* origphastCons100wayhg383UTR.rds
+* origphastCons7wayhg38CDS.rds
+* origphastCons7wayhg383UTR.rds
+
+Scores were retrieved from almost all randomly selected positions. Only less than five positions were missing a genomic score in some of the files. As a consequence, in order to make the analysis completely comparable, we build complete overlaping sets.
+
+
+```{r compway100way7, cache=FALSE}
+origphastCons100wayhg38CDS <- readRDS("origphastCons100wayhg38CDS.rds")
+origphastCons100wayhg383UTR <- readRDS("origphastCons100wayhg383UTR.rds")
+origphastCons7wayhg38CDS <- readRDS("origphastCons7wayhg38CDS.rds")
+origphastCons7wayhg383UTR <- readRDS("origphastCons7wayhg383UTR.rds")
+
+length(origphastCons100wayhg38CDS)
+length(origphastCons7wayhg38CDS)
+
+length(origphastCons100wayhg383UTR)
+length(origphastCons7wayhg383UTR)
+
+## Overlap between the two CDS files
+hits_cds <- findOverlaps(origphastCons100wayhg38CDS, origphastCons7wayhg38CDS)
+if (sum(queryHits(hits_cds)==subjectHits(hits_cds))!=length(hits_cds)){
+    origphastCons100wayhg38CDS <- origphastCons100wayhg38CDS[queryHits(hits_cds)]
+    origphastCons7wayhg38CDS <- origphastCons7wayhg38CDS[subjectHits(hits_cds)]
+    }
+
+## Overlap between the two 3'UTR files
+
+hits_3utr <- findOverlaps(origphastCons100wayhg383UTR, origphastCons7wayhg383UTR)
+if (sum(queryHits(hits_3utr)==subjectHits(hits_3utr))!=length(hits_3utr)) {
+    
+    origphastCons100wayhg383UTR <- origphastCons100wayhg383UTR[queryHits(hits_3utr)]
+    origphastCons7wayhg383UTR <- origphastCons7wayhg383UTR[subjectHits(hits_3utr)]
+}
+
+```
+
+Now, the CDS have phastCons scores for 999 genomic positions in common for Way-7 and Way-100, while 3'UTR have 996.
+
+```{r compway100way72, cache=FALSE}
+length(origphastCons100wayhg38CDS)
+length(origphastCons7wayhg38CDS)
+
+length(origphastCons100wayhg383UTR)
+length(origphastCons7wayhg383UTR)
+```
+
+
+MSA number not only affects genomic scores itself due to the differently distanced species, but also to the number of different scores that can be observed. Thus, considering _CDS_, __MSA Way-100__ outputs __177__ different scores out of 999 positions, while __MSA Way-7__ produces __297__ (67.8% increase). 
+
+
+
+```{r unique_scores, cache=FALSE}
+
+length(unique(origphastCons100wayhg38CDS$score))
+length(unique(origphastCons7wayhg38CDS$score))
+
+
+```
+
+A similar trend is observed when comparing the two MSA considering the _3'UTR_ (__71.7% increase__).
+In both cases, the alignment with less species (only 7 mammals) is the one showing higher number of different genomic scores, implying higher sensitivity to the data.
+
+
+```{r unique_scores2, cache=FALSE}
+
+
+length(unique(origphastCons100wayhg383UTR$score))
+length(unique(origphastCons7wayhg383UTR$score))
+
+```
+
+
+As for score precision, the Way-7 shows a much higher number of decimals compared to Way-100. In fact, just focusing on the maximum of 14 decimals, __Way-7 almost triplicates Way-100__ (686 vs 278).  
+
+
+```{r unique_scores3, cache=FALSE}
+
+
+nd2 <- numDecimals(origphastCons100wayhg38CDS$score)
+table(nd2)
+    
+nd3 <- numDecimals(origphastCons7wayhg38CDS$score)
+table(nd3)
+    
+```
+
+
+Again, __the same trend is observed in 3'UTR__: Way-100 (746) and Way-7 (358).
+
+
+```{r unique_scores4, cache=FALSE}
+nd4 <- numDecimals(origphastCons100wayhg383UTR$score)
+table(nd4)
+    
+nd5 <- numDecimals(origphastCons7wayhg383UTR$score)
+table(nd5)
+```
+
+In conclusion, __Way-7 undoubtly shows a higher level of precision that Way-100__. This may be related again to more sensitivity to sequence changes, but also raises the question of the potential existance of false precision within original scores. In this sense, the lossy compression described here may help adressing this issue and at the same time enhances the storage and manipulation of genome-wide data.
+
+
+# Session information
+
+```{r session_info, cache=FALSE}
+sessionInfo()
+```
