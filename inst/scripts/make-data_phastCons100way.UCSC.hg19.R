@@ -55,40 +55,48 @@ saveRDS(refgenomeGD, file=file.path("hg19.100way.phastCons", "refgenomeGD.rds"))
 ## necessary resolution for the purpose of filtering genetic variants
 ## on conservation
 
-## quantization function. it maps input real-valued [0, 1]
+## quantizer function. it maps input real-valued [0, 1]
 ## phastCons scores to non-negative integers [0, 255] so that
 ## each of them can be later coerced into a single byte (raw type).
 ## quantization is done by rounding to one decimal significant digit,
-## and therefore, mapping is restricted to 11 different non-negative
-## integers only [0-10]
-quantization <- function(x) {
-  q <- 10*round(x, digits=1)
+## and therefore, mapping is restricted to 11 different positive
+## integers only [1-11], where the 0 value is kept to code for missingness
+.quantizer <- function(x) {
+  q <- as.integer(sprintf("%.0f", 10*x))
+  q <- q + 1L
   q
 }
-attr(quantization, "description") <- "10*round(x, digits=1)"
+attr(.quantizer, "description") <- "multiply by 10, round to nearest integer, add up one"
 
-## inverse quantization function. it maps input non-negative integers [0, 255]
-## to real-valued phastCons scores
-inversequantization <- function(q) {
-  q/10
+## dequantizer function. it maps input non-negative integers [0, 255]
+## to real-valued phastCons scores, where 0 codes for NA
+.dequantizer <- function(q) {
+  x <- as.numeric(q)
+  x[x == 0] <- NA
+  x <- (x - 1) / 10
+  x
 }
-attr(inversequantization, "description") <- "q/10"
+attr(.dequantizer, "description") <- "subtract one integer unit, divide by 10"
 
 foreach (chr=seqnames(Hsapiens)) %dopar% {
   cat(chr, "\n")
   tryCatch({
-    rawscores <- import.bw(BigWigFile(file.path("hg19.100way.phastCons", sprintf("%s.phastCons100way.bw", chr))),
-                           as="RleList")[[chr]]
-    qscores <- quantization(rawscores)
-    assign(sprintf("phastCons100way_%s", chr), qscores)
+    rawscores <- import.bw(BigWigFile(file.path("hg19.100way.phastCons", sprintf("%s.phastCons100way.bw", chr))))
+    qscores <- .quantizer(rawscores$score)
+    max.abs.error <- max(abs(rawscores$score - .dequantizer(qscores)))
+    assign(sprintf("phastCons100way_%s", chr), coverage(rawscores, weight=qscores)[[chr]])
     assign(sprintf("phastCons100way_%s", chr),
            do.call("runValue<-", list(get(sprintf("phastCons100way_%s", chr)),
                                       as.raw(runValue(get(sprintf("phastCons100way_%s", chr)))))))
     obj <- get(sprintf("phastCons100way_%s", chr))
-    if (length(unique(rawscores)) <= 10000)
-      Fn <- ecdf(decode(rawscores))
-    else ## to save space with more than 10,000 different values use sampling
-      Fn <- ecdf(sample(decode(rawscores), size=10000, replace=TRUE))
+    n <- length(unique(rawscores$score[!is.na(rawscores$score)]))
+    if (n > 10) {
+      if (n <= 10000) {
+        Fn <- ecdf(rawscores$score)
+      } else { ## to save space with more than 10,000 different values use sampling
+        Fn <- ecdf(sample(rawscores$score[!is.na(rawscores$score)], size=10000, replace=TRUE))
+      }
+    }
     metadata(obj) <- list(seqname=chr,
                           provider="UCSC",
                           provider_version="09Feb2014", ## it'd better to grab the date from downloaded file
@@ -96,16 +104,15 @@ foreach (chr=seqnames(Hsapiens)) %dopar% {
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
                           data_pkgname="phastCons100way.UCSC.hg19",
-                          qfun=quantization,
-                          iqfun=inversequantization,
+                          qfun=.quantizer,
+                          dqfun=.dequantizer,
                           ecdf=Fn,
-                          max_abs_error=max(abs(rawscores-inversequantization(qscores))))
+                          max_abs_error=max.abs.error)
     saveRDS(obj, file=file.path("hg19.100way.phastCons", sprintf("phastCons100way.UCSC.hg19.%s.rds", chr)))
-    rm(rawscores)
-    rm(obj)
+    rm(rawscores, obj)
     rm(list=sprintf("phastCons100way_%s", chr))
     gc()
   }, error=function(err) {
-      message(chr, " ", conditionMessage(err), call.=TRUE)
+    message(chr, " ", conditionMessage(err), call.=TRUE)
   })
 }

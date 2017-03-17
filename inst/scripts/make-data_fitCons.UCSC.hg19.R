@@ -23,8 +23,12 @@
 
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(rtracklayer)
+library(doParallel)
+library(S4Vectors)
 
 downloadURL <- "http://compgen.cshl.edu/fitCons/0downloads/tracks/V1.01/i6/scores/fc-i6-0.bw"
+
+registerDoParallel(cores=4)
 
 ## freeze the GenomeDescription data for Hsapiens
 
@@ -41,63 +45,72 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
 
 saveRDS(refgenomeGD, file="refgenomeGD.rds")
 
-## import BIGWIG file of fitCons scores as a GRanges object
-fitConsGR <- import.bw(BigWigFile("fc-i6-0.bw"))
-
-## get the regions without fitCons scores by complementing the genomic ranges
-fitConsGRcompl <- gaps(fitConsGR)
-
-## since fitCons scores have no strand we should eliminate ranges
-## on the positive and negative strand spanning whole chromosomes
-fitConsGRcompl <- fitConsGRcompl[strand(fitConsGRcompl) == "*"]
-
-## set to NA genome positions without fitCons scores
-fitConsGRcompl$score <- NA <- real <- 
-
-## put together both, positions with and without fitCons scores to have every
-## nucleotide covered with some value
-fitConsGR <- sort(c(fitConsGR, fitConsGRcompl))
-
-## transform BIGWIG into Rle objects coercing phastCons scores into
-## 1-decimal digit raw-encoded values to reduce memory requirements
-## in principle deciles of fitCons probabilities should give the
+## transform BIGWIG into Rle objects coercing fitCons scores into
+## 2-decimal digit raw-encoded values to reduce memory requirements
+## in principle centiles of fitCons probabilities should give the
 ## necessary resolution for the purpose of filtering genetic variants
+## with fitCons scores
 
-## round fitCons scores to one decimal digit, multiply them by 10 and
-## coerce them into integer values
-fitConsGR$score <- as.integer(10*round(fitConsGR$score, digits=1))
+## quantizer function. it maps input real-valued [0, 1]
+## phastCons scores to non-negative integers [0, 255] so that
+## each of them can be later coerced into a single byte (raw type).
+## quantization is done by rounding to one decimal significant digit,
+## and therefore, mapping is restricted to 101 different positive
+## integers only [1-101], where the 0 value is kept to code for missingness
+.quantizer <- function(x) {
+  q <- as.integer(sprintf("%.0f", 100*x))
+  q <- q + 1L
+  q
+}
+attr(.quantizer, "description") <- "multiply by 100, round to nearest integer, add up one"
 
-## because integer-coerced fitCons scores are later coerced into raw,
-## and that coercion converts NA values into 0s, we set NA values to 255,
-## so we can distinguish zero values from absence of fitCons scores (NAs) later on
-fitConsGR$score[is.na(fitConsGR$score)] <- 255L
+## dequantizer function. it maps input non-negative integers [0, 255]
+## to real-valued phastCons scores, where 0 codes for NA
+.dequantizer <- function(q) {
+  x <- as.numeric(q)
+  x[x == 0] <- NA
+  x <- (x - 1) / 100
+  x
+}
+attr(.dequantizer, "description") <- "subtract one integer unit, divide by 100"
 
-## store the fitCons scores from the GRanges object in a RleList object
-fitConsRle <- coverage(fitConsGR, weight=fitConsGR$score)
-
-stopifnot(sapply(fitConsRle, length) == seqlengths(fitConsGR)) ## QC (check that the Rle objects have the corresponding chromosome lengths)
-
-## coerce the integer values of the Rle objects into 1-byte raw values
-fitConsRle <- RleList(lapply(fitConsRle,
-                             function(x) {
-                               runValue(x) <- as.raw(runValue(x))
-                               x
-                             }),
-                      compress=FALSE)
-
-## save each raw-Rle object separately
-for (chr in names(fitConsRle)) {
+foreach (chr=seqnames(Hsapiens)) %dopar% {
+  cat(chr, "\n")
   tryCatch({
-    metadata(fitConsRle[[chr]]) <- list(seqname=chr,
-                                        provider="UCSC",
-                                        provider_version="21Aug2014", ## it'd better to grab the date from downloaded file
-                                        download_url=downloadURL,
-                                        download_date=format(Sys.Date(), "%b %d, %Y"),
-                                        reference_genome=refgenomeGD,
-                                        data_pkgname="fitCons.UCSC.hg19")
-    fname <- sprintf("fitCons.UCSC.hg19.%s.rds", chr)
-    saveRDS(fitConsRle[[chr]], file=fname)
+    rawscores <- import.bw(BigWigFile("fc-i6-0.bw"),
+                           which=GRanges(seqnames=chr, IRanges(1, seqlengths(Hsapiens)[chr])))
+    qscores <- .quantizer(rawscores$score)
+    max.abs.error <- max(abs(rawscores$score - .dequantizer(qscores)))
+    assign(sprintf("fitCons_%s", chr), coverage(rawscores, weight=qscores)[[chr]])
+    assign(sprintf("fitCons_%s", chr),
+           do.call("runValue<-", list(get(sprintf("fitCons_%s", chr)),
+                                      as.raw(runValue(get(sprintf("fitCons_%s", chr)))))))
+    obj <- get(sprintf("fitCons_%s", chr))
+    Fn <- function(x) { warning("no ecdf() function available") ; numeric(0) }
+    n <- length(unique(rawscores$score[!is.na(rawscores$score)]))
+    if (n > 10) {
+      if (n <= 10000) {
+        Fn <- ecdf(rawscores$score)
+      } else { ## to save space with more than 10,000 different values use sampling
+        Fn <- ecdf(sample(rawscores$score[!is.na(rawscores$score)], size=10000, replace=TRUE))
+      }
+    }
+    metadata(obj) <- list(seqname=chr,
+                          provider="UCSC",
+                          provider_version="21Aug2014", ## it'd better to grab the date from downloaded file
+                          download_url=downloadURL,
+                          download_date=format(Sys.Date(), "%b %d, %Y"),
+                          reference_genome=refgenomeGD,
+                          data_pkgname="fitCons.UCSC.hg38",
+                          qfun=.quantizer,
+                          dqfun=.dequantizer,
+                          ecdf=Fn,
+                          max_abs_error=max.abs.error)
+    saveRDS(obj, file=sprintf("fitCons.UCSC.hg19.%s.rds", chr))
+    rm(rawscores, obj)
+    rm(list=sprintf("fitCons_%s", chr))
+    gc()
   }, error=function(err) {
-      message(chr, " ", conditionMessage(err), call.=TRUE)
+    message(chr, " ", conditionMessage(err), call.=TRUE)
   })
 }

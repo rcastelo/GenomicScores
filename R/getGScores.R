@@ -1,25 +1,58 @@
-.availableGScores <- c("phastCons100way.UCSC.hg19",
-                       "phastCons100way.UCSC.hg38",
-                       "phastCons7way.UCSC.hg38",
-                       "fitCons.UCSC.hg19")
+## adapted from Biobase::testBioCConnection()
+.testConnection <- function (urladr) {
+  curNetOpt <- getOption("internet.info")
+  on.exit(options(internet.info = curNetOpt), add = TRUE)
+  options(internet.info = 3)
+  http <- as.logical(capabilities(what = "http/ftp"))
+  if (http == FALSE)
+    return(FALSE)
+  fgahURL <- url("http://functionalgenomics.upf.edu/annotationhub")
+  options(show.error.messages = FALSE)
+  test <- try(readLines(fgahURL)[1])
+  options(show.error.messages = TRUE)
+  if (inherits(test, "try-error"))
+    return(FALSE)
+  else
+    close(fgahURL)
 
-availableGScores <- function() .availableGScores
+  return(TRUE)
+}
+
+availableGScores <- function() {
+  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub"
+  avgs <- character(0)
+
+  if (!.testConnection(baseUrl)) {
+    warning(sprintf("No internet connection to %s", baseUrl))
+    return(avgs)
+  }
+
+  mainDirs <- AnnotationForge:::.getSubDirs(baseUrl)
+  mainDirs <- sub("/", "", mainDirs)
+  mainDirs <- mainDirs[nchar(mainDirs) > 0]
+  if (length(mainDirs) < 1) {
+    warning(sprintf("No available genomic scores at %s", baseUrl))
+    return(avgs)
+  }
+
+  for (d in mainDirs) {
+    subDirs <- AnnotationForge:::.getSubDirs(paste(baseUrl, d, sep="/"))
+    subDirs <- sub("/", "", subDirs[grep(d, subDirs)])
+    avgs <- c(avgs, subDirs)
+  }
+
+  avgs
+}
 
 getGScores <- function(x) {
   if (!is.character(x) || length(x) > 1)
     stop("'x' should be a character vector of length 1.")
 
-  if (!x %in% availableGScores())
-    stop("'x' is not available. Please use 'availableGScores()' to know what genomic scores sources are avilable")
-
-  ## query the AnnotationHub
-  ## FIXME: some error manipulation is needed when
-  ##        the resource is not available for whatever reason
   ah <- AnnotationHub()
   ah <- query(ah, x)
 
   if (length(ah) == 0)
-    stop("'x' is not available in this snapshot of the annotation hub. Please try to update the metadata of the annotation hub.")
+    stop("'x' is not available. Please use 'availableGScores()' to know what genomic scores resources are available, or try to update the metadata of the annotation hub.")
 
   ## use the AnnotationHub metadata to figure out the correspondence
   ## between downloaded filenames and object names

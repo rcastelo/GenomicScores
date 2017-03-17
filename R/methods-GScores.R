@@ -145,8 +145,7 @@ setMethod("scores", c("GScores", "GRanges"),
 
             sco <- rleGetValues(scorlelist, gpos, summaryFun=summaryFun,
                                 coercionFun=coercionFun)
-            sco[sco == 255L] <- NA_integer_
-            sco <- metadata(scorlelist[[1]])$iqfun(sco) ## inverse quantization
+            sco <- metadata(scorlelist[[1]])$dqfun(sco)
             rm(scorlelist)
 
             sco
