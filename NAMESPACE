@@ -49,9 +49,7 @@ importFrom(GenomeInfoDb, seqnames,
                          extractSeqlevelsByGroup,
                          seqlengths,
                          seqinfo,
-                         Seqinfo,
-			 releaseDate,
-			 releaseName)
+                         Seqinfo)
 
 importFrom(IRanges, IRanges,
                     IRangesList,
@@ -73,6 +71,8 @@ exportMethods(organism,
               seqlengths,
               seqlevelsStyle,
               seqnames,
+              qfun,
+              dqfun,
               show)
 
 export(GScores,

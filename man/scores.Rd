@@ -44,7 +44,12 @@ The method \code{scores()} takes as first argument a \code{GScores-class} object
 that can be loaded from an annotation package or from an \code{AnnotationHub} resource.
 These two possibilities are illustrated in the examples below.
 }
-
+\value{
+The function \code{availableGScores()} returns a character vector with the names of the
+AnnotationHub resources corresponding to different available sets of genomic scores. The
+function \code{getGScores()} return a \code{GScores} object. The method \code{scores()}
+returns a numeric vector.
+}
 \author{R. Castelo}
 \seealso{
   \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}

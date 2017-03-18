@@ -1,5 +1,5 @@
 ## The GScores class attempts to provide a compact storage and
-## efficient retrieval of score values associated to individual
+## efficient retrieval of genomic score values associated to individual
 ## physical nucleotide positions in a given genome. This class is
 ## based on the SNPlocs class defined in the BSgenome package
 setClass("GScores",
@@ -7,9 +7,9 @@ setClass("GScores",
                                        provider="character",
                                        ## creation date in compact format
                                        provider_version="character",
-                                       ## download URL of all phastCons data
+                                       ## download URL of all scores data
                                        download_url="character",
-                                       ## date on which data was downloaded
+                                       ## date on which data were downloaded
                                        download_date="character",
                                        ## extracted from BSgenome.*
                                        reference_genome="GenomeDescription",

@@ -190,7 +190,7 @@ foreach (chr=seqlevels(allchrgr)) %dopar% {
                           dqfun=.dequantizer,
                           ecdf=Fn,
                           max_abs_error=max.abs.error)
-    saveRDS(obj, file=sprintf("cadd.hg19.%s.rds", chr))
+    saveRDS(obj, file=sprintf("cadd.v1.3.hg19.%s.rds", chr))
     rm(allrawscores, obj)
     rm(obj)
     gc()

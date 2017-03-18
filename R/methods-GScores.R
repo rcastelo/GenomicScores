@@ -136,7 +136,7 @@ setMethod("scores", c("GScores", "GRanges"),
                                 object@data_pkgname, sname, class(object),
                                 objectname))
                 scorlelist[[sname]] <- Rle(lengths=slengths[sname],
-                                           values=as.raw(255L))
+                                           values=as.raw(0L))
               }
             }
 
@@ -151,18 +151,37 @@ setMethod("scores", c("GScores", "GRanges"),
             sco
           })
 
+## getter qfun and dqfun methods
+setMethod("qfun", "GScores",
+          function(object) {
+            obj <- get(object@data_pkgname, envir=object@.data_cache)
+            metadata(obj[[1]])$qfun
+          })
+
+setMethod("dqfun", "GScores",
+          function(object) {
+            obj <- get(object@data_pkgname, envir=object@.data_cache)
+            metadata(obj[[1]])$dqfun
+          })
+
 ## show method
 setMethod("show", "GScores",
           function(object) {
-              cat(class(object), " object \n",
-                  "# organism: ", organism(referenceGenome(object)), " (", provider(object), ")\n",
-                  "# provider: ", provider(object), "\n",
-                  "# provider version: ", providerVersion(referenceGenome(object)), "\n",
-                  "# release date: ", releaseDate(referenceGenome(object)), "\n",
-                  "# release name: ", releaseName(referenceGenome(object)),"\n",
-                  "# ", length(seqinfo(object)), " sequences", "\n",
-                  "# Use 'seqnames()' to list all sequence names", "\n", sep="")
+            obj <- get(object@data_pkgname, envir=object@.data_cache)
+            seqs <- names(obj)
+            max.abs.error <- NA
+            if (length(seqs) > 0) {
+              max.abs.error <- max(sapply(lapply(obj, metadata), "[[", "max_abs_error"))
+            } else
+              seqs <- "none"
+            if (length(seqs) > 5)
+              seqs <- c(seqs[1:2],  "...", seqs[length(seqs)])
+            seqs <- paste(seqs, collapse=", ")
+            cat(class(object), " object \n",
+                "# organism: ", organism(referenceGenome(object)), " (", provider(object), ")\n",
+                "# provider: ", provider(object), "\n",
+                "# provider version: ", providerVersion(object), "\n",
+                "# download date: ", object@download_date, "\n",
+                "# loaded sequences: ", seqs, "\n",
+                "# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
           })
-
-
-

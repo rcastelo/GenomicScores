@@ -1,9 +1,9 @@
 .GenomicScoresMetadataFromUrl <- function(baseUrl, track) {
   require(GenomeInfoDb)
 
-  ## genus+species to NCBI taxon identifier from GenomeInfoDb
-  load(system.file("data", "speciesMap.rda", package="GenomeInfoDb"))
-  speciesMap <- get("speciesMap") ## just to avoid a NOTE during R CMD check
+  ## genus+species to NCBI taxon identifier from GenomeInfoDb (NOT ANYMORE! 17/3/17)
+  ## load(system.file("data", "speciesMap.rda", package="GenomeInfoDb"))
+  ## speciesMap <- get("speciesMap") ## just to avoid a NOTE during R CMD check
 
   pcmetadf <- data.frame(title=character(0), species=character(0),
                          taxonomyId=integer(0), genome=character(0),
@@ -14,7 +14,8 @@
                           open="rb")))
   pcRDSfiles <- AnnotationForge:::.getSubDirs(sprintf("%s%s", baseUrl, track))
   pcRDSfiles <- pcRDSfiles[grep(track, pcRDSfiles)]
-  taxonId <- as.integer(subset(speciesMap, species == organism(gd))$taxon)
+  ## taxonId <- as.integer(subset(speciesMap, species == organism(gd))$taxon)
+  taxonId <- 9606L
   rDataPath <- sprintf("%s/%s", track, pcRDSfiles)
   chr <- sub(".rds", "", sub(paste0(track, "."), "", pcRDSfiles))
   stopifnot(all(chr %in% seqnames(gd))) ## QC

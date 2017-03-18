@@ -1,22 +1,21 @@
 Package: GenomicScores
 Type: Package
-Title: Classes and methods to work with genomewide position-specific scores
-Description: Provide support to store and retrieve genomic scores associated
-    with nucleotide positions along a genome.
-Version: 0.99.17
+Title: Infrastructure to work with genomewide position-specific scores
+Description: Provide infrastructure to store and access genomewide position-speicfic scores within R and Bioconductor.
+Version: 0.99.0
 Authors@R: c(person("Robert", "Castelo", role=c("aut", "cre"),
     email="robert.castelo@upf.edu"), person("Pau", "Puigdevall",
     role="ctb", email="pau.puigdevall@upf.edu"))
 License: Artistic-2.0
-Depends: R (>= 3.0.0), S4Vectors (>= 0.7.21), GenomicRanges, methods,
+Depends: R (>= 3.4), S4Vectors (>= 0.7.21), GenomicRanges, methods,
     BiocGenerics (>= 0.13.8)
-Imports: IRanges (>= 2.3.23), BSgenome, GenomeInfoDb, AnnotationHub,
-    AnnotationHubData
+Imports: utils, IRanges (>= 2.3.23), BSgenome, GenomeInfoDb,
+    AnnotationHub, AnnotationHubData
 Suggests: BiocStyle, knitr, rmarkdown, BSgenome.Hsapiens.UCSC.hg19,
-    phastCons100way.UCSC.hg19, phastCons100way.UCSC.hg38
+    phastCons100way.UCSC.hg19
 VignetteBuilder: knitr
 URL: https://github.com/rcastelo/GenomicScores
 BugReports: https://github.com/rcastelo/GenomicScores/issues
 Encoding: UTF-8
 LazyData: yes
-biocViews: Genetics, Annotation
+biocViews: Genetics, Annotation, Sequencing, Coverage
