@@ -91,13 +91,10 @@ scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
 ## meta information about a GScores object
 provider(gsco)
 providerVersion(gsco)
-referenceGenome(gsco)
 organism(gsco)
 seqlevelsStyle(gsco)
 seqinfo(gsco)
 head(seqnames(gsco))
 head(seqlengths(gsco))
-qfun(gsco)
-dqfun(gsco)
 }
 \keyword{datasets}

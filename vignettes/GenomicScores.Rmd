@@ -165,15 +165,18 @@ scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
 To have a sense of the extent of the trade-off between precision and compression we compare here
 raw phastCons scores with the ones stored in the corresponding annotation package using lossy compression.
 In this case, phastCons scores were quantized by rounding their precision to one decimal digit.
+
+<!--
 Multiple details regarding how genomics scores were processed are stored in the metadata of the
 Rle objects that store them, including the corresponding quantizer and dequantizer functions. These can
 be accessed from a GScores object using the methods qfun() and dqfun(), respectively. The latter is
 called by the scores() method to retrieve genomic scores.
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
 qfun(gsco)
 dqfun(gsco)
 ```
+-->
 
 One thousand raw phastCons scores were sampled uniformly at random from CDS and 3'UTR regions and are
 included in this package to illustrate this comparison. Interestingly, among the phastCons scores

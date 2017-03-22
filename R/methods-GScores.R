@@ -99,7 +99,6 @@ setMethod("scores", c("GScores", "GRanges"),
             summaryFun <- "mean"
             coercionFun <- "as.numeric"
             caching <- TRUE
-            blablaarg <- "hola"
 
             ## get arguments
             arglist <- list(...)
