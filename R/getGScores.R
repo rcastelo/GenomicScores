@@ -18,6 +18,26 @@
   return(TRUE)
 }
 
+## adapted from AnnotationForge:::.getSubDirs()
+.getSubDirs <- function(dname)
+{
+    getLinks <- function() {
+        links <- character()
+        list(a = function(node, ...) {
+            links <<- c(links, xmlGetAttr(node, "href"))
+            node
+        },
+        links <- function()links)
+    }
+    h1 <- getLinks()
+    htmlTreeParse(dname, handlers = h1)
+    res <- h1$links()
+    res <- res[!(res %in% c("?C=N;O=D", "?C=M;O=A", "?C=S;O=A", "?C=D;O=A",
+                            "/download/current/"))]
+    res
+}
+
+
 availableGScores <- function() {
   baseUrl <- "http://functionalgenomics.upf.edu/annotationhub"
   avgs <- character(0)
@@ -27,7 +47,7 @@ availableGScores <- function() {
     return(avgs)
   }
 
-  mainDirs <- AnnotationForge:::.getSubDirs(baseUrl)
+  mainDirs <- .getSubDirs(baseUrl)
   mainDirs <- sub("/", "", mainDirs)
   mainDirs <- mainDirs[nchar(mainDirs) > 0]
   if (length(mainDirs) < 1) {
@@ -36,7 +56,7 @@ availableGScores <- function() {
   }
 
   for (d in mainDirs) {
-    subDirs <- AnnotationForge:::.getSubDirs(paste(baseUrl, d, sep="/"))
+    subDirs <- .getSubDirs(paste(baseUrl, d, sep="/"))
     subDirs <- sub("/", "", subDirs[grep(d, subDirs)])
     avgs <- c(avgs, subDirs)
   }

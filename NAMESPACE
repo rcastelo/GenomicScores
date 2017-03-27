@@ -41,6 +41,9 @@ importMethodsFrom(AnnotationHub, query,
 
 importFrom(utils, data)
 
+importFrom(XML, xmlGetAttr,
+                htmlTreeParse)
+
 importFrom(GenomeInfoDb, seqnames,
                          keepStandardChromosomes,
                          keepSeqlevels,
