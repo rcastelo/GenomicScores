@@ -4,7 +4,6 @@ import(S4Vectors)
 import(GenomicRanges)
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
-importClassesFrom(AnnotationHubData, AnnotationHubMetadata)
 
 importMethodsFrom(BSgenome, snpcount,
                             snplocs,
@@ -63,8 +62,6 @@ importFrom(IRanges, IRanges,
 importFrom(AnnotationHub, AnnotationHub,
                           getAnnotationHubOption)
 
-importFrom(AnnotationHubData, AnnotationHubMetadata)
-
 exportMethods(organism,
               provider,
               providerVersion,
@@ -74,8 +71,6 @@ exportMethods(organism,
               seqlengths,
               seqlevelsStyle,
               seqnames,
-              qfun,
-              dqfun,
               show)
 
 export(GScores,

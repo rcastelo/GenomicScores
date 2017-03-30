@@ -1,5 +1,5 @@
 ---
-title: "Genomic Scores"
+title: "The GenomicScores package"
 author:
 - name: Pau Puigdevall
   affiliation: 
@@ -23,33 +23,34 @@ vignette: >
 
 # Getting started
 
-GenomicScores is an R package distributed as part of the Bioconductor project. To install the package, start R and enter:
+`r Biocpkg("GenomicScores")` is an R package distributed as part of the
+Bioconductor project. To install the package, start R and enter:
 
 ```{r library_install, message=FALSE, cache=FALSE, eval=FALSE}
 source("http://bioconductor.org/biocLite.R")
 biocLite("GenomicScores")
 ```
 
-Once GenomicScores is installed, it can be loaded with the following command.
+Once `r Biocpkg("GenomicScores")` is installed, it can be loaded with the following command.
 
 ```{r library_upload, message=FALSE, cache=FALSE}
 library(GenomicScores)
 ```
 
-Often, however, GenomicScores will be automatically loaded when
-working with an annotation package that uses GenomicScores, such
+Often, however, `r Biocpkg("GenomicScores")` will be automatically loaded when
+working with an annotation package that uses `r Biocpkg("GenomicScores")`, such
 as phastCons100way.UCSC.hg19.
 
 # Genomewide position-specific scores
 
 Genomewide scores assign each genomic position a numeric value denoting an estimated measure of constraint or impact on variation at that position. They are commonly used to filter single nucleotide variants or assess the degree of constraint or functionality of genomic features. Genomic scores are built on the basis of different sources of information such as sequence homology, functional domains, physical-chemical changes of amino acid residues, etc.
 
-One particular example of genomic scores are __phastCons__ scores. They provide a measure of conservation obtained from genomewide alignments using the program phastCons (_Phylogenetic Analysis with Space/Time models_)[^1]. The GenomicScores package allows one to retrieve these scores through annotation packages (Section \@ref(retrieval-of-genomic-scores-through-annotation-packages)) or as AnnotationHub resources (Section \@ref(retrieval-of-genomic-scores-through-annotationhub-resources)).
+One particular example of genomic scores are __phastCons__ scores. They provide a measure of conservation obtained from genomewide alignments using the program phastCons (_Phylogenetic Analysis with Space/Time models_)[^1]. The `r Biocpkg("GenomicScores")` package allows one to retrieve these scores through annotation packages (Section \@ref(retrieval-of-genomic-scores-through-annotation-packages)) or as AnnotationHub resources (Section \@ref(retrieval-of-genomic-scores-through-annotationhub-resources)).
 
 [^1]: Siepel A et al. Evolutionarily conserved elements in vertebrate, insect, worm, and yeast genomes. Genome Res. 2005 Aug;15(8):1034-50. (http://www.genome.org/cgi/doi/10.1101/gr.3715005)
 
 Often, genomic scores such as phastCons are used within workflows running on
-top of R and Bioconductor. The purpose of the GenomicScores package is to enable
+top of R and Bioconductor. The purpose of the `r Biocpkg("GenomicScores")` package is to enable
 an easy and interactive access to genomic scores within those workflows.
 
 # Lossy storage of genomic scores with compressed vectors 
@@ -62,7 +63,7 @@ phastCons, CADD or M-CAP scores.
 We address this problem by using _lossy compression_, also called _quantization_,
 coupled with run-length encoding (Rle) vectors. Lossy compression attempts to
 trade off precision for compression without compromising the scientific
-integrity of the data [^2].
+integrity of the data[^2].
 
 Sometimes, measurements and statistical estimates under certain models
 generate false precision. False precision is essentialy noise that wastes
@@ -83,7 +84,7 @@ S4Vectors Bioconductor package[^3].
 # Retrieval of genomic scores through annotation packages
 
 There are currently four different annotation packages that store genomic
-scores and can be accessed using the GenomicScores package
+scores and can be accessed using the `r Biocpkg("GenomicScores")` package
 (Table \@ref(tab:table)):
 
 Annotation Package          | Description
@@ -118,7 +119,7 @@ We should use the function scores() to retrive genomic scores for specific posit
 scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
 ```
 
-The GenomicScores package only loads the scores data from the sequences that are being
+The `r Biocpkg("GenomicScores")` package only loads the scores data from the sequences that are being
 queried. Note that now the GScores object has loaded the scores from chr7.
 
 ```{r}
@@ -158,6 +159,70 @@ Finally, the phastCons score of a particular genomic position is retrieved as it
 
 ```{r retrieve4, message=FALSE, cache=FALSE}
 scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
+```
+
+# Annotating variants with genomic scores
+
+A typical use case of the `r Biocpkg("GenomicScores")` package is in the context of annotating variants
+with genomic scores, such as phastCons conservation scores.
+For this purpose, we load the `r Biocpkg("VariantAnnotaiton")` and
+`r Biocpkg("TxDb.Hsapiens.UCSC.hg19.knownGene")` packages. The former will allow us to
+read a VCF file and annotate it, and the latter contains the gene annotations from UCSC
+that will be used in this process.
+
+```{r}
+library(VariantAnnotation)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
+Let's load one of the sample VCF files that form part of the
+`r Biocpkg("VariantAnnotation")` package.
+
+```{r}
+fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
+vcf <- readVcf(fl, "hg19")
+seqlevelsStyle(vcf)
+txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+seqlevelsStyle(txdb)
+```
+
+Because the chromosome nomenclature from the VCF file (NCBI) is different 
+from the one with the gene annotations (UCSC) we use the `seqlevelsStyle()`
+function to force our variants having the chromosome nomenclature of the
+gene annotations. Then we fetch the variants as a `GRanges` object.
+
+```{r}
+seqlevelsStyle(vcf) <- seqlevelsStyle(txdb)
+rd <- rowRanges(vcf)
+rd[1:3]
+```
+
+We annotate the location of variants using the function `locateVariants()`
+from the `r Biocpkg("VariantAnnotation")` package.
+
+```{r}
+loc <- locateVariants(rd, txdb, AllVariants())
+loc[1:3]
+table(loc$LOCATION)
+```
+
+Finally annotate phastCons conservation scores on the variants and store
+those annotations as an additional metadata column of the `GRanges` object.
+
+```{r}
+loc$PHASTCONS <- scores(gsco, loc)
+loc[1:3]
+```
+
+Using the following code we can examine the distribution of phastCons
+conservation scores of variants across the different annotated regions,
+shown in Figure \@ref(fig:plot1).
+
+```{r plot1, fig.cap = "Distribution of phastCons conservation scores in variants across different annotated regions. Diamonds indicate mean values.", echo = FALSE, fig.height=5, fig.wide = TRUE, echo=TRUE}
+x <- split(loc$PHASTCONS, loc$LOCATION)
+mask <- elementNROWS(x) > 0
+boxplot(x[mask], ylab="phastCons score")
+points(1:length(x[mask])+0.25, sapply(x[mask], mean, na.rm=TRUE), pch=23, bg="black")
 ```
 
 # Comparison between lossy-compressed and raw phastCons scores
@@ -223,7 +288,7 @@ pkgpcscoCDS <- scores(gsco, origpcscoCDS)
 pkgpcsco3UTRs <- scores(gsco, origpcsco3UTRs)
 ```
 
-In Figure \@ref(fig:plot1) we show a visual comparison between raw and lossy-compressed phastCons scores.
+In Figure \@ref(fig:plot2) we show a visual comparison between raw and lossy-compressed phastCons scores.
 The two panels on top compare the whole range of scores observed in CDS (left) and 3'UTR (right) regions.
 However, the effect of lossy compression can be better observed in the cumulative distributions shown in
 the panels at the bottom, again for CDS (left) and 3'UTR (right) regions.
@@ -234,7 +299,7 @@ the scores are found below 0.1. Indeed, these are the range of values where loss
 The cumulative distribution of 3'UTR shows the same critical points, with the difference that most of scores are
 found below 0.1 (>70%).
 
-```{r plot1, fig.cap = "Original and lossy-compressed phastCons scores. Top panels: comparison of the distribution of values. Bottom panels: comparison of the cumulative distribution", echo = FALSE, fig.height=12, fig.wide = TRUE}
+```{r plot2, fig.cap = "Original and lossy-compressed phastCons scores. Top panels: comparison of the distribution of values. Bottom panels: comparison of the cumulative distribution", echo = FALSE, fig.height=12, fig.wide = TRUE}
 par(mfrow=c(2, 2))
 plot(origpcscoCDS$score, jitter(pkgpcscoCDS), pch=19, cex=1,
      xaxt="n", yaxt="n", xlab="Original phastCons scores (CDS)",
@@ -273,7 +338,7 @@ legend("topleft", c("Original score", "Compressed score"), pch=c(46, 19),
 
 ```
 
-The bottom plots in Figure \@ref(fig:plot1) also reveal that when the cumulative distribution is
+The bottom plots in Figure \@ref(fig:plot2) also reveal that when the cumulative distribution is
 of interest, such as in the context of filtering genetic variants above or below certain threshold
 of conservation, the quantization of phastCons scores to one decimal digit provides sufficient
 precision for a wide range of conservation values.

@@ -39,19 +39,18 @@ setMethod("seqlevelsStyle", "GScores",
 
 ## this has been improved using RleViews as discussed in
 ## https://stat.ethz.ch/pipermail/bioconductor/2013-December/056409.html
-rleGetValues <- function(rlelst, gr, summaryFun="mean",
-                         coercionFun="as.numeric") {
+.rleGetValues <- function(rlelst, gr, summaryFun) {
+  summaryFun <- match.fun(summaryFun)
   numericmean <- TRUE
-  if (summaryFun != "mean" || coercionFun != "as.numeric")
+  if (!identical(summaryFun, mean))
     numericmean <- FALSE
 
-  summaryFun <- match.fun(summaryFun)
-  coercionFun <- match.fun(coercionFun)
+  .dequantizer <- metadata(rlelst[[1]])$dqfun
   seqlevels(gr) <- names(rlelst)
   ord <- order(seqnames(gr))
   ans <- numeric(length(gr))
   startbyseq <- split(start(gr), seqnames(gr), drop=TRUE)
-  ans[ord] <- unlist(lapply(rlelst[startbyseq], coercionFun), use.names=FALSE)
+  ans[ord] <- unlist(lapply(rlelst[startbyseq], .dequantizer), use.names=FALSE)
   whregions <- which(width(gr) > 1)
   if (length(whregions) > 0) { ## regions comprising more than one position
     tmpans <- NA_real_         ## need to be summarized
@@ -64,7 +63,7 @@ rleGetValues <- function(rlelst, gr, summaryFun="mean",
                          ## second for chromosome 1, we should
                          ## consider storing coerced version if
                          ## memory consumption is not an issue
-                         runValue(coercedrle) <- as.numeric(runValue(coercedrle))
+                         runValue(coercedrle) <- .dequantizer(runValue(coercedrle))
                          viewMeans(Views(coercedrle,
                                          start=start(rngbyseq[[sname]]),
                                          end=end(rngbyseq[[sname]])))
@@ -79,7 +78,7 @@ rleGetValues <- function(rlelst, gr, summaryFun="mean",
       f <- function(r, p, w)
              sapply(seq_along(p),
                     function(i, r, p, w)
-                      summaryFun(coercionFun(r[p[i]:(p[i]+w[i]-1)])), r, p, w)
+                      summaryFun(.dequantizer(r[p[i]:(p[i]+w[i]-1)])), r, p, w)
 
       tmpans <- unlist(mapply(f,
                               rlelst[names(startbyseq)], startbyseq, widthbyseq,
@@ -92,12 +91,11 @@ rleGetValues <- function(rlelst, gr, summaryFun="mean",
   ans
 }
 
-setMethod("scores", c("GScores", "GRanges"),
-          function(object, gpos, ...) {
+setMethod("scores", c("GScores", "GenomicRanges"),
+          function(object, ranges, ...) {
             objectname <- deparse(substitute(object))
             ## default non-generic arguments
-            summaryFun <- "mean"
-            coercionFun <- "as.numeric"
+            summaryFun <- mean
             caching <- TRUE
 
             ## get arguments
@@ -107,13 +105,13 @@ setMethod("scores", c("GScores", "GRanges"),
               names(arglist)[mask] <- paste0("X", 1:sum(mask))
             list2env(arglist, envir=sys.frame(sys.nframe()))
 
-            if (length(gpos) == 0)
+            if (length(ranges) == 0)
               return(numeric(0))
 
-            if (seqlevelsStyle(gpos) != seqlevelsStyle(object))
-              seqlevelsStyle(gpos) <- seqlevelsStyle(object)
+            if (seqlevelsStyle(ranges) != seqlevelsStyle(object))
+              seqlevelsStyle(ranges) <- seqlevelsStyle(object)
 
-            snames <- unique(as.character(runValue(seqnames(gpos))))
+            snames <- unique(as.character(runValue(seqnames(ranges))))
             if (any(!snames %in% seqnames(object)))
               stop(sprintf("Sequence names %s in GRanges object not present in reference genome %s.",
                            paste(snames[!snames %in% seqnames(object)], collapse=", "),
@@ -142,26 +140,24 @@ setMethod("scores", c("GScores", "GRanges"),
             if (any(missingMask) && caching)
               assign(object@data_pkgname, scorlelist, envir=object@.data_cache)
 
-            sco <- rleGetValues(scorlelist, gpos, summaryFun=summaryFun,
-                                coercionFun=coercionFun)
-            sco <- metadata(scorlelist[[1]])$dqfun(sco)
+            sco <- .rleGetValues(scorlelist, ranges, summaryFun=summaryFun)
             rm(scorlelist)
 
             sco
           })
 
 ## getter qfun and dqfun methods
-setMethod("qfun", "GScores",
-          function(object) {
-            obj <- get(object@data_pkgname, envir=object@.data_cache)
-            metadata(obj[[1]])$qfun
-          })
-
-setMethod("dqfun", "GScores",
-          function(object) {
-            obj <- get(object@data_pkgname, envir=object@.data_cache)
-            metadata(obj[[1]])$dqfun
-          })
+## setMethod("qfun", "GScores",
+##           function(object) {
+##             obj <- get(object@data_pkgname, envir=object@.data_cache)
+##             metadata(obj[[1]])$qfun
+##           })
+## 
+## setMethod("dqfun", "GScores",
+##           function(object) {
+##             obj <- get(object@data_pkgname, envir=object@.data_cache)
+##             metadata(obj[[1]])$dqfun
+##           })
 
 ## show method
 setMethod("show", "GScores",

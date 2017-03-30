@@ -12,7 +12,7 @@
 
   gd <- readRDS(gzcon(url(sprintf("%s%s/refgenomeGD.rds", baseUrl, track),
                           open="rb")))
-  scRDSfiles <- AnnotationForge:::.getSubDirs(sprintf("%s%s", baseUrl, track))
+  scRDSfiles <- GenomicScores:::.getSubDirs(sprintf("%s%s", baseUrl, track))
   scRDSfiles <- scRDSfiles[grep(track, scRDSfiles)]
   ## taxonId <- as.integer(subset(speciesMap, species == organism(gd))$taxon)
   taxonId <- 9606L

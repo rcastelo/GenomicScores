@@ -1,6 +1,6 @@
 \name{scores}
 
-\alias{scores,GScores,GRanges-method}
+\alias{scores,GScores,GenomicRanges-method}
 \alias{scores}
 \alias{availableGScores}
 \alias{getGScores}
@@ -13,14 +13,14 @@ Functions to access genomic scores through \code{GScores} objects.
 \usage{
 availableGSscores()
 getGScores(x)
-\S4method{scores}{GScores,GRanges}(object, gpos, ...)
+\S4method{scores}{GScores,GenomicRanges}(object, ranges, ...)
 }
 \arguments{
   \item{x}{A \code{character} vector of length 1 specifiying the genomic scores resource to
            fetch. The function \code{availableGScores()} shows the available genomic scores
            resources.}
   \item{object}{A \code{GScores} object.}
-  \item{gpos}{A \code{GRanges} object with positions from where to retrieve
+  \item{ranges}{A \code{GenomicRanges} object with positions from where to retrieve
               genomic scores.}
   \item{...}{In the call to the \code{scores}() method one can additionally
              set the following arguments:
@@ -28,10 +28,6 @@ getGScores(x)
                \item{summaryFun}{Function to summarize genomic scores when more than one
                                  position is retrieved. By default, this is set to the
                                  arithmetic mean, i.e., the \code{mean()} function.}
-               \item{coercionFun}{Function to coerce the stored genomic scores, before the
-                                  summary function is applied. By default genomic scores are
-                                  coerced to real (\code{numeric}-class) values, i.e., to the
-                                  \code{as.numeric()} function.}
                \item{caching}{Flag setting whether genomic scores per chromosome should be
                               kept cached in memory (\code{TRUE}, default) or not
                               (\code{FALSE}). The latter option minimizes the memory footprint

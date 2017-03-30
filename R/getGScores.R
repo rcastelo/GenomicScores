@@ -22,12 +22,12 @@
 .getSubDirs <- function(dname)
 {
     getLinks <- function() {
-        links <- character()
+        links <- character(0)
         list(a = function(node, ...) {
-            links <<- c(links, xmlGetAttr(node, "href"))
-            node
-        },
-        links <- function()links)
+                   links <<- c(links, xmlGetAttr(node, "href"))
+                   node
+                 },
+             links = function() links)
     }
     h1 <- getLinks()
     htmlTreeParse(dname, handlers = h1)
@@ -61,7 +61,12 @@ availableGScores <- function() {
     avgs <- c(avgs, subDirs)
   }
 
-  avgs
+  ## report only those in the current AnnotationHub database
+  ah <- AnnotationHub()
+  ah <- query(ah, avgs, pattern.op=`|`)
+  mcah <- mcols(ah)
+
+  avgs[!is.na(charmatch(avgs, mcah$title))]
 }
 
 getGScores <- function(x) {

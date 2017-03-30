@@ -11,10 +11,10 @@
 \alias{seqlengths,GScores-method}
 \alias{seqnames,GScores-method}
 \alias{seqlevelsStyle,GScores-method}
-\alias{qfun,GScores-method}
-\alias{qfun}
-\alias{dqfun,GScores-method}
-\alias{dqfun}
+%%\alias{qfun,GScores-method}
+%%\alias{qfun}
+%%\alias{dqfun,GScores-method}
+%%\alias{dqfun}
 \alias{show,GScores-method}
 
 \title{The GenomicScores package and the GScores class}
@@ -27,8 +27,6 @@ to nucleotide positions along a genome.
 GScores(provider, provider_version, download_url,
         download_date, reference_genome,
         data_pkgname, data_dirpath, data_serialized_objnames)
-\S4method{qfun}{GScores}(object)
-\S4method{dqfun}{GScores}(object)
 }
 \arguments{
   \item{provider}{Data provider.}
@@ -39,7 +37,6 @@ GScores(provider, provider_version, download_url,
   \item{data_pkgname}{Name of the package storing the data.}
   \item{data_dirpath}{Path to the directory where the actual data is stored.}
   \item{data_serialized_objnames}{Serialized object names.}
-  \item{object}{A \code{GScores} object.}
 }
 \details{
 The \code{GenomicScores} package defines the \code{GScores} class and associated
