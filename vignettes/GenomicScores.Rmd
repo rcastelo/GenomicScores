@@ -1,5 +1,5 @@
 ---
-title: "The GenomicScores package"
+title: "An introduction to the GenomicScores package"
 author:
 - name: Pau Puigdevall
   affiliation: 
@@ -7,18 +7,19 @@ author:
 - name: Robert Castelo
   affiliation: *id
   email: robert.castelo@upf.edu
-package: Genomic Scores
+package: "`r pkg_ver('GenomicScores')`"
 abstract: >
   GenomicScores provides infrastructure to store and access genomewide position-specific scores within R and Bioconductor.
+vignette: >
+  %\VignetteIndexEntry{An introduction to the GenomicScores package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 output: 
   BiocStyle::html_document2:
     toc: true
     toc_float: true
     number_sections: true
-vignette: >
-  %\VignetteIndexEntry{Genomic Scores}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+bibliography: bibliography.bib
 ---
 
 # Getting started
@@ -45,9 +46,7 @@ as phastCons100way.UCSC.hg19.
 
 Genomewide scores assign each genomic position a numeric value denoting an estimated measure of constraint or impact on variation at that position. They are commonly used to filter single nucleotide variants or assess the degree of constraint or functionality of genomic features. Genomic scores are built on the basis of different sources of information such as sequence homology, functional domains, physical-chemical changes of amino acid residues, etc.
 
-One particular example of genomic scores are __phastCons__ scores. They provide a measure of conservation obtained from genomewide alignments using the program phastCons (_Phylogenetic Analysis with Space/Time models_)[^1]. The `r Biocpkg("GenomicScores")` package allows one to retrieve these scores through annotation packages (Section \@ref(retrieval-of-genomic-scores-through-annotation-packages)) or as AnnotationHub resources (Section \@ref(retrieval-of-genomic-scores-through-annotationhub-resources)).
-
-[^1]: Siepel A et al. Evolutionarily conserved elements in vertebrate, insect, worm, and yeast genomes. Genome Res. 2005 Aug;15(8):1034-50. (http://www.genome.org/cgi/doi/10.1101/gr.3715005)
+One particular example of genomic scores are _phastCons scores_. They provide a measure of conservation obtained from genomewide alignments using the program [phast](http://compgen.cshl.edu/phast) (_Phylogenetic Analysis with Space/Time models_) from @siepel05. The `r Biocpkg("GenomicScores")` package allows one to retrieve these scores through annotation packages (Section \@ref(retrieval-of-genomic-scores-through-annotation-packages)) or as `r Biocpkg("AnnotationHub")` resources (Section \@ref(retrieval-of-genomic-scores-through-annotationhub-resources)).
 
 Often, genomic scores such as phastCons are used within workflows running on
 top of R and Bioconductor. The purpose of the `r Biocpkg("GenomicScores")` package is to enable
@@ -58,28 +57,24 @@ an easy and interactive access to genomic scores within those workflows.
 Storing and accessing genomic scores within R is challenging when
 their values cover large regions of the genome, resulting in gigabytes
 of double-precision numbers. This is the case, for instance, for
-phastCons, CADD or M-CAP scores.
+phastCons [@siepel05], CADD [@kircher14] or M-CAP [@jagadeesh16] scores.
 
 We address this problem by using _lossy compression_, also called _quantization_,
 coupled with run-length encoding (Rle) vectors. Lossy compression attempts to
 trade off precision for compression without compromising the scientific
-integrity of the data[^2].
+integrity of the data [@zender16].
 
 Sometimes, measurements and statistical estimates under certain models
 generate false precision. False precision is essentialy noise that wastes
-storage space and it is meaningless from the scientific point of view[^2].
+storage space and it is meaningless from the scientific point of view [@zender16].
 In those circumstances, lossy compression not only saves storage space, but
 also removes false precision.
-
-[^2]: Zender CS. Bit Grooming: statistically accurate precision-preserving quantization with compression, evaluated in the netCDF Operators (NCO, v4.4.8+). Geosci. Model Dev., 9:3199-3211, 2016. (http://www.geosci-model-dev.net/9/3199/2016/gmd-9-3199-2016.pdf)
 
 The use of lossy compression leads to a subset of _quantized_ values much
 smaller than the original set of genomic scores, resulting in long runs of
 identical values along the genome. These runs of identical values can be
 further compressed using the implementation of Rle vectors available in the
-S4Vectors Bioconductor package[^3].
-
-[^3]: http://bioconductor.org/packages/S4Vectors
+`r Biocpkg("S4Vectors")` Bioconductor package.
 
 # Retrieval of genomic scores through annotation packages
 
@@ -89,17 +84,12 @@ scores and can be accessed using the `r Biocpkg("GenomicScores")` package
 
 Annotation Package          | Description
 --------------------------- | --------------------------------------------------------------------------------------------
-phastCons100way.UCSC.hg19   | phastCons scores derived from the alignment of the human genome (hg19) to other 99 vertebrate species [^4]
-phastCons100way.UCSC.hg38   | phastCons scores derived from the alignment of the human genome (hg38) to other 99 vertebrate species [^5]
-phastCons7way.UCSC.hg38     | phastCons scores derived from the alignment of the human genome (hg38) to other 6 mammal species [^6]
-fitCons.UCSC.hg19           | fitCons scores: fitness consequences of functional annotation for the human genome (hg19) [^7] 
+`r Biocpkg("phastCons100way.UCSC.hg19")`   | phastCons scores derived from the alignment of the human genome (hg19) to other 99 vertebrate species.
+`r Biocpkg("phastCons100way.UCSC.hg38")`   | phastCons scores derived from the alignment of the human genome (hg38) to other 99 vertebrate species.
+`r Biocpkg("phastCons7way.UCSC.hg38")`     | phastCons scores derived from the alignment of the human genome (hg38) to other 6 mammal species.
+`r Biocpkg("fitCons.UCSC.hg19")`           | fitCons scores: fitness consequences of functional annotation for the human genome (hg19).
 
-: (\#tab:table) Annotation packages storing genomic scores
-
-[^4]: http://hgdownload-test.cse.ucsc.edu/goldenPath/hg19/phastCons100way
-[^5]: http://hgdownload-test.cse.ucsc.edu/goldenPath/hg38/phastCons100way
-[^6]: http://hgdownload-test.cse.ucsc.edu/goldenPath/hg38/phastCons7way
-[^7]: http://compgen.cshl.edu/fitCons
+: (\#tab:table) Bioconductor annotation packages storing genomic scores
 
 This is an example of how genomic scores can be retrieved using the
 phastCons100way.UCSC.hg19 package.
@@ -109,8 +99,6 @@ Here, a GScores object is created when the package is loaded.
 library(phastCons100way.UCSC.hg19)
 library(GenomicRanges)
 gsco <- phastCons100way.UCSC.hg19
-class(gsco)
-gsco
 ```
 
 We should use the function scores() to retrive genomic scores for specific positions.
@@ -119,22 +107,23 @@ We should use the function scores() to retrive genomic scores for specific posit
 scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
 ```
 
+<!--
 The `r Biocpkg("GenomicScores")` package only loads the scores data from the sequences that are being
 queried. Note that now the GScores object has loaded the scores from chr7.
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
 gsco
 ```
+-->
 
 # Retrieval of genomic scores through AnnotationHub resources
 
-Another way to retrieve genomic scores is by using AnnotationHub, which is a web resource
-that provides a central location where genomic files (e.g., VCF, bed, wig) and other
-resources from standard locations (e.g., UCSC, Ensembl) can be found. A Bioconductor
-AnnotationHub web resource creates and manages a local cache of files retrieved by the user,
-helping with quick and reproducible access. [^8]
-
-[^8]: https://bioconductor.org/packages/AnnotationHub
+Another way to retrieve genomic scores is by using the `r Biocpkg("AnnotationHub")`,
+which is a web resource that provides a central location where genomic files
+(e.g., VCF, bed, wig) and other resources from standard (e.g., UCSC, Ensembl) and
+distributed sites, can be found. A Bioconductor `r Biocpkg("AnnotationHub")` web
+resource creates and manages a local cache of files retrieved by the user,
+helping with quick and reproducible access.
 
 The first step to retrieve genomic scores is to check the ones available to download.
 
@@ -348,3 +337,5 @@ precision for a wide range of conservation values.
 ```{r session_info, cache=FALSE}
 sessionInfo()
 ```
+
+# References

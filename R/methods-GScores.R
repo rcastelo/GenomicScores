@@ -92,7 +92,7 @@ setMethod("seqlevelsStyle", "GScores",
 }
 
 setMethod("scores", c("GScores", "GenomicRanges"),
-          function(object, ranges, ...) {
+          function(object, ranges, scores.only=FALSE, ...) {
             objectname <- deparse(substitute(object))
             ## default non-generic arguments
             summaryFun <- mean
@@ -143,7 +143,11 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             sco <- .rleGetValues(scorlelist, ranges, summaryFun=summaryFun)
             rm(scorlelist)
 
-            sco
+            if (scores.only)
+              return(sco)
+
+            ranges$scores <- sco
+            ranges
           })
 
 ## getter qfun and dqfun methods
