@@ -199,7 +199,7 @@ Finally annotate phastCons conservation scores on the variants and store
 those annotations as an additional metadata column of the `GRanges` object.
 
 ```{r}
-loc$PHASTCONS <- scores(gsco, loc)
+loc$PHASTCONS <- scores(gsco, loc, scores.only=TRUE)
 loc[1:3]
 ```
 
@@ -273,8 +273,8 @@ table(nd2)
 Retrieve the corresponding phastCons scores stored in the annotation package.
 
 ```{r}
-pkgpcscoCDS <- scores(gsco, origpcscoCDS)
-pkgpcsco3UTRs <- scores(gsco, origpcsco3UTRs)
+pkgpcscoCDS <- scores(gsco, origpcscoCDS, scores.only=TRUE)
+pkgpcsco3UTRs <- scores(gsco, origpcsco3UTRs, scores.only=TRUE)
 ```
 
 In Figure \@ref(fig:plot2) we show a visual comparison between raw and lossy-compressed phastCons scores.
