@@ -1,46 +1,43 @@
 .GenomicScoresMetadataFromUrl <- function(baseUrl, track) {
   require(GenomeInfoDb)
 
-  ## genus+species to NCBI taxon identifier from GenomeInfoDb (NOT ANYMORE 17/3/17!)
-  ## load(system.file("data", "speciesMap.rda", package="GenomeInfoDb"))
-  ## speciesMap <- get("speciesMap") ## just to avoid a NOTE during R CMD check
-
-  metadf <- data.frame(title=character(0), species=character(0),
-                       taxonomyId=integer(0), genome=character(0),
-                       sourceUrl=character(0), sourceVersion=character(0),
-                       description=character(0), rDataPath=character(0))
+  ## genus+species to NCBI taxon identifier from GenomeInfoDb
+  load(system.file("extdata", "assembly_accessions.rda", package="GenomeInfoDb"))
+  assembly_accessions <- get("assembly_accessions") ## just to avoid a NOTE during R CMD check
 
   gd <- readRDS(gzcon(url(sprintf("%s%s/refgenomeGD.rds", baseUrl, track),
                           open="rb")))
-  scRDSfiles <- GenomicScores:::.getSubDirs(sprintf("%s%s", baseUrl, track))
-  scRDSfiles <- scRDSfiles[grep(track, scRDSfiles)]
-  ## taxonId <- as.integer(subset(speciesMap, species == organism(gd))$taxon)
-  taxonId <- 9606L
-  rDataPath <- sprintf("%s/%s", track, scRDSfiles)
-  chr <- sub(".rds", "", sub(paste0(track, "."), "", scRDSfiles))
+  rdsFiles <- GenomicScores:::.getSubDirs(sprintf("%s%s", baseUrl, track))
+  rdsFiles <- rdsFiles[grep(track, rdsFiles)]
+  taxonId <- as.integer(subset(assembly_accessions, organism_name == organism(gd))$taxid)[1]
+  obj <- readRDS(gzcon(url(sprintf("%s%s/%s", baseUrl, track, rdsFiles[1]),
+                           open="rb")))
+  rDataPath <- sprintf("%s/%s", track, rdsFiles)
+  chr <- sub(".rds", "", sub(paste0(track, "."), "", rdsFiles))
   stopifnot(all(chr %in% seqnames(gd))) ## QC
-  metadf <- data.frame(title=scRDSfiles,
-                       species=rep(organism(gd), length(scRDSfiles)),
-                       taxonomyId=rep(taxonId, length(scRDSfiles)),
-                       genome=rep(providerVersion(gd), length(scRDSfiles)),
-                       sourceUrl=sprintf("%s%s/%s", baseUrl, track, scRDSfiles),
-                       sourceVersion=rep("3.5.0", length(scRDSfiles)),
-                       description=sprintf("CADD scores v1.3 for %s on %s",
-                                           organism(gd), chr),
+  metadf <- data.frame(title=rdsFiles,
+                       species=rep(organism(gd), length(rdsFiles)),
+                       taxonomyId=rep(taxonId, length(rdsFiles)),
+                       genome=rep(providerVersion(gd), length(rdsFiles)),
+                       sourceUrl=sprintf("%s%s/%s", baseUrl, track, rdsFiles),
+                       sourceVersion=rep(metadata(obj)$provider_version, length(rdsFiles)),
+                       description=sprintf("CADD scores for %s on %s", organism(gd), chr),
                        rDataPath=rDataPath,
                        stringsAsFactors=FALSE)
-  metadf <- rbind(metadf, metadf)
   rownames(metadf) <- NULL
   metadf
 }
 
 makeMetadata_CADD.v1.3.hg19 <- function()
 {
-  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/cadd/"
+  require(BiocInstaller)
+
+  biocver <- as.character(biocVersion())
+  baseUrl <- sprintf("http://functionalgenomics.upf.edu/annotationhub/bioc%s/cadd/", biocver)
   meta <- .GenomicScoresMetadataFromUrl(baseUrl, "cadd.v1.3.hg19")
   n <- nrow(meta)
   data.frame(
-    BiocVersion=rep("3.5", n),
+    BiocVersion=rep(biocver, n),
     Description=meta$description,
     Genome=meta$genome,
     SourceUrl=meta$sourceUrl,
