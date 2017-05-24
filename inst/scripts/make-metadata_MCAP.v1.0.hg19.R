@@ -30,10 +30,8 @@
 
 makeMetadata_MCAP.v1.0.hg19 <- function()
 {
-  require(BiocInstaller)
-
-  biocver <- as.character(biocVersion())
-  baseUrl <- sprintf("http://functionalgenomics.upf.edu/annotationhub/bioc%s/mcap/", biocver)
+  biocver <- "3.6"
+  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/mcap/"
   meta <- .GenomicScoresMetadataFromUrl(baseUrl, "mcap.v1.0.hg19")
   n <- nrow(meta)
   data.frame(

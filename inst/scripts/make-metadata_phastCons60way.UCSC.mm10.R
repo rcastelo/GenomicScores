@@ -21,18 +21,18 @@
                        genome=rep(providerVersion(gd), length(rdsFiles)),
                        sourceUrl=sprintf("%s%s/%s", baseUrl, track, rdsFiles),
                        sourceVersion=rep(metadata(obj)$provider_version, length(rdsFiles)),
-                       description=sprintf("fitCons scores for %s on %s", organism(gd), chr),
+                       description=sprintf("phastCons scores for %s on %s", organism(gd), chr),
                        rDataPath=rDataPath,
                        stringsAsFactors=FALSE)
   rownames(metadf) <- NULL
   metadf
 }
 
-makeMetadata_fitCons.UCSC.hg19 <- function()
+makeMetadata_phastCons60way.UCSC.mm10 <- function()
 {
-  biocver <- "3.5"
-  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/fitCons/"
-  meta <- .GenomicScoresMetadataFromUrl(baseUrl, "fitCons.UCSC.hg19")
+  biocver <- "3.6"
+  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/phastCons/"
+  meta <- .GenomicScoresMetadataFromUrl(baseUrl, "phastCons60way.UCSC.mm10")
   n <- nrow(meta)
   data.frame(
     BiocVersion=rep(biocver, n),
@@ -52,7 +52,7 @@ makeMetadata_fitCons.UCSC.hg19 <- function()
     RDataClass=rep("Rle", n),
     DispatchClass=rep("RDS", n),
     Location_Prefix=baseUrl,
-    Tags=rep(paste("fitCons", "GScores", sep=","), n))
+    Tags=rep(paste("phastCons", "GScores", sep=","), n))
 }
-metadata <- makeMetadata_fitCons.UCSC.hg19()
-write.csv(metadata, file="../extdata/metadata_fitCons.UCSC.hg19.csv", row.names=FALSE)
+metadata <- makeMetadata_phastCons60way.UCSC.mm10()
+write.csv(metadata, file="../extdata/metadata_phastCons60way.UCSC.mm10.csv", row.names=FALSE)
