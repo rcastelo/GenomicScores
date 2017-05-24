@@ -31,10 +31,8 @@
 
 makeMetadata_phastCons7way.UCSC.hg38 <- function()
 {
-  require(BiocInstaller)
-
-  biocver <- as.character(biocVersion())
-  baseUrl <- sprintf("http://functionalgenomics.upf.edu/annotationhub/bioc%s/phastCons/", biocver)
+  biocver <- "3.5"
+  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/phastCons/"
   meta <- .GenomicScoresMetadataFromUrl(baseUrl, "phastCons7way.UCSC.hg38")
   n <- nrow(meta)
   data.frame(
