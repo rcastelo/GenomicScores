@@ -30,10 +30,8 @@
 
 makeMetadata_phyloP100way.UCSC.hg38 <- function()
 {
-  require(BiocInstaller)
-
-  biocver <- as.character(biocVersion())
-  baseUrl <- sprintf("http://functionalgenomics.upf.edu/annotationhub/bioc%s/phyloP/", biocver)
+  biocver <- "3.6"
+  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/phyloP/"
   meta <- .GenomicScoresMetadataFromUrl(baseUrl, "phyloP100way.UCSC.hg38")
   n <- nrow(meta)
   data.frame(
