@@ -30,10 +30,8 @@
 
 makeMetadata_CADD.v1.3.hg19 <- function()
 {
-  require(BiocInstaller)
-
-  biocver <- as.character(biocVersion())
-  baseUrl <- sprintf("http://functionalgenomics.upf.edu/annotationhub/bioc%s/cadd/", biocver)
+  biocver <- "3.6"
+  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/cadd/"
   meta <- .GenomicScoresMetadataFromUrl(baseUrl, "cadd.v1.3.hg19")
   n <- nrow(meta)
   data.frame(
