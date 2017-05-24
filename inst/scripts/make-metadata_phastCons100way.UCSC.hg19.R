@@ -30,10 +30,8 @@
 
 makeMetadata_phastCons100way.UCSC.hg19 <- function()
 {
-  require(BiocInstaller)
-
-  biocver <- as.character(biocVersion())
-  baseUrl <- sprintf("http://functionalgenomics.upf.edu/annotationhub/bioc%s/phastCons/", biocver)
+  biocver <- "3.5"
+  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub/phastCons/"
   meta <- .GenomicScoresMetadataFromUrl(baseUrl, "phastCons100way.UCSC.hg19")
   n <- nrow(meta)
   data.frame(
