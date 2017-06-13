@@ -62,7 +62,9 @@ importFrom(IRanges, IRanges,
 importFrom(AnnotationHub, AnnotationHub,
                           getAnnotationHubOption)
 
-exportMethods(organism,
+exportMethods(name,
+              type,
+              organism,
               provider,
               providerVersion,
               referenceGenome,

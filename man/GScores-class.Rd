@@ -3,6 +3,8 @@
 \alias{GScores-class}
 \alias{GScores}
 \alias{GenomicScores}
+\alias{name,GScores-method}
+\alias{type,GScores-method}
 \alias{organism,GScores-method}
 \alias{provider,GScores-method}
 \alias{providerVersion,GScores-method}
@@ -86,6 +88,8 @@ scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
 }
 
 ## meta information about a GScores object
+name(gsco)
+type(gsco)
 provider(gsco)
 providerVersion(gsco)
 organism(gsco)

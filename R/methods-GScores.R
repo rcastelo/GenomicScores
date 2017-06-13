@@ -19,6 +19,10 @@ GScores <- function(provider, provider_version, download_url,
 }
 
 ## accessors
+setMethod("name", "GScores", function(x) x@data_pkgname)
+
+setMethod("type", "GScores", function(x) sub("\\..*$", "", name(x)))
+
 setMethod("provider", "GScores", function(x) x@provider)
 
 setMethod("providerVersion", "GScores", function(x) x@provider_version)
