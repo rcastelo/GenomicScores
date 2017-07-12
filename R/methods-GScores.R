@@ -112,8 +112,8 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             if (length(ranges) == 0)
               return(numeric(0))
 
-            if (seqlevelsStyle(ranges) != seqlevelsStyle(object))
-              seqlevelsStyle(ranges) <- seqlevelsStyle(object)
+            if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object)) == 0)
+              seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
 
             snames <- unique(as.character(runValue(seqnames(ranges))))
             if (any(!snames %in% seqnames(object)))

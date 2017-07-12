@@ -4,7 +4,9 @@
 \alias{GScores}
 \alias{GenomicScores}
 \alias{name,GScores-method}
+\alias{name}
 \alias{type,GScores-method}
+\alias{type}
 \alias{organism,GScores-method}
 \alias{provider,GScores-method}
 \alias{providerVersion,GScores-method}
