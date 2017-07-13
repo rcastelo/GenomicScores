@@ -38,7 +38,9 @@ importMethodsFrom(IRanges, start,
 importMethodsFrom(AnnotationHub, query,
                                  cache)
 
-importFrom(utils, data)
+importFrom(utils, data,
+                  bibentry,
+                  citation)
 
 importFrom(XML, xmlGetAttr,
                 htmlTreeParse)
@@ -62,7 +64,10 @@ importFrom(IRanges, IRanges,
 importFrom(AnnotationHub, AnnotationHub,
                           getAnnotationHubOption)
 
-exportMethods(name,
+S3method(citation, GScores)
+
+exportMethods(citation,
+              name,
               type,
               organism,
               provider,
