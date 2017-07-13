@@ -41,6 +41,26 @@ setMethod("seqlengths", "GScores", function(x) seqlengths(referenceGenome(x)))
 setMethod("seqlevelsStyle", "GScores",
           function(x) seqlevelsStyle(referenceGenome(x)))
 
+
+## convert digits in vector 'd', grouped by 'g', into numbers in base 'b'
+.toBase <- function(d, g=rep(1, length(d)), b) {
+  n <- tapply(d, g, function(d, b) sum(d * b^(0:(length(d)-1))), b)
+  as.integer(n)
+}
+
+## convert each number in 'n' into 'd' digits in base 'b'
+.fromBase <- function(n, d, b) {
+  totaldigits <- length(n) * d
+  digits <- rep(NA_integer_, times=totaldigits)
+  i <- 0L
+  while (i < d) {
+    digits[seq(1L+i, totaldigits, by=d)] <- n %% b
+    n <- floor(n / b)
+    i <- i + 1L
+  }
+  digits
+}
+
 ## this has been improved using RleViews as discussed in
 ## https://stat.ethz.ch/pipermail/bioconductor/2013-December/056409.html
 .rleGetValues <- function(rlelst, gr, summaryFun) {
@@ -50,12 +70,28 @@ setMethod("seqlevelsStyle", "GScores",
     numericmean <- FALSE
 
   .dequantizer <- metadata(rlelst[[1]])$dqfun
+  dqargs <- metadata(rlelst[[1]])$dqfun_args
   seqlevels(gr) <- names(rlelst)
   ord <- order(seqnames(gr))
-  ans <- numeric(length(gr))
   startbyseq <- split(start(gr), seqnames(gr), drop=TRUE)
-  ans[ord] <- unlist(lapply(rlelst[startbyseq], .dequantizer), use.names=FALSE)
+  lappargs <- c(list(X=rlelst[startbyseq], FUN=.dequantizer), dqargs)
+  x <- unlist(do.call("lapply", lappargs), use.names=FALSE)
+  ans <- numeric(0)
+  valxpos <- metadata(rlelst[[1]])$valxpos
+  if (is.null(valxpos))
+    valxpos <- 1
+  stopifnot(length(valxpos) == 1 && valxpos[1] > 0) ## QC
   whregions <- which(width(gr) > 1)
+  if (valxpos == 1) {
+    ans <- numeric(length(gr))
+    ans[ord] <- x
+  } else {
+    if (length(whregions) > 0)
+      stop("This GScores object returns more than one value per position, and therefore, input ranges can only have width one.")
+    ans <- matrix(NA_real_, nrow=length(gr), ncol=valxpos)
+    ans[ord, ] <- matrix(x, nrow=length(gr), ncol=valxpos, byrow=TRUE)
+  }
+
   if (length(whregions) > 0) { ## regions comprising more than one position
     tmpans <- NA_real_         ## need to be summarized
     if (numericmean) {
@@ -63,11 +99,8 @@ setMethod("seqlevelsStyle", "GScores",
       tmpans <- lapply(names(rngbyseq),
                        function(sname) {
                          coercedrle <- rlelst[[sname]]
-                         ## this coercion can take up to one
-                         ## second for chromosome 1, we should
-                         ## consider storing coerced version if
-                         ## memory consumption is not an issue
-                         runValue(coercedrle) <- .dequantizer(runValue(coercedrle))
+                         dqargs2 <- c(list(q=runValue(coercedrle)), dqargs)
+                         runValue(coercedrle) <- do.call(".dequantizer", dqargs2)
                          viewMeans(Views(coercedrle,
                                          start=start(rngbyseq[[sname]]),
                                          end=end(rngbyseq[[sname]])))
@@ -81,8 +114,11 @@ setMethod("seqlevelsStyle", "GScores",
                           seqnames(gr)[whregions], drop=TRUE)
       f <- function(r, p, w)
              sapply(seq_along(p),
-                    function(i, r, p, w)
-                      summaryFun(.dequantizer(r[p[i]:(p[i]+w[i]-1)])), r, p, w)
+                    function(i, r, p, w) {
+                      dqargs2 <- c(list(q=r[p[i]:(p[i]+w[i]-1)]), dqargs)
+                      summaryFun(do.call(".dequantizer", dqargs2))
+                    },
+                    r, p, w)
 
       tmpans <- unlist(mapply(f,
                               rlelst[names(startbyseq)], startbyseq, widthbyseq,
@@ -112,7 +148,7 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             if (length(ranges) == 0)
               return(numeric(0))
 
-            if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object)) == 0)
+            if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
               seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
 
             snames <- unique(as.character(runValue(seqnames(ranges))))
@@ -147,10 +183,18 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             sco <- .rleGetValues(scorlelist, ranges, summaryFun=summaryFun)
             rm(scorlelist)
 
-            if (scores.only)
+            if (scores.only) {
+              if (is.matrix(sco))
+                colnames(sco) <- paste0("scores", 1:ncol(sco))
               return(sco)
+            }
 
-            ranges$scores <- sco
+            if (is.matrix(sco)) {
+              colnames(sco) <- paste0("scores", 1:ncol(sco))
+              mcols(ranges) <- cbind(mcols(ranges), DataFrame(as.data.frame(sco)))
+            } else
+              ranges$scores <- sco
+
             ranges
           })
 
@@ -181,7 +225,7 @@ setMethod("show", "GScores",
               seqs <- c(seqs[1:2],  "...", seqs[length(seqs)])
             seqs <- paste(seqs, collapse=", ")
             cat(class(object), " object \n",
-                "# organism: ", organism(referenceGenome(object)), " (", provider(object), ")\n",
+                "# organism: ", organism(referenceGenome(object)), " (", provider(referenceGenome(object)), ", ", providerVersion(referenceGenome(object)), ")\n",
                 "# provider: ", provider(object), "\n",
                 "# provider version: ", providerVersion(object), "\n",
                 "# download date: ", object@download_date, "\n",

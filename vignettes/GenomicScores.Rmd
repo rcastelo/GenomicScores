@@ -189,7 +189,7 @@ rd[1:3]
 We annotate the location of variants using the function `locateVariants()`
 from the `r Biocpkg("VariantAnnotation")` package.
 
-```{r}
+```{r, message=FALSE}
 loc <- locateVariants(rd, txdb, AllVariants())
 loc[1:3]
 table(loc$LOCATION)
