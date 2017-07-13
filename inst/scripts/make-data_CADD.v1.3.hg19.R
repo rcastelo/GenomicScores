@@ -29,12 +29,22 @@
 ## store the CADD scores in raw-Rle objects
 
 library(Rsamtools)
-library(GenomicRanges)
 library(GenomeInfoDb)
+library(GenomicRanges)
+library(GenomicScores)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(doParallel)
 
 downloadURL <- "http://krishna.gs.washington.edu/download/CADD/v1.3"
+datacitation <- bibentry(bibtype="Article",
+                         author=c(person("Martin Kircher"), person("Daniela M. Witten"), person("Preti Jain"),
+                                  person("Brian J. O'Roak"), person("Gregory M. Cooper"), person("Jay Shendure")),
+                         title="A general framework for estimating the relative pathogenicity of human genetic variants",
+                         journal="Nature Genetics",
+                         volume="46",
+                         pages="310-315",
+                         year="2014",
+                         doi="10.1038/ng.2892")
 
 registerDoParallel(cores=8)
 
@@ -53,30 +63,15 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
 
 saveRDS(refgenomeGD, file="refgenomeGD.rds")
 
-## convert digits in vector 'd', grouped by 'g', into numbers in base 'b'
-.toBase <- function(d, g=rep(1, length(d)), b) {
-  n <- tapply(d, g, function(d, b) sum(d * b^(0:(length(d)-1))), b)
-  as.integer(n)
-}
-
-## convert each number in 'n' into 'd' digits in base 'b'
-.fromBase <- function(n, d, b) {
-  totaldigits <- length(n) * d
-  digits <- rep(NA_integer_, times=totaldigits)
-  i <- 0L
-  while (i < d) {
-    digits[seq(1L+i, totaldigits, by=d)] <- n %% b
-    n <- floor(n / b)
-    i <- i + 1L
-  }
-  digits
-}
-
 ## quantizer function
 ## x: values to quantize, x >= 0 & x <= 99, length(x) is multiple of d
 ## n: maximum number of quantized values
 ## d: number of digits in 'x' forming a value to quantize
-.quantizer <- function(x, n=Inf, d=1L, na.zero=FALSE) {
+.quantizer <- function(x, ...) {
+  n <- Inf ; d <- 1L ; na.zero <- FALSE
+  otherArgs <- list(...)
+  for (i in seq_along(otherArgs))
+    assign(names(otherArgs)[i], otherArgs[[i]])
   stopifnot(d > 0L) ## QC
   stopifnot(length(x) %% d == 0) ## QC
   q <- as.integer(sprintf("%.0f", x / 10L))
@@ -89,7 +84,7 @@ saveRDS(refgenomeGD, file="refgenomeGD.rds")
     base <- base + 1L
   }
   if (d > 1)
-    q <- .toBase(d=q, g=rep(1:(length(x)/d), each=d), b=base)
+    q <- GenomicScores:::.toBase(d=q, g=rep(1:(length(x)/d), each=d), b=base)
   q <- q + 1L
   if (any(q > 255))
     stop("current number of quantized values > 255 and cannot be stored into one byte")
@@ -98,15 +93,21 @@ saveRDS(refgenomeGD, file="refgenomeGD.rds")
 attr(.quantizer, "description") <- "quantize PHRED scores into deciles and store them using a given base"
 
 ## dequantizer function
-.dequantizer <- function(q, d, b, na.zero=FALSE) {
-  q <- q - 1L
-  q <- .fromBase(q, d=d, b=b)
+.dequantizer <- function(q, ...) {
+  d <- 1L ; b <- 10L ; na.zero=FALSE
+  otherArgs <- list(...)
+  for (i in seq_along(otherArgs))
+    assign(names(otherArgs)[i], otherArgs[[i]])
+  x <- as.numeric(q)
+  x[x == 0] <- NA
+  x <- x - 1
+  x <- GenomicScores:::.fromBase(x, d=d, b=b)
   if (na.zero)
-    q[q == 0L] <- NA
-  q <- 10L * q
-  q
+    x[x == 0] <- NA
+  x <- 10 * x
+  x
 }
-attr(.dequantizer, "description") <- "transform into base 10 digits, multiply by 10"
+attr(.dequantizer, "description") <- "transform into base-10 digits, multiply by 10"
 
 tbx <- open(TabixFile("whole_genome_SNVs.tsv.gz"))
 tbxchr <- sortSeqlevels(seqnamesTabix(tbx))
@@ -182,15 +183,19 @@ foreach (chr=seqlevels(allchrgr)) %dopar% {
     metadata(obj) <- list(seqname=chr,
                           provider="UWashington",
                           provider_version="v1.3",
+                          citation=datacitation,
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
-                          data_pkgname="cadd.v1.0.hg19",
+                          data_pkgname="cadd.v1.3.hg19",
                           qfun=.quantizer,
+                          qfun_args=list(n=6L, d=3L, na.zero=FALSE),
                           dqfun=.dequantizer,
+                          dqfun_args=list(d=3L, b=6L, na.zero=FALSE),
+                          valxpos=3L,
                           ecdf=Fn,
                           max_abs_error=max.abs.error)
-    saveRDS(obj, file=sprintf("cadd.v1.3.hg19.%s.rds", chr))
+    saveRDS(obj, file=sprintf("cadd.%s.hg19.%s.rds", metadata(obj)$provider_version, chr))
     rm(allrawscores, obj)
     rm(obj)
     gc()
