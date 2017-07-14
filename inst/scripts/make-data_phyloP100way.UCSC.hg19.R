@@ -5,7 +5,7 @@
 
 ## Pollard KS, Hubisz MJ, Rosenbloom KR, Siepel A. Detection of nonneutral
 ## substitution rates on mammalian phylogenies. Genome Res. 2010 Oct;20(1):110-21.
-## (http://genome.cshlp.org/content/20/1/110)
+## DOI: 10.1101/gr.097857.109
 
 ## The data were downloaded from the UCSC genome browser with the Unix 'rsync'
 ## command as follows
@@ -23,6 +23,15 @@ library(rtracklayer)
 library(doParallel)
 
 downloadURL <- "http://hgdownload.soe.ucsc.edu/goldenPath/hg19/phyloP100way/hg19.100way.phyloP100way"
+citationdata <- bibentry(bibtype="Article",
+                         author=c(person("Katherine S. Pollard"), person("Melissa J. Hubisz"),
+                                  person("Kate R. Rosenbloom"), person("Adam Siepel")),
+                         title="Detection of nonneutral substitution rates on mammalian phylogenies",
+                         journal="Genome Research",
+                         volume="20",
+                         pages="110-121",
+                         year="2010",
+                         doi="10.1101/gr.097857.109")
 
 registerDoParallel(cores=4) ## each process may need up to 20Gb of RAM
 
@@ -129,6 +138,7 @@ foreach (chr=seqnames(Hsapiens)) %dopar% {
     metadata(obj) <- list(seqname=chr,
                           provider="UCSC",
                           provider_version="10Feb2014", ## it'd better to grab the date from downloaded file
+                          citation=citationdata,
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,

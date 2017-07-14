@@ -5,7 +5,7 @@
 
 ## Pollard KS, Hubisz MJ, Rosenbloom KR, Siepel A. Detection of nonneutral
 ## substitution rates on mammalian phylogenies. Genome Res. 2010 Oct;20(1):110-21.
-## (http://genome.cshlp.org/content/20/1/110)
+## DOI: 10.1101/gr.097857.109
 
 ## The data were downloaded from the UCSC genome browser with the Unix 'rsync'
 ## command as follows
@@ -23,6 +23,15 @@ library(rtracklayer)
 library(doParallel)
 
 downloadURL <- "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.100way.phyloP100way"
+citationdata <- bibentry(bibtype="Article",
+                         author=c(person("Katherine S. Pollard"), person("Melissa J. Hubisz"),
+                                  person("Kate R. Rosenbloom"), person("Adam Siepel")),
+                         title="Detection of nonneutral substitution rates on mammalian phylogenies",
+                         journal="Genome Research",
+                         volume="20",
+                         pages="110-121",
+                         year="2010",
+                         doi="10.1101/gr.097857.109")
 
 registerDoParallel(cores=4) ## each process may need up to 20Gb of RAM
 
@@ -71,19 +80,8 @@ saveRDS(refgenomeGD, file=file.path("hg38.100way.phyloP", "refgenomeGD.rds"))
 ## for zero and positive phyloP scores. negative phyloP scores will be mapped to integer
 ## values [30-57].
 .quantizer <- function(x) {
-  q <- as.integer(10*as.numeric(sprintf("%.1f", x)))
-  mask <- abs(q) > 100L
-  q[mask] <- as.integer(sign(q[mask]))*100L
-  mask <- abs(q) > 20L
-  q[mask] <- as.integer(sprintf("%.0f", q[mask]/10)) + sign(q[mask])*18
-  q[q < 0] <- abs(q[q < 0]) + 28L
-  q <- q + 1L
-  q
-}
-attr(.quantizer, "description") <- "abs(x) < 2 round to 1 decimal digit, otherwise round to closest integer, set to 10 or -10  values exceeding 10 or -10, respectively, add up one"
-.quantizer <- function(x) {
   mask <- abs(x) < 2
-  x[mask] <- round_any(x[mask], 0.5, round)
+  x[mask] <- plyr::round_any(x[mask], 0.5, round)
   q <- as.integer(sprintf("%.0f", 10*x))
   mask <- abs(q) > 100L
   q[mask] <- as.integer(sign(q[mask]))*100L
@@ -139,6 +137,7 @@ foreach (chr=seqnames(Hsapiens)) %dopar% {
     metadata(obj) <- list(seqname=chr,
                           provider="UCSC",
                           provider_version="11May2015", ## it'd better to grab the date from downloaded file
+                          citation=citationdata,
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
