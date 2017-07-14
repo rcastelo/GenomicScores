@@ -25,6 +25,17 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 library(doParallel)
 
 downloadURL <- "http://bejerano.stanford.edu/MCAP/downloads/dat/mcap_v1_0.txt.gz"
+datacitation <- bibentry(bibtype="Article",
+                         author=c(person("Karthik A. Jagadeesh"), person("Aaron M. Wenger"),
+                                  person("Mark J. Berger"), person("Harendra Guturu"),
+                                  person("Peter D. Stenson"), person("David N. Cooper"),
+                                  person("Jonathan A. Bernstein"), person("Gill Berejano")),
+                         title="M-CAP eliminates a majority of variants of uncertain significance in clinical exomes at high sensitivity",
+                         journal="Nature Genetics",
+                         volume="48",
+                         pages="1581-1586",
+                         year="2016",
+                         doi="10.1038/ng.3703")
 
 registerDoParallel(cores=2)
 
@@ -43,30 +54,15 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
 
 saveRDS(refgenomeGD, file="refgenomeGD.rds")
 
-## convert digits in vector 'd', grouped by 'g', into numbers in base 'b'
-.toBase <- function(d, g=rep(1, length(d)), b) {
-  n <- tapply(d, g, function(d, b) sum(d * b^(0:(length(d)-1))), b)
-  as.integer(n)
-}
-
-## convert each number in 'n' into 'd' digits in base 'b'
-.fromBase <- function(n, d, b) {
-  totaldigits <- length(n) * d
-  digits <- rep(NA_integer_, times=totaldigits)
-  i <- 0L
-  while (i < d) {
-    digits[seq(1L+i, totaldigits, by=d)] <- n %% b
-    n <- floor(n / b)
-    i <- i + 1L
-  }
-  digits
-}
-
 ## quantizer function
 ## x: values to quantize, x >= 0 & x <= 1, length(x) is multiple of d
 ## n: maximum number of quantized values
 ## d: number of digits in 'x' forming a value to quantize
-.quantizer <- function(x, n=Inf, d=1L, na.zero=FALSE) {
+.quantizer <- function(x, ...) {
+  n <- Inf ; d <- 1L ; na.zero <- FALSE
+  otherArgs <- list(...)
+  for (i in seq_along(otherArgs))
+    assign(names(otherArgs)[i], otherArgs[[i]])
   stopifnot(d > 0L) ## QC
   stopifnot(length(x) %% d == 0) ## QC
   q <- rep(NA_integer_, length(x))
@@ -80,7 +76,7 @@ saveRDS(refgenomeGD, file="refgenomeGD.rds")
     base <- base + 1L
   }
   if (d > 1L)
-    q <- .toBase(d=q, g=rep(1:(length(x)/d), each=d), b=base)
+    q <- GenomicScores:::.toBase(d=q, g=rep(1:(length(x)/d), each=d), b=base)
   q <- q + 1L
   if (any(q < 0 || q > .Machine$integer.max))
     stop("current number of quantized values cannot be stored into one integer")
@@ -90,15 +86,21 @@ attr(.quantizer, "description") <- "round to 2 digits, transform into integer, s
 
 ## dequantizer function
 .dequantizer <- function(q, d, b, na.zero=FALSE) {
-  q <- q - 1L
+  d <- 1L ; b <- 10L ; na.zero=FALSE
+  otherArgs <- list(...)
+  for (i in seq_along(otherArgs))
+    assign(names(otherArgs)[i], otherArgs[[i]])
+  x <- as.numeric(q)
+  x[x == 0] <- NA
+  x <- x - 1
   if (d > 1L)
-    q <- .fromBase(q, d=d, b=b)
+    x <- GenomicScores:::.fromBase(x, d=d, b=b)
   if (na.zero) { ## should we decode 0s as NAs
-    q[q == 0L] <- NA
-    q <- q - 1L
+    x[x == 0L] <- NA
+    x <- x - 1L
   }
-  q <- q/100L
-  q
+  x <- x / 100
+  x
 }
 attr(.dequantizer, "description") <- "transform into base 10, divide by 100"
 
@@ -158,24 +160,28 @@ foreach (chr=seqlevels(allchrgr)) %dopar% {
     x <- .dequantizer(q, d=3L, b=102L, na.zero=TRUE)
     max.abs.error <- max(abs(rawscores$SCORE - x), na.rm=TRUE)
     rawscores <- rawscores$SCORE[!is.na(rawscores$SCORE)]
-    gc()
     if (length(unique(rawscores)) <= 10000)
       Fn <- ecdf(rawscores)
     else ## to save space with more than 10,000 different values use sampling
       Fn <- ecdf(sample(rawscores, size=10000, replace=TRUE))
+    rm(rawscores)
+    gc()
     metadata(obj) <- list(seqname=chr,
                           provider="Stanford",
                           provider_version="v1.0",
+                          citation=datacitation, ## NEW
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
                           data_pkgname="mcap.v1.0.hg19",
-                          qfun=.quantizer,
-                          dqfun=.dequantizer,
+                          qfun=.quantizer, ## NEW
+                          qfun_args=list(n=101L, d=3L, na.zero=TRUE), ## NEW
+                          dqfun=.dequantizer, ## NEW
+                          dqfun_args=list(d=3L, b=102L, na.zero=TRUE), ## NEW
+                          valxpos=3L, ## NEW
                           ecdf=Fn,
                           max_abs_error=max.abs.error)
     saveRDS(obj, file=sprintf("mcap.hg19.%s.rds", chr))
-    rm(rawscores)
     rm(obj)
     gc()
     close(tbx)
