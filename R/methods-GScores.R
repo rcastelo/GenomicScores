@@ -211,8 +211,9 @@ setMethod("scores", c("GScores", "GenomicRanges"),
 ##             metadata(obj[[1]])$dqfun
 ##           })
 citation <- function(package, ...) UseMethod("citation", package)
-citation.default <- function(package, ...) utils::citation(package, ...)
-citation.character <- function(package, ...) utils::citation(package, ...)
+citation.default <- function(package="base", ...) utils::citation(package, ...)
+citation.character <- function(package="base", ...) utils::citation(package, ...)
+setMethod("citation", signature="missing", citation.default)
 setMethod("citation", signature="character", citation.character)
 citation.GScores <- function(package, ...) {
   obj <- get(package@data_pkgname, envir=package@.data_cache)
@@ -226,7 +227,7 @@ setMethod("citation", signature="GScores", citation.GScores)
 ## show method
 setMethod("show", "GScores",
           function(object) {
-            obj <- get(object@data_pkgname, envir=object@.data_cache)
+            obj <- get(name(object), envir=object@.data_cache)
             seqs <- names(obj)
             max.abs.error <- NA
             if (length(seqs) > 0) {
@@ -243,4 +244,6 @@ setMethod("show", "GScores",
                 "# download date: ", object@download_date, "\n",
                 "# loaded sequences: ", seqs, "\n",
                 "# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
+            if (length(citation(object)) > 0)
+              cat("# type 'citation()' on how to cite these data in publications\n")
           })

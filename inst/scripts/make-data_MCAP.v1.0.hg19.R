@@ -169,16 +169,16 @@ foreach (chr=seqlevels(allchrgr)) %dopar% {
     metadata(obj) <- list(seqname=chr,
                           provider="Stanford",
                           provider_version="v1.0",
-                          citation=datacitation, ## NEW
+                          citation=datacitation,
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
                           data_pkgname="mcap.v1.0.hg19",
-                          qfun=.quantizer, ## NEW
-                          qfun_args=list(n=101L, d=3L, na.zero=TRUE), ## NEW
-                          dqfun=.dequantizer, ## NEW
-                          dqfun_args=list(d=3L, b=102L, na.zero=TRUE), ## NEW
-                          valxpos=3L, ## NEW
+                          qfun=.quantizer,
+                          qfun_args=list(n=101L, d=3L, na.zero=TRUE),
+                          dqfun=.dequantizer,
+                          dqfun_args=list(d=3L, b=102L, na.zero=TRUE),
+                          valxpos=3L,
                           ecdf=Fn,
                           max_abs_error=max.abs.error)
     saveRDS(obj, file=sprintf("mcap.hg19.%s.rds", chr))
