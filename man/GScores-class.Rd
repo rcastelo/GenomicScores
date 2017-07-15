@@ -182,6 +182,7 @@ if (require(phastCons100way.UCSC.hg19)) {
 \dontrun{
 availableGScores()
 gsco <- getGScores("phastCons100way.UCSC.hg19")
+gsco
 scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
 }
 
