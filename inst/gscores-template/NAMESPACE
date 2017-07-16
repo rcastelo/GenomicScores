@@ -1,0 +1,8 @@
+import(utils)
+import(S4Vectors)
+import(IRanges)
+import(GenomicRanges)
+import(BSgenome)
+import(GenomicScores)
+
+## the GScores object is exported dynamically at load time (see R/zzz.R)
