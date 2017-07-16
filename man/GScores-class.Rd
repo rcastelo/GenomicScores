@@ -29,6 +29,7 @@
 %%\alias{dqfun,GScores-method}
 %%\alias{dqfun}
 \alias{show,GScores-method}
+\alias{makeGScoresPackage}
 
 \title{GScores objects}
 

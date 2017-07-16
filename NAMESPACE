@@ -39,11 +39,14 @@ importMethodsFrom(AnnotationHub, query,
                                  cache)
 
 importFrom(utils, data,
+                  packageDescription,
                   bibentry,
                   citation)
 
 importFrom(XML, xmlGetAttr,
                 htmlTreeParse)
+
+importFrom(Biobase, createPackage)
 
 importFrom(GenomeInfoDb, seqnames,
                          keepStandardChromosomes,
@@ -82,4 +85,5 @@ exportMethods(citation,
 
 export(GScores,
        availableGScores,
-       getGScores)
+       getGScores,
+       makeGScoresPackage)
