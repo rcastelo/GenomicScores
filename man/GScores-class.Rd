@@ -20,6 +20,7 @@
 \alias{seqlengths,GScores-method}
 \alias{seqnames,GScores-method}
 \alias{seqlevelsStyle,GScores-method}
+\alias{citation,missing-method}
 \alias{citation,character-method}
 \alias{citation,GScores-method}
 \alias{citation}
