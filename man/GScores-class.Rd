@@ -188,7 +188,7 @@ gsco
 scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
 }
 
-## meta information about a GScores object
+## meta data from a GScores object
 name(gsco)
 type(gsco)
 provider(gsco)

@@ -27,6 +27,19 @@ library(@PKGNAME@)
 
 ls("package:@PKGNAME@")
 @PKGNAME@
+gsco <- @PKGNAME@
+name(gsco)
+type(gsco)
+provider(gsco)
+providerVersion(gsco)
+organism(gsco)
+referenceGenome(gsco)
+seqlevelsStyle(gsco)
+seqinfo(gsco)
+head(seqnames(gsco))
+head(seqlengths(gsco))
+citation(gsco)
+citation("@PKGNAME@")
 }
 
 \keyword{package}
