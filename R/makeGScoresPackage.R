@@ -56,8 +56,9 @@ makeGScoresPackage <- function(gsco, version, maintainer, author,
 
   template_path <- system.file("gscores-template", package="GenomicScores")
 
-  symvals <- list(PKGTITLE=sprintf("Genomic scores for %s scores", type(gsco)),
-                  PKGDESCRIPTION=sprintf("Store %s genomic scores", type(gsco)),
+  symvals <- list(PKGTITLE=sprintf("%s genomic scores for %s (%s)", type(gsco),
+                                   organism(gsco), providerVersion(referenceGenome(gsco))),
+                  PKGDESCRIPTION=sprintf("Store %s genomic scores.", type(gsco)),
                   PKGVERSION=version,
                   AUTHOR=paste(authors, collapse=", "),
                   MAINTAINER=as.character(.getMaintainer(authors)),
@@ -65,6 +66,7 @@ makeGScoresPackage <- function(gsco, version, maintainer, author,
                   LIC=license,
                   ORGANISM=organism(gsco),
                   SPECIES=organism(gsco),
+                  GENOMEVERSION=providerVersion(referenceGenome(gsco)),
                   PROVIDER=provider(gsco),
                   PROVIDERVERSION=providerVersion(gsco),
                   ORGANISMBIOCVIEW=gsub(" ", "_", organism(gsco))
@@ -73,8 +75,12 @@ makeGScoresPackage <- function(gsco, version, maintainer, author,
   res <- createPackage(pkgname=pkgname, destinationDir=destDir,
                        originDir=template_path, symbolValues=symvals)
 
+  if (length(citation(gsco)) > 0)
+    writeLines(capture.output(print(citation(gsco))),
+               file.path(destDir, pkgname, "inst", "CITATION"))
+
   data_dirpath <- gsco@data_dirpath
-  refgenomeGD <- metadata(get(pkgname, env=gsco@.data_cache)[[1]])$reference_genome
+  refgenomeGD <- metadata(get(pkgname, envir=gsco@.data_cache)[[1]])$reference_genome
   saveRDS(refgenomeGD,
           file=file.path(destDir, pkgname, "inst", "extdata", "refgenomeGD.rds"))
 

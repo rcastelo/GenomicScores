@@ -7,12 +7,13 @@
 \title{@PKGTITLE@}
 
 \description{
-  This annotation package stores genomic scores.
+  This annotation package stores genomic scores for @ORGANISM@,
+  genome version @GENOMEVERSION@.
 }
 
 \note{
   This data package was made from resources at @PROVIDER@
-  based on the version @PROVIDERVERSION@.
+  based on version @PROVIDERVERSION@.
 }
 
 \author{@AUTHOR@}
