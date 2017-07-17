@@ -76,7 +76,7 @@ makeGScoresPackage <- function(gsco, version, maintainer, author,
                        originDir=template_path, symbolValues=symvals)
 
   if (length(citation(gsco)) > 0)
-    writeLines(capture.output(print(citation(gsco))),
+    writeLines(capture.output(print(citation(gsco), style="R")),
                file.path(destDir, pkgname, "inst", "CITATION"))
 
   data_dirpath <- gsco@data_dirpath
