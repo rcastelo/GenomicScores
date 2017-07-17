@@ -40,6 +40,7 @@ importMethodsFrom(AnnotationHub, query,
 
 importFrom(utils, data,
                   packageDescription,
+                  as.person,
                   bibentry,
                   citation)
 
