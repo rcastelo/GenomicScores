@@ -159,7 +159,7 @@ For this purpose, we load the `r Biocpkg("VariantAnnotaiton")` and
 read a VCF file and annotate it, and the latter contains the gene annotations from UCSC
 that will be used in this process.
 
-```{r}
+```{r, message=FALSE}
 library(VariantAnnotation)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 ```
