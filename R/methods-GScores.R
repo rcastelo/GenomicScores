@@ -63,31 +63,41 @@ setMethod("seqlevelsStyle", "GScores",
 
 ## this has been improved using RleViews as discussed in
 ## https://stat.ethz.ch/pipermail/bioconductor/2013-December/056409.html
-.rleGetValues <- function(rlelst, gr, summaryFun) {
+.rleGetValues <- function(rlelst, gr, summaryFun, quantized=FALSE) {
   summaryFun <- match.fun(summaryFun)
   numericmean <- TRUE
   if (!identical(summaryFun, mean))
     numericmean <- FALSE
+
+  whregions <- which(width(gr) > 1)
+  if (quantized && length(whregions) > 0)
+    stop("When 'quantized=TRUE' input 'ranges' must have width one because summarization can only be calculated with dequantized values.")
 
   .dequantizer <- metadata(rlelst[[1]])$dqfun
   dqargs <- metadata(rlelst[[1]])$dqfun_args
   seqlevels(gr) <- names(rlelst)
   ord <- order(seqnames(gr))
   startbyseq <- split(start(gr), seqnames(gr), drop=TRUE)
-  lappargs <- c(list(X=rlelst[startbyseq], FUN=.dequantizer), dqargs)
-  x <- unlist(do.call("lapply", lappargs), use.names=FALSE)
-  ans <- numeric(0)
+  x <- ans <- numeric(0)
+  if (quantized)
+    x <- decode(unlist(rlelst[startbyseq], use.names=FALSE))
+  else {
+    lappargs <- c(list(X=rlelst[startbyseq], FUN=.dequantizer), dqargs)
+    x <- unlist(do.call("lapply", lappargs), use.names=FALSE)
+  }
   valxpos <- metadata(rlelst[[1]])$valxpos
   if (is.null(valxpos))
     valxpos <- 1
   stopifnot(length(valxpos) == 1 && valxpos[1] > 0) ## QC
-  whregions <- which(width(gr) > 1)
+
   if (valxpos == 1) {
-    ans <- numeric(length(gr))
+    ans <- vector(mode=class(x), length=length(gr))
     ans[ord] <- x
+    if (quantized)
+      ans <- Rle(ans)
   } else {
     if (length(whregions) > 0)
-      stop("This GScores object returns more than one value per position, and therefore, input ranges can only have width one.")
+      stop("This GScores object returns more than one value per position, and therefore, input ranges must have width one.")
     ans <- matrix(NA_real_, nrow=length(gr), ncol=valxpos)
     ans[ord, ] <- matrix(x, nrow=length(gr), ncol=valxpos, byrow=TRUE)
   }
@@ -132,10 +142,12 @@ setMethod("seqlevelsStyle", "GScores",
 }
 
 setMethod("scores", c("GScores", "GenomicRanges"),
-          function(object, ranges, scores.only=FALSE, ...) {
+          function(object, ranges, ...) {
             objectname <- deparse(substitute(object))
             ## default non-generic arguments
+            scores.only <- FALSE
             summaryFun <- mean
+            quantized <- FALSE
             caching <- TRUE
 
             ## get arguments
@@ -156,7 +168,7 @@ setMethod("scores", c("GScores", "GenomicRanges"),
               stop(sprintf("Sequence names %s in GRanges object not present in reference genome %s.",
                            paste(snames[!snames %in% seqnames(object)], collapse=", "),
                            providerVersion(referenceGenome(object))))
-
+            
             scorlelist <- get(object@data_pkgname, envir=object@.data_cache)
             missingMask <- !snames %in% names(scorlelist)
             slengths <- seqlengths(object)
@@ -180,7 +192,8 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             if (any(missingMask) && caching)
               assign(object@data_pkgname, scorlelist, envir=object@.data_cache)
 
-            sco <- .rleGetValues(scorlelist, ranges, summaryFun=summaryFun)
+            sco <- .rleGetValues(scorlelist, ranges, summaryFun=summaryFun,
+                                 quantized=quantized)
             rm(scorlelist)
 
             if (scores.only) {
@@ -198,18 +211,19 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             ranges
           })
 
-## getter qfun and dqfun methods
-## setMethod("qfun", "GScores",
-##           function(object) {
-##             obj <- get(object@data_pkgname, envir=object@.data_cache)
-##             metadata(obj[[1]])$qfun
-##           })
-## 
-## setMethod("dqfun", "GScores",
-##           function(object) {
-##             obj <- get(object@data_pkgname, envir=object@.data_cache)
-##             metadata(obj[[1]])$dqfun
-##           })
+## getters qfun and dqfun
+setMethod("qfun", "GScores",
+          function(object) {
+            obj <- get(object@data_pkgname, envir=object@.data_cache)
+            metadata(obj[[1]])$qfun
+          })
+
+setMethod("dqfun", "GScores",
+          function(object) {
+            obj <- get(object@data_pkgname, envir=object@.data_cache)
+            metadata(obj[[1]])$dqfun
+          })
+
 citation <- function(package, ...) UseMethod("citation")
 citation.character <- function(package, ...) {
   if (missing(package)) package <- "base"

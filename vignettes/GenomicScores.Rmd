@@ -34,7 +34,7 @@ biocLite("GenomicScores")
 
 Once `r Biocpkg("GenomicScores")` is installed, it can be loaded with the following command.
 
-```{r library_upload, message=FALSE, cache=FALSE}
+```{r library_upload, message=FALSE, warning=FALSE, cache=FALSE}
 library(GenomicScores)
 ```
 
@@ -93,28 +93,30 @@ Annotation Package          | Description
 
 This is an example of how genomic scores can be retrieved using the
 phastCons100way.UCSC.hg19 package.
-Here, a GScores object is created when the package is loaded.
+Here, a `GScores` object is created when the package is loaded.
 
-```{r retrieve1, message=FALSE, cache=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=FALSE}
 library(phastCons100way.UCSC.hg19)
 library(GenomicRanges)
 gsco <- phastCons100way.UCSC.hg19
+class(gsco)
 ```
 
-We should use the function scores() to retrive genomic scores for specific positions.
+The halp page of the `GScores` class describes the different methods to access the
+information and metadata stored in a `GScores` object. To retrieve genomic scores
+for specific positions we should use the function `scores()`, as follows.
 
 ```{r}
 scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
 ```
 
-<!--
-The `r Biocpkg("GenomicScores")` package only loads the scores data from the sequences that are being
+The `r Biocpkg("GenomicScores")` package only loads the scores data from one
+sequence to retrieve metadata and from the sequences that are being
 queried. Note that now the GScores object has loaded the scores from chr7.
 
-```{r, echo=FALSE, eval=FALSE}
+```{r}
 gsco
 ```
--->
 
 # Retrieval of genomic scores through AnnotationHub resources
 
@@ -144,11 +146,33 @@ the first time, the cached copy will enable quicker later retrieval.
 gsco <- getGScores("phastCons100way.UCSC.hg19")
 ```
 
-Finally, the phastCons score of a particular genomic position is retrieved as it has been seen before.
+Finally, the phastCons score of a particular genomic position
+is retrieved exactly in the same we did with the annotation package.
 
 ```{r retrieve4, message=FALSE, cache=FALSE}
 scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
 ```
+
+## Building an annotation package from a GScores object
+
+Retrieving genomic scores through `AnnotationHub` resources requires an internet
+connection and we may want to work with such resources offline. For that purpose,
+we can create ourselves an annotation package, such as
+[phastCons100way.UCSC.hg19](https://bioconductor.org/packages/phastCons100way.UCSC.hg19),
+from a `GScores` object corresponding to a downloaded `AnnotationHub` resource.
+To do that we use the function `makeGScoresPackage()` as follows:
+
+```{r eval=FALSE}
+makeGScoresPackage(gsco, maintainer="Me <me@example.com>", author="Me", version="1.0.0")
+```
+```{r echo=FALSE}
+cat("Creating package in ./phastCons100way.UCSC.hg19\n")
+```
+
+An argument, `destDir`, which by default points to the current working
+directory, can be used to change where in the filesystem the package is created.
+Afterwards, we should still build and install the package via, e.g.,
+`R CMD build` and `R CMD INSTALL`, to be able to use it offline.
 
 # Annotating variants with genomic scores
 
@@ -219,18 +243,14 @@ points(1:length(x[mask])+0.25, sapply(x[mask], mean, na.rm=TRUE), pch=23, bg="bl
 To have a sense of the extent of the trade-off between precision and compression we compare here
 raw phastCons scores with the ones stored in the corresponding annotation package using lossy compression.
 In this case, phastCons scores were quantized by rounding their precision to one decimal digit.
+The specific quantization and dequantization functions are stored as part of the metadata of a
+`GScores` object and they can be examined with the methods `qfun()` and `dqfun()`, respectively.
+The latter is called by the scores() method to retrieve genomic scores.
 
-<!--
-Multiple details regarding how genomics scores were processed are stored in the metadata of the
-Rle objects that store them, including the corresponding quantizer and dequantizer functions. These can
-be accessed from a GScores object using the methods qfun() and dqfun(), respectively. The latter is
-called by the scores() method to retrieve genomic scores.
-
-```{r, echo=FALSE, eval=FALSE}
+```{r}
 qfun(gsco)
 dqfun(gsco)
 ```
--->
 
 One thousand raw phastCons scores were sampled uniformly at random from CDS and 3'UTR regions and are
 included in this package to illustrate this comparison. Interestingly, among the phastCons scores
