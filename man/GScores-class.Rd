@@ -24,10 +24,10 @@
 \alias{citation,character-method}
 \alias{citation,GScores-method}
 \alias{citation}
-%%\alias{qfun,GScores-method}
-%%\alias{qfun}
-%%\alias{dqfun,GScores-method}
-%%\alias{dqfun}
+\alias{qfun,GScores-method}
+\alias{qfun}
+\alias{dqfun,GScores-method}
+\alias{dqfun}
 \alias{show,GScores-method}
 \alias{makeGScoresPackage}
 
@@ -158,6 +158,12 @@
       \code{seqlengths(x)}: get the genome sequence lengths.
     }
     \item{}{
+      \code{qfun(x)}: get the quantizer function.
+    }
+    \item{}{
+      \code{dqfun(x)}: get the dequantizer function.
+    }
+    \item{}{
       \code{citation(x)}: get citation information for the genomic scores data
       in the form of a \code{bibentry} object.
     }
@@ -199,6 +205,8 @@ seqlevelsStyle(gsco)
 seqinfo(gsco)
 head(seqnames(gsco))
 head(seqlengths(gsco))
+qfun(gsco)
+dqfun(gsco)
 citation(gsco)
 }
 \keyword{datasets}
