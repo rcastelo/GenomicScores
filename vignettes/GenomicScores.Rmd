@@ -174,6 +174,58 @@ directory, can be used to change where in the filesystem the package is created.
 Afterwards, we should still build and install the package via, e.g.,
 `R CMD build` and `R CMD INSTALL`, to be able to use it offline.
 
+# Summarization of genomic scores
+
+The input genomic ranges to the `scores()` method may have widths larger than one
+nucleotide. In those cases, the `scores()` method calculates, by default, the
+arithmetic mean of the scores across each range.
+
+```{r}
+gr1 <- GRanges(seqnames="chr7", IRanges(start=117232380:117232384, width=1))
+gr1 <- scores(gsco, gr1)
+gr1
+mean(gr1$scores)
+gr2 <- GRanges(seqnames="chr7", IRanges(start=117232380, width=5))
+scores(gsco, gr2)
+```
+
+However, we may change the way in which scores from multiple-nucleotide ranges are
+summarized with the argument `summaryFun`, as follows.
+
+```{r}
+scores(gsco, gr2, summaryFun=max)
+scores(gsco, gr2, summaryFun=min)
+scores(gsco, gr2, summaryFun=median)
+```
+
+# Retrieval of quantized genomic scores
+
+The specific quantization and dequantization functions are stored as part of
+the metadata of a `GScores` object and they can be examined with the methods
+`qfun()` and `dqfun()`, respectively. The latter is called by the `scores()`
+method to retrieve genomic scores.
+
+```{r}
+phastqfun <- qfun(gsco)
+phastqfun
+phastdqfun <- dqfun(gsco)
+phastdqfun
+```
+
+For single-nucleotide ranges, we can retrieve the quantized genomic scores
+using the argument `quantized=TRUE`.
+
+```{r}
+gr1 <- scores(gsco, gr1, quantized=TRUE)
+gr1
+```
+
+Using the dequantization function we can obtain later the genomic scores.
+
+```{r}
+phastdqfun(gr1$scores)
+```
+
 # Annotating variants with genomic scores
 
 A typical use case of the `r Biocpkg("GenomicScores")` package is in the context of annotating variants
@@ -221,6 +273,9 @@ table(loc$LOCATION)
 
 Finally annotate phastCons conservation scores on the variants and store
 those annotations as an additional metadata column of the `GRanges` object.
+For this specific purpose we should the argument `scores.only=TRUE` that
+makes the `scores()` method to return the genomic scores as a numeric vector
+instead as a metadata column in the input ranges object.
 
 ```{r}
 loc$PHASTCONS <- scores(gsco, loc, scores.only=TRUE)
@@ -243,14 +298,6 @@ points(1:length(x[mask])+0.25, sapply(x[mask], mean, na.rm=TRUE), pch=23, bg="bl
 To have a sense of the extent of the trade-off between precision and compression we compare here
 raw phastCons scores with the ones stored in the corresponding annotation package using lossy compression.
 In this case, phastCons scores were quantized by rounding their precision to one decimal digit.
-The specific quantization and dequantization functions are stored as part of the metadata of a
-`GScores` object and they can be examined with the methods `qfun()` and `dqfun()`, respectively.
-The latter is called by the scores() method to retrieve genomic scores.
-
-```{r}
-qfun(gsco)
-dqfun(gsco)
-```
 
 One thousand raw phastCons scores were sampled uniformly at random from CDS and 3'UTR regions and are
 included in this package to illustrate this comparison. Interestingly, among the phastCons scores
