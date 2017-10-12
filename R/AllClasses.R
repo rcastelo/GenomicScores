@@ -22,3 +22,11 @@ setClass("GScores",
                                        data_serialized_objnames="character",
                                        ## place to cache the serialized objects
                                        .data_cache="environment"))
+
+## The MafDb class derives from the GScores class to
+## accomodate specificities associated with storing
+## minor allele frequency data
+setClass("MafDb", contains="GScores",
+         representation(data_tag="character",
+                        data_pops="character",
+                        data_nov="integer"))

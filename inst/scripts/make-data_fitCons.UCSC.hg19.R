@@ -2,7 +2,7 @@
 ## scores version 1.01 for human genome version hg19. If you use
 ## these data on your own research please cite the following publication:
 
-## Gulko B, Gronau I, Hubisz MJ, Siepel A. Probabilities of fitness consequences
+## Gulko B, Hubisz MJ, Gronau I, Siepel A. Probabilities of fitness consequences
 ## for point mutations across the human genome. Nat. Genet. 2015 Aug;47:276-83.
 ## (http://www.nature.com/ng/journal/v47/n3/full/ng.3196.html)
 
@@ -14,9 +14,9 @@
 ##
 ## http://compgen.cshl.edu/fitCons/0downloads/tracks/V1.01/readme.txt
 ##
-## and at the CSHL mirror of the UCSC genome browser at
+## and at the Adam Siepel Lab website
 ##
-## http://genome-mirror.cshl.edu
+## http://siepellab.labsites.cshl.edu
 
 ## The following R script processes the downloaded data to
 ## store the fitCons scores in raw-Rle objects
@@ -27,6 +27,15 @@ library(doParallel)
 library(S4Vectors)
 
 downloadURL <- "http://compgen.cshl.edu/fitCons/0downloads/tracks/V1.01/i6/scores/fc-i6-0.bw"
+citationdata <- bibentry(bibtype="Article",
+                         author=c(person("Brad Gulko"), person("Melissa J. Hubisz"),
+                                  person("Ilan Gronau"), person("Adam Siepel")),
+                         title="Probabilities of fitness consequences for point mutations across the human genome",
+                         journal="Nature Genetics",
+                         volume="47",
+                         pages="276-283",
+                         year="2015",
+                         doi="10.1038/ng.3196")
 
 registerDoParallel(cores=4)
 
@@ -52,9 +61,9 @@ saveRDS(refgenomeGD, file="refgenomeGD.rds")
 ## with fitCons scores
 
 ## quantizer function. it maps input real-valued [0, 1]
-## phastCons scores to non-negative integers [0, 255] so that
+## fitCons scores to non-negative integers [0, 255] so that
 ## each of them can be later coerced into a single byte (raw type).
-## quantization is done by rounding to one decimal significant digit,
+## quantization is done by rounding to two decimal significant digits,
 ## and therefore, mapping is restricted to 101 different positive
 ## integers only [1-101], where the 0 value is kept to code for missingness
 .quantizer <- function(x) {
@@ -98,10 +107,11 @@ foreach (chr=seqnames(Hsapiens)) %dopar% {
     metadata(obj) <- list(seqname=chr,
                           provider="UCSC",
                           provider_version="21Aug2014", ## it'd better to grab the date from downloaded file
+                          citation=citationdata,
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
-                          data_pkgname="fitCons.UCSC.hg38",
+                          data_pkgname="fitCons.UCSC.hg19",
                           qfun=.quantizer,
                           dqfun=.dequantizer,
                           ecdf=Fn,

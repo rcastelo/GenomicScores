@@ -24,15 +24,28 @@ library(doParallel)
 library(S4Vectors)
 
 downloadURL <- "http://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons100way/hg19.100way.phastCons"
+citationdata <- bibentry(bibtype="Article",
+                         author=c(person("Adam Siepel"), person("Gill Berejano"), person("Jakob S. Pedersen"),
+                                  person("Angie S. Hinrichs"), person("Minmei Hou"), person("Kate Rosenbloom"),
+                                  person("Hiram Clawson"), person("John Spieth"), person("LaDeana W. Hillier"),
+                                  person("Stephen Richards"), person("George M. Weinstock"),
+                                  person("Richard K. Wilson"), person("Richard A. Gibbs"),
+                                  person("W. James Kent"), person("Webb Miller"), person("David Haussler")),
+                         title="Evolutionarily conserved elements in vertebrate, insect, worm, and yeast genomes",
+                         journal="Genome Research",
+                         volume="15",
+                         pages="1034-1050",
+                         year="2005",
+                         doi="10.1101/gr.3715005")
 
 registerDoParallel(cores=4) ## each process may need up to 20Gb of RAM
 
 ## transform WIG to BIGWIG format
-si <- Seqinfo(seqnames=seqnames(Hsapiens), seqlengths=seqlengths(Hsapiens))
-foreach (chr=seqnames(Hsapiens)) %dopar% {
-  cat(chr, "\n")
-  wigToBigWig(file.path("hg19.100way.phastCons", sprintf("%s.phastCons100way.wigFix.gz", chr)), seqinfo=si)
-}
+## si <- Seqinfo(seqnames=seqnames(Hsapiens), seqlengths=seqlengths(Hsapiens))
+## foreach (chr=seqnames(Hsapiens)) %dopar% {
+##   cat(chr, "\n")
+##   wigToBigWig(file.path("hg19.100way.phastCons", sprintf("%s.phastCons100way.wigFix.gz", chr)), seqinfo=si)
+## }
 
 ## freeze the GenomeDescription data for Hsapiens
 
@@ -100,6 +113,7 @@ foreach (chr=seqnames(Hsapiens)) %dopar% {
     metadata(obj) <- list(seqname=chr,
                           provider="UCSC",
                           provider_version="09Feb2014", ## it'd better to grab the date from downloaded file
+                          citation=citationdata,
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
@@ -113,6 +127,6 @@ foreach (chr=seqnames(Hsapiens)) %dopar% {
     rm(list=sprintf("phastCons100way_%s", chr))
     gc()
   }, error=function(err) {
-    message(chr, " ", conditionMessage(err), call.=TRUE)
+      message(chr, " ", conditionMessage(err), call.=TRUE)
   })
 }

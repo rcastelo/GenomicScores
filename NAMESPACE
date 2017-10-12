@@ -42,8 +42,7 @@ importFrom(utils, data,
                   packageDescription,
                   capture.output,
                   as.person,
-                  bibentry,
-                  citation)
+                  bibentry)
 
 importFrom(XML, xmlGetAttr,
                 htmlTreeParse)
