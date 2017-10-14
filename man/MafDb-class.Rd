@@ -19,6 +19,7 @@
 \alias{seqlevelsStyle,MafDb-method}
 \alias{show,MafDb-method}
 \alias{$,MafDb-method}
+\alias{citation,MafDb-method}
 
 \title{MafDb class}
 

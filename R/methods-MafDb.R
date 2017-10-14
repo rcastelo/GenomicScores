@@ -53,6 +53,15 @@ setMethod("seqlevelsStyle", "MafDb", function(x) seqlevelsStyle(referenceGenome(
 
 setMethod("populations", "MafDb", function(x) x@data_pops)
 
+citation.MafDb <- function(package, ...) {
+  obj <- get(package@data_pkgname, envir=package@.data_cache)
+  cit <- metadata(obj[[1]][[1]])$citation
+  if (is.null(cit))
+    cit <- bibentry()
+  cit
+}
+setMethod("citation", signature="MafDb", citation.MafDb)
+
 ## adapted from VariantTools::extractCoverageForPositions()
 .extractRawFromRleList <- function(rlelst, ranges) {
   if (any(!unique(seqnames(ranges)) %in% names(rlelst)))
