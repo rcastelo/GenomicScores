@@ -1,3 +1,24 @@
+CHANGES IN VERSION 1.2.0
+-------------------------
+
+USER VISIBLE CHANGES
+
+    o Added methods 'name()' and 'type()' for GScores objects.
+
+    o Enabled the retrieval of multiple score values per genomic position (e.g., as in CADD or M-CAP scores).
+
+    o Added method 'citation()' to fetch citation information for genomic scores.
+
+    o Added function 'makeGScoresPackage()' to create an annotation package from an AnnotationHub genomic scores resource.
+
+    o Added 'qfun()' and 'dqfun()' methods to fetch the quantization and dequantization functions from used to store and retrieved genomic scores.
+
+    o Added 'quantized' argument to the 'scores()' method to obtain quantized values if the user wants to dequantize the values him or herself.
+
+    o Fallback to local AnnotationHub when there is no internet connection to fetch genomic scores through AnnotationHub resources.
+
+    o Added 'MafDb' class, derived from 'GScores' to store and access minor allele frequency values. This was originally defined in the 'VariantFiltering' package.
+
 CHANGES IN VERSION 0.99.0
 -------------------------
 
