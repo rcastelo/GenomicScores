@@ -165,7 +165,7 @@ setMethod("scores", c("GScores", "GenomicRanges"),
 
             snames <- unique(as.character(runValue(seqnames(ranges))))
             if (any(!snames %in% seqnames(object)))
-              stop(sprintf("Sequence names %s in GRanges object not present in reference genome %s.",
+              stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
                            paste(snames[!snames %in% seqnames(object)], collapse=", "),
                            providerVersion(referenceGenome(object))))
             

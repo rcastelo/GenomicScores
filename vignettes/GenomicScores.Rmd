@@ -40,7 +40,7 @@ library(GenomicScores)
 
 Often, however, `r Biocpkg("GenomicScores")` will be automatically loaded when
 working with an annotation package that uses `r Biocpkg("GenomicScores")`, such
-as phastCons100way.UCSC.hg19.
+as `r Biocpkg("phastCons100way.UCSC.hg19")`.
 
 # Genomewide position-specific scores
 
@@ -76,11 +76,19 @@ identical values along the genome. These runs of identical values can be
 further compressed using the implementation of Rle vectors available in the
 `r Biocpkg("S4Vectors")` Bioconductor package.
 
+To enable a seamless access to genomic scores stored with quantized values
+in compressed vectors the `r Biocpkg("GenomicScores")` defines the `GScores`
+class of objects. This class manages the location, loading and dequantization
+of genomic scores stored separately on each chromosome. A further class,
+called `MafDb`, is derived from `GScores` to store minor allele frequency (MAF)
+data accounting for specific features of this kind of values such as their
+organization into populations of individuals.
+
 # Retrieval of genomic scores through annotation packages
 
 There are currently four different annotation packages that store genomic
-scores and can be accessed using the `r Biocpkg("GenomicScores")` package
-(Table \@ref(tab:table)):
+scores and can be accessed using the `r Biocpkg("GenomicScores")` package;
+see Table \@ref(tab:tableGScores).
 
 Annotation Package          | Description
 --------------------------- | --------------------------------------------------------------------------------------------
@@ -89,10 +97,10 @@ Annotation Package          | Description
 `r Biocpkg("phastCons7way.UCSC.hg38")`     | phastCons scores derived from the alignment of the human genome (hg38) to other 6 mammal species.
 `r Biocpkg("fitCons.UCSC.hg19")`           | fitCons scores: fitness consequences of functional annotation for the human genome (hg19).
 
-: (\#tab:table) Bioconductor annotation packages storing genomic scores
+: (\#tab:tableGScores) Bioconductor annotation packages storing genomic scores
 
 This is an example of how genomic scores can be retrieved using the
-phastCons100way.UCSC.hg19 package.
+`r Biocpkg("phastCons100way.UCSC.hg19")` package.
 Here, a `GScores` object is created when the package is loaded.
 
 ```{r, message=FALSE, warning=FALSE, cache=FALSE}
@@ -116,6 +124,27 @@ queried. Note that now the GScores object has loaded the scores from chr7.
 
 ```{r}
 gsco
+```
+
+The bibliographic reference to cite the genomic scores stored in a `GScores`
+object can be accessed using the `citation()` method either on the package
+name or on the `GScores` object. The latter is implemented in the
+`r Biocpkg("GenomicScores")` package and provides a `bibentry` object.
+
+```{r}
+citation(gsco)
+```
+
+Other methods tracing provenance and other metadata are `provider()`,
+`providerVersion()`, `organism()` and `seqlevelsStyle()`; please consult
+the help page of the `GScores` class for a comprehensive list of available
+methods.
+
+```{r}
+provider(gsco)
+providerVersion(gsco)
+organism(gsco)
+seqlevelsStyle(gsco)
 ```
 
 # Retrieval of genomic scores through AnnotationHub resources
@@ -226,6 +255,108 @@ Using the dequantization function we can obtain later the genomic scores.
 phastdqfun(gr1$scores)
 ```
 
+# Retrieval of minor allele frequency data
+
+The `MafDb` class derived from `GSscores` enables the storage and access
+of minor allele frequency (MAF) data. There are currently 9 different annotation
+packages that store MAF values using the `r Biocpkg("GenomicScores")` package;
+see Table \@ref(tab:tableMafDb) below.
+
+Annotation Package          | Description
+--------------------------- | --------------------------------------------------------------------------------------------
+`r Biocpkg("MafDb.1Kgenomes.phase1.hs37d5")` | MAF data from the 1000 Genomes Project Phase 1 for the human genome version GRCh37.
+`r Biocpkg("MafDb.1Kgenomes.phase3.hs37d5")` | MAF data from the 1000 Genomes Project Phase 3 for the human genome version GRCh37.
+`r Biocpkg("MafDb.ESP6500SI.SSA137.hs37d5")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh37.
+`r Biocpkg("MafDb.ESP6500SI.SSA137.GRCh38")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh38.
+`r Biocpkg("MafDb.ExAC.r1.0.hs37d5")` | MAF data from ExAC 60706 exomes for the human genome version GRCh37.
+`r Biocpkg("MafDb.ExAC.r1.0.nonTCGA.hs37d5")` | MAF data from ExAC 53105 nonTCGA exomes for the human genome version GRCh37.
+`r Biocpkg("MafDb.gnomAD.r2.0.1.hs37d5")` | MAF data from gnomAD 15496 genomes for the human genome version GRCh37.
+`r Biocpkg("MafDb.gnomADex.r2.0.1.hs37d5")` | MAF data from gnomADex 123136 exomes for the human genome version GRCh37.
+`r Biocpkg("MafDb.TOPMed.freeze5.hg38")` | MAF data from NHLBI TOPMed 62784 genomes for the human genome version GRCh38.
+
+: (\#tab:tableMafDb) Bioconductor annotation packages storing MAF data.
+
+A `MafDb` object compresses the data in the same way as a `GScores` object but it
+can store multiple versions of the data corresponding to MAF values derived from
+different populations of individuals.
+
+```{r, message=FALSE}
+library(MafDb.1Kgenomes.phase1.hs37d5)
+
+mafdb <- MafDb.1Kgenomes.phase1.hs37d5
+mafdb
+
+populations(mafdb)
+```
+
+Because `MafDb` objects derive from the `GScores` class, all the `GScores` methods
+also apply.
+
+```{r}
+citation(mafdb)
+provider(mafdb)
+providerVersion(mafdb)
+organism(mafdb)
+seqlevelsStyle(mafdb)
+```
+
+The interface to access MAF values is also different to be more consistent with
+the one of `SNPlocs.*` packages; see, for instance, `r Biocpkg("SNPlocs.Hsapiens.dbSNP144.GRCh37")`.
+More concretely, `MafDb` objects should be queried with the following two functions:
+
+  * `mafByOverlaps(x, ranges, pop="AF", type=c("snvs", "nonsnvs"), caching=TRUE)`: returns
+    MAF values from the `MafDb` object in the argument `x`, whose positions overlap with the
+    genomic ranges given in the argument `ranges` for the populations given in the argument
+    `pop`. Additionally, one may query for single nucleotide variants -SNVs- (default) or 
+    nonSNVs by indicating it in the argument `type`. The argument `caching` flags whether
+    the queried data should be cahced into main memory (default).
+
+  * `mafById(x, ids, pop, caching)`: return MAF values from the `MafDb` object in the argument
+    `x` annotated by the data producer to the identifiers given in the argument `ids`. Arguments
+    `pop` and `caching` work as in `mafByOverlaps()`.
+
+Consider the following example in which we are interested in MAF values for variants associated
+with _eye color_. We can start by fetching the corresponding variant identifers from the GWAS
+catalog using the `r Biocpkg("gwascat")` package, as follows.
+
+```{r, message=FALSE}
+library(gwascat)
+data(ebicat37)
+eyersids <- subsetByTraits(ebicat37, tr="Eye color")$SNPS
+eyersids
+```
+
+While we could directly interrogate a `MafDb` object with these identifiers and the function
+`mafById()`, that query relies on a specific dbSNP annotation used by the MAF data producer to
+annotate variants, which may not be the most up date nor may assign identifiers to every
+variant. From this perspective, it is safer to first query the genomic position of the variant
+identifiers with a recent release of dbSNP, as follows.
+
+```{r, message=FALSE}
+library(SNPlocs.Hsapiens.dbSNP144.GRCh37)
+rng <- snpsById(SNPlocs.Hsapiens.dbSNP144.GRCh37, ids=eyersids)
+rng
+```
+
+Finally, query the MAF values on those positions.
+
+```{r}
+eyecolormafs <- mafByOverlaps(mafdb, rng, c("AF", "EUR_AF", "AFR_AF"))
+eyecolormafs
+```
+
+The following code produces the barplot shown in Figure \@ref(fig:eyecolormafs) illustrating
+graphically the differences in MAF values from these variants between the three queried populations.
+
+```{r eyecolormafs, fig.cap = "Eye color MAFs. Minor allele frequencies (MAFs) of variants associated with eye color for global, european and african populations of the Phase 1 data from the 1000 Genomes Project.", fig.height=5, fig.wide = TRUE, echo=TRUE}
+par(mar=c(3, 5, 1, 1))
+bp <- barplot(t(as.matrix(mcols(eyecolormafs))), beside=TRUE, col=c("darkblue", "darkgreen", "darkorange"),
+              ylim=c(0, 0.55), las=1, ylab="Minor allele frequency")
+axis(1, bp[2, ], 1:length(eyecolormafs))
+mtext("Variant", side=1, line=2)
+legend("topright", colnames(mcols(eyecolormafs)), fill=c("darkblue", "darkgreen", "darkorange"))
+```
+
 # Annotating variants with genomic scores
 
 A typical use case of the `r Biocpkg("GenomicScores")` package is in the context of annotating variants
@@ -291,6 +422,19 @@ x <- split(loc$PHASTCONS, loc$LOCATION)
 mask <- elementNROWS(x) > 0
 boxplot(x[mask], ylab="phastCons score")
 points(1:length(x[mask])+0.25, sapply(x[mask], mean, na.rm=TRUE), pch=23, bg="black")
+```
+
+We can also additionally annotate MAF values on these variants. However,
+in this particular case, we should take care of the different sequence styles
+(UCSC vs NCBI) and genome version nomenclatures (hg19 vs. hs37d5) between the
+annotated variants and the `MafDb` object.
+
+```{r}
+seqlevelsStyle(loc) <- seqlevelsStyle(mafdb)[1]
+seqinfo(loc, new2old=match(seqlevels(mafdb), seqlevels(loc))) <- seqinfo(mafdb)
+loc$MAF[width(loc) == 1] <- mafByOverlaps(mafdb, loc[width(loc) == 1])$AF
+loc$MAF[width(loc) > 1] <- mafByOverlaps(mafdb, loc[width(loc) > 1], type="nonsnvs")$AF
+loc[1:3]
 ```
 
 # Comparison between lossy-compressed and raw phastCons scores

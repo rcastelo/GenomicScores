@@ -222,8 +222,8 @@ setMethod("mafByOverlaps", signature="MafDb",
 
             snames <- unique(as.character(runValue(seqnames(ranges))))
             if (any(!snames %in% seqnames(x)))
-              stop("Sequence names %s in 'ranges' not present in MafDb object.",
-                   paste(snames[!snames %in% seqnames(x)], collapse=", "))
+              stop(sprintf("Sequence names %s in 'ranges' not present in MafDb object.",
+                   paste(snames[!snames %in% seqnames(x)], collapse=", ")))
 
             if (any(!pop %in% populations(x)))
               stop(sprintf("population %s must be one of %s\n", pop, paste(populations(x), collapse=", ")))
