@@ -148,6 +148,8 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             scores.only <- FALSE
             summaryFun <- mean
             quantized <- FALSE
+            ref <- character(0)
+            alt <- character(0)
             caching <- TRUE
 
             ## get arguments
@@ -159,6 +161,27 @@ setMethod("scores", c("GScores", "GenomicRanges"),
 
             if (length(ranges) == 0)
               return(numeric(0))
+
+            if (length(ref) != length(alt))
+              stop("'ref' and 'alt' arguments have different lengths.")
+
+            if (length(ref) > 0) {
+              if (!class(ref) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
+                stop("'ref' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
+              } else if (class(ref) == "DNAStringSetList") {
+                if (max(elementNROWS(ref)) > 1)
+                  stop("'ref' argument must contain only a single nucleotide per position.")
+                ref <- unlist(ref)
+              }
+
+              if (!class(alt) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
+                stop("'alt' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
+              } else if (class(alt) == "DNAStringSetList") {
+                if (max(elementNROWS(alt)) > 1)
+                  stop("'alt' argument must contain only a single nucleotide per position.")
+                alt <- unlist(alt)
+              }
+            }
 
             if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
               seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
@@ -195,6 +218,18 @@ setMethod("scores", c("GScores", "GenomicRanges"),
             sco <- .rleGetValues(scorlelist, ranges, summaryFun=summaryFun,
                                  quantized=quantized)
             rm(scorlelist)
+
+            if (length(ref) > 0) {
+              if (is.matrix(sco)) {
+                mt.r <- match(ref, DNA_BASES)
+                mt.a <- match(alt, DNA_BASES)
+                mask <- mt.r < mt.a
+                idxcol <- mt.a
+                idxcol[mask] <- mt.a[mask] - 1L
+                sco <- sco[cbind(1:nrow(sco), idxcol)]
+              } else
+                warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+            }
 
             if (scores.only) {
               if (is.matrix(sco))

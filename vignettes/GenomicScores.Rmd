@@ -22,6 +22,10 @@ output:
 bibliography: bibliography.bib
 ---
 
+```{r setup, echo=FALSE}
+options(width=80)
+```
+
 # Getting started
 
 `r Biocpkg("GenomicScores")` is an R package distributed as part of the
@@ -105,22 +109,21 @@ Here, a `GScores` object is created when the package is loaded.
 
 ```{r, message=FALSE, warning=FALSE, cache=FALSE}
 library(phastCons100way.UCSC.hg19)
-library(GenomicRanges)
 gsco <- phastCons100way.UCSC.hg19
 class(gsco)
 ```
 
-The halp page of the `GScores` class describes the different methods to access the
+The help page of the `GScores` class describes the different methods to access the
 information and metadata stored in a `GScores` object. To retrieve genomic scores
 for specific positions we should use the function `scores()`, as follows.
 
 ```{r}
-scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
+scores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
 ```
 
 The `r Biocpkg("GenomicScores")` package only loads the scores data from one
 sequence to retrieve metadata and from the sequences that are being
-queried. Note that now the GScores object has loaded the scores from chr7.
+queried. Note that now the GScores object has loaded the scores from chr22.
 
 ```{r}
 gsco
@@ -168,8 +171,9 @@ availableGScores()
 avgs
 ```
 
-The selected resource can be downloaded with the function getGScores(). After the resource is downloaded
-the first time, the cached copy will enable quicker later retrieval.
+The selected resource can be downloaded with the function getGScores().
+After the resource is downloaded the first time, the cached copy will
+enable a quicker retrieval later.
 
 ```{r retrieve3, message=FALSE, cache=FALSE, eval=FALSE}
 gsco <- getGScores("phastCons100way.UCSC.hg19")
@@ -179,7 +183,7 @@ Finally, the phastCons score of a particular genomic position
 is retrieved exactly in the same we did with the annotation package.
 
 ```{r retrieve4, message=FALSE, cache=FALSE}
-scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=1)))
+scores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
 ```
 
 ## Building an annotation package from a GScores object
@@ -203,18 +207,70 @@ directory, can be used to change where in the filesystem the package is created.
 Afterwards, we should still build and install the package via, e.g.,
 `R CMD build` and `R CMD INSTALL`, to be able to use it offline.
 
+# Retrieval of multiple scores per genomic position
+
+Among the score sets available as [AnnotationHub](https://bioconductor.org/packages/AnnotationHub)
+web resources shown in the previous section, two of them, CADD [@kircher14] and
+M-CAP [@jagadeesh16], provide multiple scores per genomic position that capture
+the tolerance to mutations of single nucleotides. Using M-CAP scores, we will
+illustrate how this type of scores are retrieved by default.
+
+```{r, echo=FALSE}
+obj <- readRDS(system.file("extdata", "mcap.v1.0.hg19.chr22.rds", package="GenomicScores"))
+mdobj <- metadata(obj)
+mcap <- GScores(provider=mdobj$provider,
+                provider_version=mdobj$provider_version,
+                download_url=mdobj$download_url,
+                download_date=mdobj$download_date,
+                reference_genome=mdobj$reference_genome,
+                data_pkgname=mdobj$data_pkgname,
+                data_dirpath="../inst/extdata",
+                data_serialized_objnames=c(mcap.v1.0.hg19.chr22.rds="mcap.v1.0.hg19.chr22.rds"))
+scorlelist <- get(mdobj$data_pkgname, envir=mcap@.data_cache)
+scorlelist[[mdobj$seqname]] <- obj
+assign(mdobj$data_pkgname, scorlelist, envir=mcap@.data_cache)
+```
+
+```{r, eval=FALSE}
+mcap <- getGScores("mcap.v1.0.hg19")
+```
+```{r}
+mcap
+citation(mcap)
+gr <- GRanges(seqnames="chr22", IRanges(50967020:50967025, width=1))
+scores(mcap, gr)
+```
+
+The previous call to the `scores()` method returns three scores per position
+corresponding to the M-CAP scores that estimate the tolerance of mutating the
+reference nucleotide at that position to each of the possible alternative
+alleles, in alphabetical order. One may directly retrieve the scores for
+combinations of reference and alternative alelles using the `ref` and `alt`
+arguments of the `scores()` method. See the following example with the
+the previous genomic positions and some randomly selected alternative alleles.
+
+```{r, message=FALSE}
+library(BSgenome.Hsapiens.UCSC.hg19)
+
+refAlleles <- as.character(getSeq(Hsapiens, gr))
+altAlleles <- DNA_BASES[(match(refAlleles, DNA_BASES)) %% 4 + 1]
+cbind(REF=refAlleles, ALT=altAlleles)
+scores(mcap, gr, ref=refAlleles, alt=altAlleles)
+```
+
 # Summarization of genomic scores
 
 The input genomic ranges to the `scores()` method may have widths larger than one
-nucleotide. In those cases, the `scores()` method calculates, by default, the
-arithmetic mean of the scores across each range.
+nucleotide. In those cases, and when there is only one score per position, the
+`scores()` method calculates, by default, the arithmetic mean of the scores across
+each range.
 
 ```{r}
-gr1 <- GRanges(seqnames="chr7", IRanges(start=117232380:117232384, width=1))
+gr1 <- GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1))
 gr1 <- scores(gsco, gr1)
 gr1
 mean(gr1$scores)
-gr2 <- GRanges(seqnames="chr7", IRanges(start=117232380, width=5))
+gr2 <- GRanges(seqnames="chr22", IRanges(start=50967020, width=6))
 scores(gsco, gr2)
 ```
 
@@ -350,7 +406,8 @@ graphically the differences in MAF values from these variants between the three 
 
 ```{r eyecolormafs, fig.cap = "Eye color MAFs. Minor allele frequencies (MAFs) of variants associated with eye color for global, european and african populations of the Phase 1 data from the 1000 Genomes Project.", fig.height=5, fig.wide = TRUE, echo=TRUE}
 par(mar=c(3, 5, 1, 1))
-bp <- barplot(t(as.matrix(mcols(eyecolormafs))), beside=TRUE, col=c("darkblue", "darkgreen", "darkorange"),
+bp <- barplot(t(as.matrix(mcols(eyecolormafs))), beside=TRUE,
+              col=c("darkblue", "darkgreen", "darkorange"),
               ylim=c(0, 0.55), las=1, ylab="Minor allele frequency")
 axis(1, bp[2, ], 1:length(eyecolormafs))
 mtext("Variant", side=1, line=2)
@@ -385,24 +442,22 @@ seqlevelsStyle(txdb)
 Because the chromosome nomenclature from the VCF file (NCBI) is different 
 from the one with the gene annotations (UCSC) we use the `seqlevelsStyle()`
 function to force our variants having the chromosome nomenclature of the
-gene annotations. Then we fetch the variants as a `GRanges` object.
+gene annotations.
 
 ```{r}
 seqlevelsStyle(vcf) <- seqlevelsStyle(txdb)
-rd <- rowRanges(vcf)
-rd[1:3]
 ```
 
 We annotate the location of variants using the function `locateVariants()`
 from the `r Biocpkg("VariantAnnotation")` package.
 
 ```{r, message=FALSE}
-loc <- locateVariants(rd, txdb, AllVariants())
+loc <- locateVariants(vcf, txdb, AllVariants())
 loc[1:3]
 table(loc$LOCATION)
 ```
 
-Finally annotate phastCons conservation scores on the variants and store
+Annotate phastCons conservation scores on the variants and store
 those annotations as an additional metadata column of the `GRanges` object.
 For this specific purpose we should the argument `scores.only=TRUE` that
 makes the `scores()` method to return the genomic scores as a numeric vector
@@ -420,11 +475,62 @@ shown in Figure \@ref(fig:plot1).
 ```{r plot1, fig.cap = "Distribution of phastCons conservation scores in variants across different annotated regions. Diamonds indicate mean values.", echo = FALSE, fig.height=5, fig.wide = TRUE, echo=TRUE}
 x <- split(loc$PHASTCONS, loc$LOCATION)
 mask <- elementNROWS(x) > 0
-boxplot(x[mask], ylab="phastCons score")
+boxplot(x[mask], ylab="phastCons score", las=1, cex.axis=1.2, cex.lab=1.5, col="gray")
 points(1:length(x[mask])+0.25, sapply(x[mask], mean, na.rm=TRUE), pch=23, bg="black")
 ```
 
-We can also additionally annotate MAF values on these variants. However,
+Next, we can annotate M-CAP and CADD scores as follows. Note that we need to take
+care to only query positions of single nucleotide variants, and using the `QUERYID`
+column of the annotations to fetch back reference and alternative alleles from the
+original VCF file container.
+
+```{r}
+maskSNVs <- isSNV(vcf)[loc$QUERYID]
+loc$MCAP <- rep(NA_real_, length(loc))
+loc$MCAP[maskSNVs] <- scores(mcap, loc[maskSNVs],
+                             ref=ref(vcf)[loc$QUERYID[maskSNVs]],
+                             alt=alt(vcf)[loc$QUERYID[maskSNVs]],
+                             scores.only=TRUE)
+```
+
+```{r, echo=FALSE}
+obj <- readRDS(system.file("extdata", "cadd.v1.3.hg19.chr22sub.rds", package="GenomicScores"))
+mdobj <- metadata(obj)
+cadd <- GScores(provider=mdobj$provider,
+                provider_version=mdobj$provider_version,
+                download_url=mdobj$download_url,
+                download_date=mdobj$download_date,
+                reference_genome=mdobj$reference_genome,
+                data_pkgname=mdobj$data_pkgname,
+                data_dirpath="../inst/extdata",
+                data_serialized_objnames=c(cadd.v1.3.hg19.chr22.rds="cadd.v1.3.hg19.chr22sub.rds"))
+scorlelist <- get(mdobj$data_pkgname, envir=cadd@.data_cache)
+scorlelist[[mdobj$seqname]] <- obj
+assign(mdobj$data_pkgname, scorlelist, envir=cadd@.data_cache)
+```
+
+```{r}
+maskSNVs <- isSNV(vcf)[loc$QUERYID]
+loc$CADD <- rep(NA_real_, length(loc))
+loc$CADD[maskSNVs] <- scores(cadd, loc[maskSNVs],
+                             ref=ref(vcf)[loc$QUERYID[maskSNVs]],
+                             alt=alt(vcf)[loc$QUERYID[maskSNVs]],
+                             scores.only=TRUE)
+```
+
+Using the code below we can produce the plot of Figure \@ref(fig:mcapvscadd) comparing
+CADD and M-CAP scores and labeling the location of the variants from which they are derived.
+
+```{r mcapvscadd, fig.cap = "Comparison of M-CAP and CADD scores. Values on the x- and y-axis are jittered to facilitate visualization.", echo = FALSE, fig.height=5, fig.width=7, dpi=100, echo=TRUE}
+library(RColorBrewer)
+par(mar=c(4, 5, 1, 1))
+hmcol <- colorRampPalette(brewer.pal(nlevels(loc$LOCATION), "Set1"))(nlevels(loc$LOCATION))
+plot(jitter(loc$MCAP, factor=2), jitter(loc$CADD, factor=2), pch=19,
+     col=hmcol, xlab="M-CAP scores", ylab="CADD scores",
+     las=1, cex.axis=1.2, cex.lab=1.5, panel.first=grid())
+legend("bottomright", levels(loc$LOCATION), pch=19, col=hmcol, inset=0.01)
+```
+Finally, we will show how to annotate MAF values on these variants. However,
 in this particular case, we should take care of the different sequence styles
 (UCSC vs NCBI) and genome version nomenclatures (hg19 vs. hs37d5) between the
 annotated variants and the `MafDb` object.

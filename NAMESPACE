@@ -5,6 +5,7 @@ import(GenomicRanges)
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
 
+importMethodsFrom(Biostrings, match)
 importMethodsFrom(BSgenome, snpcount,
                             snplocs,
                             snpsByOverlaps,
@@ -64,6 +65,8 @@ importFrom(IRanges, IRanges,
                     RleList,
                     IntegerList,
                     CharacterList)
+
+importFrom(Biostrings, DNA_BASES)
 
 importFrom(AnnotationHub, AnnotationHub,
                           getAnnotationHubOption)
