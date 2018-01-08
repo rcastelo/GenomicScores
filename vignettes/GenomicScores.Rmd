@@ -322,8 +322,8 @@ Annotation Package          | Description
 --------------------------- | --------------------------------------------------------------------------------------------
 `r Biocpkg("MafDb.1Kgenomes.phase1.hs37d5")` | MAF data from the 1000 Genomes Project Phase 1 for the human genome version GRCh37.
 `r Biocpkg("MafDb.1Kgenomes.phase3.hs37d5")` | MAF data from the 1000 Genomes Project Phase 3 for the human genome version GRCh37.
-`r Biocpkg("MafDb.ESP6500SI.SSA137.hs37d5")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh37.
-`r Biocpkg("MafDb.ESP6500SI.SSA137.GRCh38")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh38.
+`r Biocpkg("MafDb.ESP6500SI.V2.SSA137.hs37d5")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh37.
+`r Biocpkg("MafDb.ESP6500SI.V2.SSA137.GRCh38")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh38.
 `r Biocpkg("MafDb.ExAC.r1.0.hs37d5")` | MAF data from ExAC 60706 exomes for the human genome version GRCh37.
 `r Biocpkg("MafDb.ExAC.r1.0.nonTCGA.hs37d5")` | MAF data from ExAC 53105 nonTCGA exomes for the human genome version GRCh37.
 `r Biocpkg("MafDb.gnomAD.r2.0.1.hs37d5")` | MAF data from gnomAD 15496 genomes for the human genome version GRCh37.
@@ -543,16 +543,16 @@ loc$MAF[width(loc) > 1] <- mafByOverlaps(mafdb, loc[width(loc) > 1], type="nonsn
 loc[1:3]
 ```
 
-# Comparison between lossy-compressed and raw phastCons scores
+# Comparison between lossy-compressed and original phastCons scores
 
-To have a sense of the extent of the trade-off between precision and compression we compare here
-raw phastCons scores with the ones stored in the corresponding annotation package using lossy compression.
-In this case, phastCons scores were quantized by rounding their precision to one decimal digit.
-
-One thousand raw phastCons scores were sampled uniformly at random from CDS and 3'UTR regions and are
-included in this package to illustrate this comparison. Interestingly, among the phastCons scores
-sampled from 1000 CDS positions, there are only 198 different values despite the apparently very high
-precision of some of them.
+To have a sense of the extent of the trade-off between precision and compression in a specific case,
+we compare here original _phastCons_ scores with the ones obtained by rounding their precision to
+one significant figure, and stored in the annotation package `phastCons100way.UCSC.hg19`.
+Because _phastCons_  scores measure conservation, we sampled uniformly at random one
+thousand _phastCons_ scores from differently conserved regions, concretely CDS and 3'UTR.
+These sampled scores are included in this package to illustrate this comparison.
+Interestingly, among the _phastCons_ scores sampled from 1000 CDS positions,
+there are only 198 different values despite the apparently very high precision of some of them.
 
 ```{r showpositions, message=FALSE, cache=FALSE}
 origpcscoCDS <- readRDS(system.file("extdata", "origphastCons100wayhg19CDS.rds", package="GenomicScores"))
@@ -561,7 +561,7 @@ origpcscoCDS
 length(unique(origpcscoCDS$score))
 ```
 
-We look more closely the number of decimal digits of precision used in these raw scores.
+We look more closely the number of significant figures of precision used in these original _phastCons_ scores.
 
 ```{r}
 numDecimals <- function(x) {
@@ -587,16 +587,16 @@ nd2 <- numDecimals(origpcsco3UTRs$score)
 table(nd2)
 ```
 
-Retrieve the corresponding phastCons scores stored in the annotation package.
+Retrieve the corresponding _phastCons_ scores stored in the annotation package.
 
 ```{r}
 pkgpcscoCDS <- scores(gsco, origpcscoCDS, scores.only=TRUE)
 pkgpcsco3UTRs <- scores(gsco, origpcsco3UTRs, scores.only=TRUE)
 ```
 
-In Figure \@ref(fig:plot2) we show a visual comparison between raw and lossy-compressed phastCons scores.
+In Figure \@ref(fig:plot2) we show a visual comparison between raw and rounded _phastCons_ scores.
 The two panels on top compare the whole range of scores observed in CDS (left) and 3'UTR (right) regions.
-However, the effect of lossy compression can be better observed in the cumulative distributions shown in
+However, the rounding effect can be better observed in the cumulative distributions shown in
 the panels at the bottom, again for CDS (left) and 3'UTR (right) regions.
 
 In these bottom panels, phastcons scores in CDS and 3'UTR regions display very different cumulative distributions.
@@ -605,48 +605,59 @@ the scores are found below 0.1. Indeed, these are the range of values where loss
 The cumulative distribution of 3'UTR shows the same critical points, with the difference that most of scores are
 found below 0.1 (>70%).
 
-```{r plot2, fig.cap = "Original and lossy-compressed phastCons scores. Top panels: comparison of the distribution of values. Bottom panels: comparison of the cumulative distribution", echo = FALSE, fig.height=12, fig.wide = TRUE}
-par(mfrow=c(2, 2))
-plot(origpcscoCDS$score, jitter(pkgpcscoCDS), pch=19, cex=1,
+```{r plot2, fig.height=9, fig.width=8, dpi=100, fig.cap = "Original and lossy-compressed phastCons scores. Top panels (a, b): comparison of the distribution of values. Bottom panels (c, d): comparison of the cumulative distribution", echo = FALSE}
+labelPanel <- function(lab, font=2, cex=2, offsetx=0.05, offsety=0.05) {
+  par(xpd=TRUE)
+  w <- par("usr")[2] - par("usr")[1]
+  h <- par("usr")[4] - par("usr")[3]
+  text(par("usr")[1]-w*offsetx, par("usr")[4]+h*offsety, lab, font=font, cex=cex)
+  par(xpd=FALSE)
+}
+
+par(mfrow=c(2, 2), mar=c(4, 5, 2, 1))
+plot(origpcscoCDS$score, jitter(pkgpcscoCDS), pch=19, cex=1, cex.lab=1.2,
      xaxt="n", yaxt="n", xlab="Original phastCons scores (CDS)",
      ylab="Compressed phastCons scores (CDS)")
 axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
 abline(0, 1)
-plot(origpcsco3UTRs$score, jitter(pkgpcsco3UTRs), pch=19, cex=1,
+labelPanel(letters[1])
+plot(origpcsco3UTRs$score, jitter(pkgpcsco3UTRs), pch=19, cex=1, cex.lab=1.2,
      xaxt="n", yaxt="n", xlab="Original phastCons scores (3' UTR)",
      ylab="Compressed phastCons scores (3' UTR)")
 axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
 abline(0, 1)
+labelPanel(letters[2])
 ForigCDS <- ecdf(origpcscoCDS$score)
 FpkgCDS <- ecdf(pkgpcscoCDS)
-plot(sort(origpcscoCDS$score), ForigCDS(sort(origpcscoCDS$score)), xaxt="n", yaxt="n",
+plot(sort(origpcscoCDS$score), ForigCDS(sort(origpcscoCDS$score)), xaxt="n", yaxt="n", cex.lab=1.2,
      pch=".", cex=4, xlab="phastCons scores (CDS)", ylab="F(x)", ylim=c(0, 1))
 axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
 points(sort(pkgpcscoCDS), FpkgCDS(sort(pkgpcscoCDS)), pch=19, cex=1)
-legend("topleft", c("Original score", "Compressed score"), pch=c(46, 19),
+legend("topleft", c("Original score", "Rounded score"), pch=c(46, 19),
        pt.cex=c(4, 1), inset=0.01, bg="white")
+labelPanel(letters[3])
 Forig3UTRs <- ecdf(origpcsco3UTRs$score)
 Fpkg3UTRs <- ecdf(pkgpcsco3UTRs)
-plot(sort(origpcsco3UTRs$score), Forig3UTRs(sort(origpcsco3UTRs$score)), xaxt="n", yaxt="n",
+plot(sort(origpcsco3UTRs$score), Forig3UTRs(sort(origpcsco3UTRs$score)), xaxt="n", yaxt="n", cex.lab=1.2,
      pch=".", cex=4, xlab="phastCons scores (3'UTR)", ylab="F(x)", ylim=c(0, 1))
 axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
 abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
 points(sort(pkgpcsco3UTRs), Fpkg3UTRs(sort(pkgpcsco3UTRs)), pch=19, cex=1)
-legend("topleft", c("Original score", "Compressed score"), pch=c(46, 19),
+legend("topleft", c("Original score", "Rounded score"), pch=c(46, 19),
        pt.cex=c(4, 1), inset=0.01, bg="white")
-
+labelPanel(letters[4])
 ```
 
 The bottom plots in Figure \@ref(fig:plot2) also reveal that when the cumulative distribution is
 of interest, such as in the context of filtering genetic variants above or below certain threshold
-of conservation, the quantization of phastCons scores to one decimal digit provides sufficient
+of conservation, the quantization of _phastCons_ scores to one significant figure provides sufficient
 precision for a wide range of conservation values.
 
 # Session information
