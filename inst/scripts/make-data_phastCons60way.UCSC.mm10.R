@@ -1,6 +1,6 @@
 ## This file explains the steps to download and freeze the phastCons
-## conservation scores for human genome version mm10, calculated on
-## 100 vertebrate species. If you use these data on your own research
+## conservation scores for mouse genome version mm10, calculated on
+## 60 vertebrate species. If you use these data on your own research
 ## please cite the following publication:
 
 ## Siepel A, Bejerano G, Pedersen JS, Hinrichs AS, Hou M, Rosenbloom K, Clawson H,
@@ -41,11 +41,11 @@ citationdata <- bibentry(bibtype="Article",
 registerDoParallel(cores=4) ## each process may need up to 20Gb of RAM
 
 ## transform WIG to BIGWIG format
-## si <- Seqinfo(seqnames=seqnames(Mmusculus), seqlengths=seqlengths(Mmusculus))
-## foreach (chr=seqnames(Mmusculus)) %dopar% {
-##   cat(chr, "\n")
-##   wigToBigWig(file.path("mm10.60way.phastCons", sprintf("%s.phastCons60way.wigFix.gz", chr)), seqinfo=si)
-## }
+si <- Seqinfo(seqnames=seqnames(Mmusculus), seqlengths=seqlengths(Mmusculus))
+foreach (chr=seqnames(Mmusculus)) %dopar% {
+  cat(chr, "\n")
+  wigToBigWig(file.path("mm10.60way.phastCons", sprintf("%s.phastCons60way.wigFix.gz", chr)), seqinfo=si)
+}
 
 ## freeze the GenomeDescription data for Mmusculus
 
