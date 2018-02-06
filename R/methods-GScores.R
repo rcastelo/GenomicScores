@@ -143,7 +143,22 @@ setMethod("seqlevelsStyle", "GScores",
 
 setMethod("scores", c("GScores", "GenomicRanges"),
           function(object, ranges, ...) {
-            objectname <- deparse(substitute(object))
+            warning("The 'scores()' method has been deprecated and will become defunct in the next release version of Biocondcutor 3.8. Please use its replacement functions 'gscores()' and 'score()'.")
+            gsco <- gscores(object, ranges, ...)
+            if (is(gsco, "GRanges")) {
+              gsco$scores <- gsco$score
+              gsco$score <- NULL
+            }
+            gsco
+          })
+
+setMethod("score", "GScores",
+          function(x, ...) {
+            gscores(x, ..., scores.only=TRUE)
+          })
+
+setMethod("gscores", c("GScores", "GenomicRanges"),
+          function(x, ranges, ...) {
             ## default non-generic arguments
             scores.only <- FALSE
             summaryFun <- mean
@@ -159,6 +174,14 @@ setMethod("scores", c("GScores", "GenomicRanges"),
               names(arglist)[mask] <- paste0("X", 1:sum(mask))
             list2env(arglist, envir=sys.frame(sys.nframe()))
 
+            .scores(x, ranges, summaryFun, quantized,
+                    scores.only, ref, alt, caching)
+          })
+
+.scores <- function(object, ranges, summaryFun=mean, quantized=FALSE,
+                    scores.only=FALSE, ref=character(0), alt=character(0),
+                    caching=TRUE) {
+            objectname <- deparse(substitute(object))
             if (length(ranges) == 0)
               return(numeric(0))
 
@@ -241,10 +264,10 @@ setMethod("scores", c("GScores", "GenomicRanges"),
               colnames(sco) <- paste0("scores", 1:ncol(sco))
               mcols(ranges) <- cbind(mcols(ranges), DataFrame(as.data.frame(sco)))
             } else
-              ranges$scores <- sco
+              ranges$score <- sco
 
             ranges
-          })
+          }
 
 ## getters qfun and dqfun
 setMethod("qfun", "GScores",

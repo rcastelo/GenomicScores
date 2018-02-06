@@ -2,6 +2,7 @@
 setGeneric("name", function(x) standardGeneric("name"))
 setGeneric("type", function(x) standardGeneric("type"))
 setGeneric("scores", function(object, ranges, ...) standardGeneric("scores"))
+setGeneric("gscores", function(x, ranges, ...) standardGeneric("gscores"))
 setGeneric("qfun", function(object) standardGeneric("qfun"))
 setGeneric("dqfun", function(object) standardGeneric("dqfun"))
 

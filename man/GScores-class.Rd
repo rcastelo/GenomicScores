@@ -172,7 +172,8 @@
 
 \author{R. Castelo}
 \seealso{
-  \code{\link{scores}()}
+  \code{\link{gscores}()}
+  \code{\link{score}()}
   \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
   \code{\link[phastCons100way.UCSC.hg38]{phastCons100way.UCSC.hg38}}
 }
@@ -183,7 +184,7 @@ if (require(phastCons100way.UCSC.hg19)) {
 
   gsco <- phastCons100way.UCSC.hg19
   gsco
-  scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
+  gscores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
 }
 
 ## supporting AnnotationHub resources
@@ -191,7 +192,7 @@ if (require(phastCons100way.UCSC.hg19)) {
 availableGScores()
 gsco <- getGScores("phastCons100way.UCSC.hg19")
 gsco
-scores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
+gscores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
 }
 
 ## meta data from a GScores object
@@ -209,4 +210,4 @@ qfun(gsco)
 dqfun(gsco)
 citation(gsco)
 }
-\keyword{datasets}
+\keyword{methods}

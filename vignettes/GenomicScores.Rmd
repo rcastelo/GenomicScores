@@ -115,10 +115,10 @@ class(gsco)
 
 The help page of the `GScores` class describes the different methods to access the
 information and metadata stored in a `GScores` object. To retrieve genomic scores
-for specific positions we should use the function `scores()`, as follows.
+for specific positions we should use the function `gscores()`, as follows.
 
 ```{r}
-scores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
+gscores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
 ```
 
 The `r Biocpkg("GenomicScores")` package only loads the scores data from one
@@ -183,7 +183,7 @@ Finally, the phastCons score of a particular genomic position
 is retrieved exactly in the same we did with the annotation package.
 
 ```{r retrieve4, message=FALSE, cache=FALSE}
-scores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
+gscores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
 ```
 
 ## Building an annotation package from a GScores object
@@ -238,15 +238,15 @@ mcap <- getGScores("mcap.v1.0.hg19")
 mcap
 citation(mcap)
 gr <- GRanges(seqnames="chr22", IRanges(50967020:50967025, width=1))
-scores(mcap, gr)
+gscores(mcap, gr)
 ```
 
-The previous call to the `scores()` method returns three scores per position
+The previous call to the `gscores()` method returns three scores per position
 corresponding to the M-CAP scores that estimate the tolerance of mutating the
 reference nucleotide at that position to each of the possible alternative
 alleles, in alphabetical order. One may directly retrieve the scores for
 combinations of reference and alternative alelles using the `ref` and `alt`
-arguments of the `scores()` method. See the following example with the
+arguments of the `gscores()` method. See the following example with the
 the previous genomic positions and some randomly selected alternative alleles.
 
 ```{r, message=FALSE}
@@ -255,39 +255,39 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 refAlleles <- as.character(getSeq(Hsapiens, gr))
 altAlleles <- DNA_BASES[(match(refAlleles, DNA_BASES)) %% 4 + 1]
 cbind(REF=refAlleles, ALT=altAlleles)
-scores(mcap, gr, ref=refAlleles, alt=altAlleles)
+gscores(mcap, gr, ref=refAlleles, alt=altAlleles)
 ```
 
 # Summarization of genomic scores
 
-The input genomic ranges to the `scores()` method may have widths larger than one
+The input genomic ranges to the `gscores()` method may have widths larger than one
 nucleotide. In those cases, and when there is only one score per position, the
-`scores()` method calculates, by default, the arithmetic mean of the scores across
+`gscores()` method calculates, by default, the arithmetic mean of the scores across
 each range.
 
 ```{r}
 gr1 <- GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1))
-gr1 <- scores(gsco, gr1)
+gr1 <- gscores(gsco, gr1)
 gr1
-mean(gr1$scores)
+mean(gr1$score)
 gr2 <- GRanges(seqnames="chr22", IRanges(start=50967020, width=6))
-scores(gsco, gr2)
+gscores(gsco, gr2)
 ```
 
 However, we may change the way in which scores from multiple-nucleotide ranges are
 summarized with the argument `summaryFun`, as follows.
 
 ```{r}
-scores(gsco, gr2, summaryFun=max)
-scores(gsco, gr2, summaryFun=min)
-scores(gsco, gr2, summaryFun=median)
+gscores(gsco, gr2, summaryFun=max)
+gscores(gsco, gr2, summaryFun=min)
+gscores(gsco, gr2, summaryFun=median)
 ```
 
 # Retrieval of quantized genomic scores
 
 The specific quantization and dequantization functions are stored as part of
 the metadata of a `GScores` object and they can be examined with the methods
-`qfun()` and `dqfun()`, respectively. The latter is called by the `scores()`
+`qfun()` and `dqfun()`, respectively. The latter is called by the `gscores()`
 method to retrieve genomic scores.
 
 ```{r}
@@ -301,14 +301,14 @@ For single-nucleotide ranges, we can retrieve the quantized genomic scores
 using the argument `quantized=TRUE`.
 
 ```{r}
-gr1 <- scores(gsco, gr1, quantized=TRUE)
+gr1 <- gscores(gsco, gr1, quantized=TRUE)
 gr1
 ```
 
 Using the dequantization function we can obtain later the genomic scores.
 
 ```{r}
-phastdqfun(gr1$scores)
+phastdqfun(gr1$score)
 ```
 
 # Retrieval of minor allele frequency data
@@ -459,12 +459,12 @@ table(loc$LOCATION)
 
 Annotate phastCons conservation scores on the variants and store
 those annotations as an additional metadata column of the `GRanges` object.
-For this specific purpose we should the argument `scores.only=TRUE` that
-makes the `scores()` method to return the genomic scores as a numeric vector
-instead as a metadata column in the input ranges object.
+For this specific purpose we should use the method `score()` that returns
+the genomic scores as a numeric vector instead as a metadata column in the
+input ranges object.
 
 ```{r}
-loc$PHASTCONS <- scores(gsco, loc, scores.only=TRUE)
+loc$PHASTCONS <- score(gsco, loc)
 loc[1:3]
 ```
 
@@ -487,10 +487,9 @@ original VCF file container.
 ```{r}
 maskSNVs <- isSNV(vcf)[loc$QUERYID]
 loc$MCAP <- rep(NA_real_, length(loc))
-loc$MCAP[maskSNVs] <- scores(mcap, loc[maskSNVs],
-                             ref=ref(vcf)[loc$QUERYID[maskSNVs]],
-                             alt=alt(vcf)[loc$QUERYID[maskSNVs]],
-                             scores.only=TRUE)
+loc$MCAP[maskSNVs] <- score(mcap, loc[maskSNVs],
+                            ref=ref(vcf)[loc$QUERYID[maskSNVs]],
+                            alt=alt(vcf)[loc$QUERYID[maskSNVs]])
 ```
 
 ```{r, echo=FALSE}
@@ -512,10 +511,9 @@ assign(mdobj$data_pkgname, scorlelist, envir=cadd@.data_cache)
 ```{r}
 maskSNVs <- isSNV(vcf)[loc$QUERYID]
 loc$CADD <- rep(NA_real_, length(loc))
-loc$CADD[maskSNVs] <- scores(cadd, loc[maskSNVs],
-                             ref=ref(vcf)[loc$QUERYID[maskSNVs]],
-                             alt=alt(vcf)[loc$QUERYID[maskSNVs]],
-                             scores.only=TRUE)
+loc$CADD[maskSNVs] <- score(cadd, loc[maskSNVs],
+                            ref=ref(vcf)[loc$QUERYID[maskSNVs]],
+                            alt=alt(vcf)[loc$QUERYID[maskSNVs]])
 ```
 
 Using the code below we can produce the plot of Figure \@ref(fig:mcapvscadd) comparing
@@ -590,8 +588,8 @@ table(nd2)
 Retrieve the corresponding _phastCons_ scores stored in the annotation package.
 
 ```{r}
-pkgpcscoCDS <- scores(gsco, origpcscoCDS, scores.only=TRUE)
-pkgpcsco3UTRs <- scores(gsco, origpcsco3UTRs, scores.only=TRUE)
+pkgpcscoCDS <- score(gsco, origpcscoCDS)
+pkgpcsco3UTRs <- score(gsco, origpcsco3UTRs)
 ```
 
 In Figure \@ref(fig:plot2) we show a visual comparison between raw and rounded _phastCons_ scores.
