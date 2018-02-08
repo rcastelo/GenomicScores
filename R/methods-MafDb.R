@@ -213,7 +213,8 @@ setMethod("citation", signature="MafDb", citation.MafDb)
 }
 
 setMethod("mafByOverlaps", signature="MafDb",
-          function(x, ranges, pop="AF", type=c("snvs", "nonsnvs"), caching=TRUE) {
+          function(x, ranges, pop="AF", type=c("snvs", "nonsnvs"),
+                   maf.only=FALSE, caching=TRUE) {
             type <- match.arg(type)
             ranges <- .str2gr(ranges)
 
@@ -234,12 +235,15 @@ setMethod("mafByOverlaps", signature="MafDb",
             else ## nonsnvs
               ans <- .mafByOverlaps_nonsnvs(x, ranges, snames, pop, caching)
 
-            mcols(ranges) <- ans
-            ranges
+            if (!maf.only) {
+              mcols(ranges) <- ans
+              ans <- ranges
+            }
+            ans
           })
 
 setMethod("mafById", signature="MafDb",
-          function(x, ids, pop="AF", caching=TRUE) {
+          function(x, ids, pop="AF", maf.only=FALSE, caching=TRUE) {
             if (class(ids) != "character")
               stop("argument 'ids' must be a character string vector.")
 
@@ -307,11 +311,13 @@ setMethod("mafById", signature="MafDb",
               mask <- logical(length(mt))
               mask[!is.na(mt)] <- rng$isSNV
               if (any(mask))
-                ans[mask, pop] <- mcols(mafByOverlaps(x, rng[rng$isSNV], pop, type="snvs", caching))
+                ans[mask, pop] <- mafByOverlaps(x, rng[rng$isSNV], pop, type="snvs",
+                                                maf.only=TRUE, caching)
               mask <- logical(length(mt))
               mask[!is.na(mt)] <- !rng$isSNV
               if (any(mask))
-                ans[mask, pop] <- mcols(mafByOverlaps(x, rng[!rng$isSNV], pop, type="nonsnvs", caching))
+                ans[mask, pop] <- mafByOverlaps(x, rng[!rng$isSNV], pop, type="nonsnvs",
+                                                maf.only=TRUE, caching)
             }
 
             ans

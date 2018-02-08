@@ -1,8 +1,10 @@
 \name{gscores}
 
 \alias{gscores,GScores,GenomicRanges-method}
+\alias{gscores,MafDb,GenomicRanges-method}
 \alias{gscores}
 \alias{score,GScores-method}
+\alias{score,MafDb-method}
 \alias{availableGScores}
 \alias{getGScores}
 
@@ -15,7 +17,9 @@ Functions to access genomic gscores through \code{GScores} objects.
 availableGScores()
 getGScores(x)
 \S4method{gscores}{GScores,GenomicRanges}(x, ranges, ...)
+\S4method{gscores}{MafDb,GenomicRanges}(x, ranges, ...)
 \S4method{score}{GScores}(x, ...)
+\S4method{score}{MafDb}(x, ...)
 }
 \arguments{
   \item{x}{For \code{getGScores()}, a \code{character} vector of length 1 specifiying the
@@ -26,9 +30,6 @@ getGScores(x)
   \item{...}{In the call to the \code{gscores}() method one can additionally
              set the following arguments:
              \itemize{
-               \item{scores.only}{Flag set to \code{FALSE} (default) when scores are returned in a metadata column
-                                  called \code{scores} from the input \code{GenomicRanges} object. When
-                                  set to \code{TRUE}, the only the numeric vector of scores is returned.}
                \item{summaryFun}{Function to summarize genomic scores when more than one
                                  position is retrieved. By default, this is set to the
                                  arithmetic mean, i.e., the \code{mean()} function.}

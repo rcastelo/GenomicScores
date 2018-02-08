@@ -157,9 +157,16 @@ setMethod("score", "GScores",
             gscores(x, ..., scores.only=TRUE)
           })
 
+setMethod("score", "MafDb",
+          function(x, ...) {
+            gscores(x, ..., maf.only=TRUE)
+          })
+
 setMethod("gscores", c("GScores", "GenomicRanges"),
           function(x, ranges, ...) {
             ## default non-generic arguments
+            paramNames <- c("scores.only", "summaryFun", "quantized",
+                            "ref", "alt", "caching")
             scores.only <- FALSE
             summaryFun <- mean
             quantized <- FALSE
@@ -172,10 +179,37 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
             mask <- nchar(names(arglist)) == 0
             if (any(mask))
               names(arglist)[mask] <- paste0("X", 1:sum(mask))
+
+            mask <- names(arglist) %in% paramNames
+            if (any(!mask))
+                stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
             list2env(arglist, envir=sys.frame(sys.nframe()))
 
             .scores(x, ranges, summaryFun, quantized,
                     scores.only, ref, alt, caching)
+          })
+
+setMethod("gscores", c("MafDb", "GenomicRanges"),
+          function(x, ranges, ...) {
+            ## default non-generic arguments
+            paramNames <- c("pop", "type", "maf.only", "caching")
+            maf.only <- FALSE
+            pop <- "AF"
+            type <- "snvs"
+            caching <- TRUE
+
+            ## get arguments
+            arglist <- list(...)
+            mask <- nchar(names(arglist)) == 0
+            if (any(mask))
+              names(arglist)[mask] <- paste0("X", 1:sum(mask))
+
+            mask <- names(arglist) %in% paramNames
+            if (any(!mask))
+                stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
+            list2env(arglist, envir=sys.frame(sys.nframe()))
+
+            mafByOverlaps(x, ranges, pop, type, maf.only, caching)
           })
 
 .scores <- function(object, ranges, summaryFun=mean, quantized=FALSE,

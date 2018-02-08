@@ -27,8 +27,8 @@
 Class for annotation packages storing minor allele frequency data.
 }
 \usage{
-\S4method{mafByOverlaps}{MafDb}(x, ranges, pop="AF", type=c("snvs", "nonsnvs"), caching=TRUE)
-\S4method{mafById}{MafDb}(x, ids, pop, caching)
+\S4method{mafByOverlaps}{MafDb}(x, ranges, pop="AF", type=c("snvs", "nonsnvs"), maf.only=FALSE, caching=TRUE)
+\S4method{mafById}{MafDb}(x, ids, pop="AF", maf.only=FALSE, caching)
 \S4method{populations}{MafDb}(x)
 }
 \arguments{
@@ -37,6 +37,9 @@ Class for annotation packages storing minor allele frequency data.
   \item{ids}{A character string vector with variant identifiers annotated by the MAF data source, typically dbSNP 'rs' identifiers. Note that the mapping of these identifiers to genomic positions and MAF values might be a subset of the most up to date dbSNP 'rs' identifier assignment to variants. To access the latter, please use the \code{snpsById()} method from the \code{BSgenome} package with the desired \code{SNPlocs.*} package.}
   \item{pop}{Character string vector with the populations for which we want to retrieve MAF values.}
   \item{type}{Character string setting the type of variant to seek, which can be either 'snvs' (default) when we seek single nucleotide variants or 'nonsnvs', otherwise.}
+  \item{maf.only}{Flag set to \code{FALSE} (default) when MAF values are returned in metadata columns
+                  from the input \code{GenomicRanges} object. When set to \code{TRUE},
+                  a \code{DataFrame} object is returned with the MAF values.}
   \item{caching}{logical; TRUE (default) indicates that the function stores into main memeory the MAF data as it gets loaded from disk, improving performance; FALSE forces this function to load MAF data from disk each time, decreasing performance and memory requirements.}
 }
 \details{
