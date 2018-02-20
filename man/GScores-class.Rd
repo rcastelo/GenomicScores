@@ -20,6 +20,9 @@
 \alias{seqlengths,GScores-method}
 \alias{seqnames,GScores-method}
 \alias{seqlevelsStyle,GScores-method}
+\alias{populations,GScores-method}
+\alias{populations}
+\alias{$,GScores-method}
 \alias{citation,missing-method}
 \alias{citation,character-method}
 \alias{citation,GScores-method}
@@ -156,6 +159,10 @@
     }
     \item{}{
       \code{seqlengths(x)}: get the genome sequence lengths.
+    }
+    \item{}{
+      \code{populations(x)}: get the identifiers of the available scores populations. If only
+      one scores population is available, then it shows only the term \code{default}.
     }
     \item{}{
       \code{qfun(x)}: get the quantizer function.

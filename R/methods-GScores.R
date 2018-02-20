@@ -2,10 +2,26 @@
 GScores <- function(provider, provider_version, download_url,
                     download_date, reference_genome,
                     data_pkgname, data_dirpath,
-                    data_serialized_objnames=character(0)) {
+                    data_serialized_objnames=character(0),
+                    data_tag="") {
   data_cache <- new.env(hash=TRUE, parent=emptyenv())
+  data_pops <- list.files(path=data_dirpath, pattern=data_pkgname)
+  data_nonsnrs <- length(grep("nonsnv", data_pops)) > 0
+  data_pops <- data_pops[grep("nonsnv", data_pops, invert=TRUE)]
+  data_pops <- gsub(paste0(data_pkgname, "."), "", data_pops)
+  data_pops <- gsub("\\..+$", "", data_pops)
+  data_pops <- sort(unique(data_pops))
+  if (all(data_pops %in% seqlevels(reference_genome))) ## no additional score populations
+    data_pops <- character(0)
 
   assign(data_pkgname, RleList(compress=FALSE), envir=data_cache)
+  assign(sprintf("%s.nonsnvs", data_pkgname), GRangesList(), envir=data_cache)
+
+  nsites <- NA_integer_
+  if (file.exists(file.path(data_dirpath, "nsites.rds")))
+    nsites <-  as.integer(readRDS(file.path(data_dirpath, "nsites.rds")))
+  else if (file.exists(file.path(data_dirpath, "nov.rds"))) ## temporary during deprecation of MafDb
+    nsites <-  as.integer(readRDS(file.path(data_dirpath, "nov.rds")))
 
   new("GScores", provider=provider,
                  provider_version=provider_version,
@@ -15,6 +31,10 @@ GScores <- function(provider, provider_version, download_url,
                  data_pkgname=data_pkgname,
                  data_dirpath=data_dirpath,
                  data_serialized_objnames=data_serialized_objnames,
+                 data_tag=data_tag,
+                 data_pops=data_pops,
+                 data_nonsnrs=data_nonsnrs,
+                 data_nsites=nsites,
                  .data_cache=data_cache)
 }
 
@@ -41,6 +61,7 @@ setMethod("seqlengths", "GScores", function(x) seqlengths(referenceGenome(x)))
 setMethod("seqlevelsStyle", "GScores",
           function(x) seqlevelsStyle(referenceGenome(x)))
 
+setMethod("populations", "GScores", function(x) x@data_pops)
 
 ## convert digits in vector 'd', grouped by 'g', into numbers in base 'b'
 .toBase <- function(d, g=rep(1, length(d)), b) {
@@ -332,26 +353,66 @@ citation.GScores <- function(package, ...) {
 }
 setMethod("citation", signature="GScores", citation.GScores)
 
+.pprintseqs <- function(x) {
+  y <- x
+  if (length(x) > 5)
+    y <- c(y[1:2], "...", y[length(y)])
+  y <- paste(y, collapse=", ")
+  y
+}
+
 ## show method
 setMethod("show", "GScores",
           function(object) {
-            obj <- get(name(object), envir=object@.data_cache)
-            seqs <- names(obj)
+            snrobj <- get(name(object), envir=object@.data_cache) ## single-nucleotide ranges
+            nonsnrobj <- get(paste0(object@data_pkgname, ".nonsnvs"),
+                             envir=object@.data_cache)
+            loadedsnrpops <- loadedsnrseqs <- "none"
+            loadednonsnrpops <- loadednonsnrseqs <- "none"
+            if (length(snrobj) > 0) {
+              loadedsnrseqs <- names(snrobj)
+              loadedsnrpops <- "default"
+              if (length(populations(object)) > 1) {
+                loadedsnrseqs <- names(snrobj[[1]])
+                loadedsnrpops <- names(snrobj)
+              }
+            }
+            if (ncol(mcols(nonsnrobj)) > 0)
+              loadednonsnrpops <- colnames(mcols(nonsnrobj))
+            if (length(nonsnrobj) > 0)
+              loadednonsnrseqs <- unique(seqnames(nonsnrobj))
+              
             max.abs.error <- NA
-            if (length(seqs) > 0) {
-              max.abs.error <- max(sapply(lapply(obj, metadata), "[[", "max_abs_error"))
-            } else
-              seqs <- "none"
-            if (length(seqs) > 5)
-              seqs <- c(seqs[1:2],  "...", seqs[length(seqs)])
-            seqs <- paste(seqs, collapse=", ")
+            if (length(length(loadedsnrseqs)) > 0)
+              max.abs.error <- max(sapply(lapply(snrobj, metadata), "[[", "max_abs_error"))
             cat(class(object), " object \n",
-                "# organism: ", organism(referenceGenome(object)), " (", provider(referenceGenome(object)), ", ", providerVersion(referenceGenome(object)), ")\n",
+                "# organism: ", organism(object), " (", provider(object), ", ",
+                                providerVersion(object), ")\n",
                 "# provider: ", provider(object), "\n",
                 "# provider version: ", providerVersion(object), "\n",
-                "# download date: ", object@download_date, "\n",
-                "# loaded sequences: ", seqs, "\n",
-                "# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
+                "# download date: ", object@download_date, "\n", sep="")
+            if (object@data_nonsnrs) {
+              cat("# loaded sequences (SNRs): ", .pprintseqs(loadedsnrseqs), "\n",
+                  "# loaded sequences (nonSNRs): ", .pprintseqs(loadednonsnrseqs), "\n", sep="")
+              if (loadedsnrpops[1] != "none")
+                cat("# loaded populations (SNRs): ", .pprintseqs(loadedsnrpops), "\n",
+                    "# loaded populations (nonSNRs): ", .pprintseqs(loadednonsnrpops), "\n", sep="")
+            } else {
+              cat("# loaded sequences: ", .pprintseqs(loadedsnrseqs), "\n")
+              if (loadedsnrpops[1] != "none")
+                cat("# loaded populations: ", .pprintseqs(loadedsnrpops), "\n")
+            }
+            if (!is.na(max.abs.error))
+              cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n")
             if (length(citation(object)) > 0)
               cat("# use 'citation()' to know how to cite these data in publications\n")
+          })
+
+## $ method
+setMethod("$", signature(x="GScores"),
+          function(x, name) {
+            switch(name,
+                   tag=x@data_tag,
+                   stop("uknown GScores slot.")
+                   )
           })

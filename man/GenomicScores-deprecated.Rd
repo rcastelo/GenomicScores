@@ -11,6 +11,13 @@
 }
 
 \details{
+  The following classes are deprecated and will be made defunct; use
+  the replacement indicated below:
+
+  \itemize{
+    \item{\code{MafDb}:  The \code{MafDb} class has been replaced by the \code{\link{GScores-class}} class.}
+  }
+
   The following methods are deprecated and will be made defunct; use
   the replacement indicated below:
 

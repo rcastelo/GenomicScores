@@ -323,13 +323,14 @@ setMethod("mafById", signature="MafDb",
             ans
           })
 
-.pprintseqs <- function(x) {
-  y <- x
-  if (length(x) > 5)
-    y <- c(y[1:2], "...", y[length(y)])
-  y <- paste(y, collapse=", ")
-  y 
-}
+## moved to methods-GScores
+## .pprintseqs <- function(x) {
+##   y <- x
+##   if (length(x) > 5)
+##     y <- c(y[1:2], "...", y[length(y)])
+##   y <- paste(y, collapse=", ")
+##   y 
+## }
 
 ## show method
 setMethod("show", "MafDb",

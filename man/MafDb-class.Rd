@@ -8,7 +8,6 @@
 \alias{mafById,MafDb-method}
 \alias{mafById}
 \alias{populations,MafDb-method}
-\alias{populations}
 \alias{organism,MafDb-method}
 \alias{provider,MafDb-method}
 \alias{providerVersion,MafDb-method}
@@ -43,6 +42,9 @@ Class for annotation packages storing minor allele frequency data.
   \item{caching}{logical; TRUE (default) indicates that the function stores into main memeory the MAF data as it gets loaded from disk, improving performance; FALSE forces this function to load MAF data from disk each time, decreasing performance and memory requirements.}
 }
 \details{
+This class has been deprecated in Bioconductor 3.7, is being replaced by the
+\code{\link{GScores-class}} and will become defunct and unavailable in Bioconductor 3.8.
+
 The \code{MafDb} class is derived from the \code{\link{GScores}} class and it
 serves the purpose of providing support to store and access minor allele frequency (MAF) data
 from R and Bioconductor. Two annotation packages using the \code{MafDb} class are:
