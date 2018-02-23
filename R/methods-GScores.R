@@ -3,7 +3,8 @@ GScores <- function(provider, provider_version, download_url,
                     download_date, reference_genome,
                     data_pkgname, data_dirpath,
                     data_serialized_objnames=character(0),
-                    data_tag="") {
+                    default_pop="default",
+                    data_tag=sub("\\..*$", "", data_pkgname)) {
   data_cache <- new.env(hash=TRUE, parent=emptyenv())
   data_pops <- list.files(path=data_dirpath, pattern=data_pkgname)
   data_nonsnrs <- length(grep("nonsnv", data_pops)) > 0
@@ -12,9 +13,13 @@ GScores <- function(provider, provider_version, download_url,
   data_pops <- gsub("\\..+$", "", data_pops)
   data_pops <- sort(unique(data_pops))
   if (all(data_pops %in% seqlevels(reference_genome))) ## no additional score populations
-    data_pops <- character(0)
+    data_pops <- default_pop
+  else {
+    if (any(data_pops %in% seqlevels(reference_genome)))
+      data_pops <- c(default_pop, setdiff(data_pops, seqlevels(reference_genome)))
+  }
 
-  assign(data_pkgname, RleList(compress=FALSE), envir=data_cache)
+  assign(data_pkgname, list(), envir=data_cache)
   assign(sprintf("%s.nonsnvs", data_pkgname), GRangesList(), envir=data_cache)
 
   nsites <- NA_integer_
@@ -33,6 +38,7 @@ GScores <- function(provider, provider_version, download_url,
                  data_serialized_objnames=data_serialized_objnames,
                  data_tag=data_tag,
                  data_pops=data_pops,
+                 default_pop=default_pop,
                  data_nonsnrs=data_nonsnrs,
                  data_nsites=nsites,
                  .data_cache=data_cache)
@@ -62,6 +68,21 @@ setMethod("seqlevelsStyle", "GScores",
           function(x) seqlevelsStyle(referenceGenome(x)))
 
 setMethod("populations", "GScores", function(x) x@data_pops)
+
+setMethod("defaultPopulation", "GScores", function(x) x@default_pop)
+
+setReplaceMethod("defaultPopulation", c("GScores", "character"),
+                 function(x, value) {
+                   if (length(value) > 1)
+                     warning("more than one default scores population name supplied, using the 1st one only.")
+                   value <- value[1]
+                   if (any(!value %in% populations(x)))
+                     stop(sprintf("scores population %s is not part of the available scores populations. Use 'populations()' to figure out which ones are available.", value))
+                   x@default_pop <- value[1]
+                   x
+                 })
+
+setMethod("nsites", "GScores", function(x) x@data_nsites)
 
 ## convert digits in vector 'd', grouped by 'g', into numbers in base 'b'
 .toBase <- function(d, g=rep(1, length(d)), b) {
@@ -174,8 +195,11 @@ setMethod("scores", c("GScores", "GenomicRanges"),
           })
 
 setMethod("score", "GScores",
-          function(x, ...) {
-            gscores(x, ..., scores.only=TRUE)
+          function(x, ..., simplify=TRUE) {
+            gsco <- gscores(x, ..., scores.only=TRUE)
+            if (ncol(gsco) == 1 && simplify)
+              gsco <- gsco[[1]]
+            gsco
           })
 
 setMethod("score", "MafDb",
@@ -186,8 +210,11 @@ setMethod("score", "MafDb",
 setMethod("gscores", c("GScores", "GenomicRanges"),
           function(x, ranges, ...) {
             ## default non-generic arguments
-            paramNames <- c("scores.only", "summaryFun", "quantized",
+            paramNames <- c("scores.only", "pop", "type",
+                            "summaryFun", "quantized",
                             "ref", "alt", "caching")
+            pop <- defaultPopulation(x)
+            type <- "snvs"
             scores.only <- FALSE
             summaryFun <- mean
             quantized <- FALSE
@@ -206,7 +233,7 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
                 stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
             list2env(arglist, envir=sys.frame(sys.nframe()))
 
-            .scores(x, ranges, summaryFun, quantized,
+            .scores(x, ranges, pop, type, summaryFun, quantized,
                     scores.only, ref, alt, caching)
           })
 
@@ -233,7 +260,7 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
             mafByOverlaps(x, ranges, pop, type, maf.only, caching)
           })
 
-.scores <- function(object, ranges, summaryFun=mean, quantized=FALSE,
+.scores <- function(object, ranges, pop, type, summaryFun=mean, quantized=FALSE,
                     scores.only=FALSE, ref=character(0), alt=character(0),
                     caching=TRUE) {
             objectname <- deparse(substitute(object))
@@ -270,71 +297,88 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
                            paste(snames[!snames %in% seqnames(object)], collapse=", "),
                            providerVersion(referenceGenome(object))))
             
-            scorlelist <- get(object@data_pkgname, envir=object@.data_cache)
-            missingMask <- !snames %in% names(scorlelist)
-            slengths <- seqlengths(object)
-            for (sname in snames[missingMask]) {
-              fname <- sprintf("%s.%s.rds", object@data_pkgname, sname)
-              if (length(object@data_serialized_objnames) > 0 &&
-                  fname %in% names(object@data_serialized_objnames))
-                fname <- object@data_serialized_objnames[fname]
-              fpath <- file.path(object@data_dirpath, fname)
-              if (file.exists(fpath))
-                scorlelist[[sname]] <- readRDS(fpath)
-              else {
-                warning(sprintf("No %s scores for sequence %s in %s object '%s'.",
-                                object@data_pkgname, sname, class(object),
-                                objectname))
-                scorlelist[[sname]] <- Rle(lengths=slengths[sname],
-                                           values=as.raw(0L))
+            gscopops <- get(object@data_pkgname, envir=object@.data_cache)
+            missingMask <- !pop %in% names(gscopops)
+            for (popname in pop[missingMask])
+              gscopops[[popname]] <- RleList(compress=FALSE)
+            anyMissing <- any(missingMask)
+
+            ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges),
+                                                  ncol=length(pop), dimnames=list(NULL, pop))))
+            for (popname in pop) {
+              missingMask <- !snames %in% names(gscopops[[popname]])
+              anyMissing <- anyMissing || any(missingMask)
+              slengths <- seqlengths(object)
+              for (sname in snames[missingMask]) {
+                if (popname == "default")
+                  fname <- sprintf("%s.%s.rds", object@data_pkgname, sname)
+                else
+                  fname <- sprintf("%s.%s.%s.rds", object@data_pkgname, popname, sname)
+                if (length(object@data_serialized_objnames) > 0 &&
+                    fname %in% names(object@data_serialized_objnames))
+                  fname <- object@data_serialized_objnames[fname]
+                fpath <- file.path(object@data_dirpath, fname)
+                if (file.exists(fpath))
+                  gscopops[[popname]][[sname]] <- readRDS(fpath)
+                else {
+                  warning(sprintf("No %s scores for sequence %s in %s object '%s'.",
+                                  object@data_pkgname, sname, class(object),
+                                  objectname))
+                  gscopops[[popname]][[sname]] <- Rle(lengths=slengths[sname],
+                                                      values=as.raw(0L))
+                }
               }
+
+              sco <- rep(NA_real_, length(ranges))
+              if (length(metadata(gscopops[[popname]][[1]])) > 0 &&
+                  class(metadata(gscopops[[popname]][[1]])$dqfun) == "function")
+                sco <- .rleGetValues(gscopops[[popname]], ranges, summaryFun=summaryFun,
+                                     quantized=quantized)
+              else
+                warning(sprintf("No dequantization function available for scores population %s. Scores will be all NA.",
+                                popname))
+
+              if (length(ref) > 0) {
+                if (is.matrix(sco)) {
+                  mt.r <- match(ref, DNA_BASES)
+                  mt.a <- match(alt, DNA_BASES)
+                  mask <- mt.r < mt.a
+                  idxcol <- mt.a
+                  idxcol[mask] <- mt.a[mask] - 1L
+                  sco <- sco[cbind(1:nrow(sco), idxcol)]
+                } else
+                  warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+              }
+
+              ans[[popname]] <- sco
             }
 
-            if (any(missingMask) && caching)
-              assign(object@data_pkgname, scorlelist, envir=object@.data_cache)
+            if (anyMissing && caching)
+              assign(object@data_pkgname, gscopops, envir=object@.data_cache)
+            rm(gscopops)
 
-            sco <- .rleGetValues(scorlelist, ranges, summaryFun=summaryFun,
-                                 quantized=quantized)
-            rm(scorlelist)
+            if (scores.only)
+              return(ans)
 
-            if (length(ref) > 0) {
-              if (is.matrix(sco)) {
-                mt.r <- match(ref, DNA_BASES)
-                mt.a <- match(alt, DNA_BASES)
-                mask <- mt.r < mt.a
-                idxcol <- mt.a
-                idxcol[mask] <- mt.a[mask] - 1L
-                sco <- sco[cbind(1:nrow(sco), idxcol)]
-              } else
-                warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
-            }
-
-            if (scores.only) {
-              if (is.matrix(sco))
-                colnames(sco) <- paste0("scores", 1:ncol(sco))
-              return(sco)
-            }
-
-            if (is.matrix(sco)) {
-              colnames(sco) <- paste0("scores", 1:ncol(sco))
-              mcols(ranges) <- cbind(mcols(ranges), DataFrame(as.data.frame(sco)))
-            } else
-              ranges$score <- sco
-
+            mcols(ranges) <- cbind(mcols(ranges), ans)
             ranges
           }
 
 ## getters qfun and dqfun
 setMethod("qfun", "GScores",
-          function(object) {
+          function(object, pop="default") {
+            if (!pop %in% populations(object))
+              stop(sprintf("There is no score population %s in this GScores object. Use populations() to find out what score populations are available.", pop))
             obj <- get(object@data_pkgname, envir=object@.data_cache)
-            metadata(obj[[1]])$qfun
+            metadata(obj[[pop]][[1]])$qfun
           })
 
 setMethod("dqfun", "GScores",
-          function(object) {
+          function(object, pop="default") {
+            if (!pop %in% populations(object))
+              stop(sprintf("There is no score population %s in this GScores object. Use populations() to find out what score populations are available.", pop))
             obj <- get(object@data_pkgname, envir=object@.data_cache)
-            metadata(obj[[1]])$dqfun
+            metadata(obj[[pop]][[1]])$dqfun
           })
 
 citation <- function(package, ...) UseMethod("citation")
@@ -346,7 +390,7 @@ setMethod("citation", signature="missing", citation.character)
 setMethod("citation", signature="character", citation.character)
 citation.GScores <- function(package, ...) {
   obj <- get(package@data_pkgname, envir=package@.data_cache)
-  cit <- metadata(obj[[1]])$citation
+  cit <- metadata(obj[[1]][[1]])$citation
   if (is.null(cit))
     cit <- bibentry()
   cit
@@ -361,6 +405,15 @@ setMethod("citation", signature="GScores", citation.GScores)
   y
 }
 
+.pprintnsites <- function(x) {
+  y <- x
+  if (x > 10e6)
+    y <- sprintf("%.0f millions", x/1e6)
+  else if (x > 1e6)
+    y <- sprintf("%.1f millions", x/1e6)
+  y
+}
+
 ## show method
 setMethod("show", "GScores",
           function(object) {
@@ -371,7 +424,6 @@ setMethod("show", "GScores",
             loadednonsnrpops <- loadednonsnrseqs <- "none"
             if (length(snrobj) > 0) {
               loadedsnrseqs <- names(snrobj)
-              loadedsnrpops <- "default"
               if (length(populations(object)) > 1) {
                 loadedsnrseqs <- names(snrobj[[1]])
                 loadedsnrpops <- names(snrobj)
@@ -384,24 +436,27 @@ setMethod("show", "GScores",
               
             max.abs.error <- NA
             if (length(length(loadedsnrseqs)) > 0)
-              max.abs.error <- max(sapply(lapply(snrobj, metadata), "[[", "max_abs_error"))
+              max.abs.error <- max(sapply(snrobj, function(x) sapply(lapply(x, metadata), "[[", "max_abs_error")))
+
             cat(class(object), " object \n",
-                "# organism: ", organism(object), " (", provider(object), ", ",
-                                providerVersion(object), ")\n",
+                "# organism: ", organism(object), " (", provider(referenceGenome(object)), ", ",
+                                providerVersion(referenceGenome(object)), ")\n",
                 "# provider: ", provider(object), "\n",
                 "# provider version: ", providerVersion(object), "\n",
                 "# download date: ", object@download_date, "\n", sep="")
             if (object@data_nonsnrs) {
               cat("# loaded sequences (SNRs): ", .pprintseqs(loadedsnrseqs), "\n",
                   "# loaded sequences (nonSNRs): ", .pprintseqs(loadednonsnrseqs), "\n", sep="")
-              if (loadedsnrpops[1] != "none")
+              if (loadedsnrpops[1] != "none" && length(loadedsnrpops) > 1)
                 cat("# loaded populations (SNRs): ", .pprintseqs(loadedsnrpops), "\n",
                     "# loaded populations (nonSNRs): ", .pprintseqs(loadednonsnrpops), "\n", sep="")
             } else {
               cat("# loaded sequences: ", .pprintseqs(loadedsnrseqs), "\n")
-              if (loadedsnrpops[1] != "none")
+              if (loadedsnrpops[1] != "none" && length(loadedsnrpops) > 1)
                 cat("# loaded populations: ", .pprintseqs(loadedsnrpops), "\n")
             }
+            if (!is.na(nsites(object)))
+              cat("# number of sites: ", .pprintnsites(nsites(object)), "\n")
             if (!is.na(max.abs.error))
               cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n")
             if (length(citation(object)) > 0)

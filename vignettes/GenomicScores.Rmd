@@ -226,9 +226,10 @@ mcap <- GScores(provider=mdobj$provider,
                 data_pkgname=mdobj$data_pkgname,
                 data_dirpath="../inst/extdata",
                 data_serialized_objnames=c(mcap.v1.0.hg19.chr22.rds="mcap.v1.0.hg19.chr22.rds"))
-scorlelist <- get(mdobj$data_pkgname, envir=mcap@.data_cache)
-scorlelist[[mdobj$seqname]] <- obj
-assign(mdobj$data_pkgname, scorlelist, envir=mcap@.data_cache)
+gscopops <- get(mdobj$data_pkgname, envir=mcap@.data_cache)
+gscopops[["default"]] <- RleList(compress=FALSE)
+gscopops[["default"]][[mdobj$seqname]] <- obj
+assign(mdobj$data_pkgname, gscopops, envir=mcap@.data_cache)
 ```
 
 ```{r, eval=FALSE}
@@ -267,9 +268,9 @@ each range.
 
 ```{r}
 gr1 <- GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1))
-gr1 <- gscores(gsco, gr1)
-gr1
-mean(gr1$score)
+gr1sco <- gscores(gsco, gr1)
+gr1sco
+mean(gr1sco$default)
 gr2 <- GRanges(seqnames="chr22", IRanges(start=50967020, width=6))
 gscores(gsco, gr2)
 ```
@@ -308,7 +309,7 @@ gr1
 Using the dequantization function we can obtain later the genomic scores.
 
 ```{r}
-phastdqfun(gr1$score)
+phastdqfun(gr1$default)
 ```
 
 # Retrieval of minor allele frequency data
@@ -375,10 +376,16 @@ Consider the following example in which we are interested in MAF values for vari
 with _eye color_. We can start by fetching the corresponding variant identifers from the GWAS
 catalog using the `r Biocpkg("gwascat")` package, as follows.
 
-```{r, message=FALSE}
+```{r, eval=FALSE, message=FALSE}
 library(gwascat)
 data(ebicat37)
 eyersids <- subsetByTraits(ebicat37, tr="Eye color")$SNPS
+```
+```{r, echo=FALSE}
+## temporary fix until the gwaswloc class from the gwascat package is fixed
+eyersids <- readRDS(system.file("extdata", "eyersids.rds", package="GenomicScores"))
+```
+```{r}
 eyersids
 ```
 
@@ -397,7 +404,7 @@ rng
 Finally, query the MAF values on those positions.
 
 ```{r}
-eyecolormafs <- mafByOverlaps(mafdb, rng, c("AF", "EUR_AF", "AFR_AF"))
+eyecolormafs <- gscores(mafdb, rng, pop=c("AF", "EUR_AF", "AFR_AF"))
 eyecolormafs
 ```
 
@@ -406,7 +413,7 @@ graphically the differences in MAF values from these variants between the three 
 
 ```{r eyecolormafs, fig.cap = "Eye color MAFs. Minor allele frequencies (MAFs) of variants associated with eye color for global, european and african populations of the Phase 1 data from the 1000 Genomes Project.", fig.height=5, fig.wide = TRUE, echo=TRUE}
 par(mar=c(3, 5, 1, 1))
-bp <- barplot(t(as.matrix(mcols(eyecolormafs))), beside=TRUE,
+bp <- barplot(t(as.matrix(mcols(eyecolormafs)[, c("AF", "EUR_AF", "AFR_AF")])), beside=TRUE,
               col=c("darkblue", "darkgreen", "darkorange"),
               ylim=c(0, 0.55), las=1, ylab="Minor allele frequency")
 axis(1, bp[2, ], 1:length(eyecolormafs))
@@ -451,7 +458,7 @@ seqlevelsStyle(vcf) <- seqlevelsStyle(txdb)
 We annotate the location of variants using the function `locateVariants()`
 from the `r Biocpkg("VariantAnnotation")` package.
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 loc <- locateVariants(vcf, txdb, AllVariants())
 loc[1:3]
 table(loc$LOCATION)
@@ -503,9 +510,10 @@ cadd <- GScores(provider=mdobj$provider,
                 data_pkgname=mdobj$data_pkgname,
                 data_dirpath="../inst/extdata",
                 data_serialized_objnames=c(cadd.v1.3.hg19.chr22.rds="cadd.v1.3.hg19.chr22sub.rds"))
-scorlelist <- get(mdobj$data_pkgname, envir=cadd@.data_cache)
-scorlelist[[mdobj$seqname]] <- obj
-assign(mdobj$data_pkgname, scorlelist, envir=cadd@.data_cache)
+gscopops <- get(mdobj$data_pkgname, envir=cadd@.data_cache)
+gscopops[["default"]] <- RleList(compress=FALSE)
+gscopops[["default"]][[mdobj$seqname]] <- obj
+assign(mdobj$data_pkgname, gscopops, envir=cadd@.data_cache)
 ```
 
 ```{r}
@@ -536,8 +544,8 @@ annotated variants and the `MafDb` object.
 ```{r}
 seqlevelsStyle(loc) <- seqlevelsStyle(mafdb)[1]
 seqinfo(loc, new2old=match(seqlevels(mafdb), seqlevels(loc))) <- seqinfo(mafdb)
-loc$MAF[width(loc) == 1] <- mafByOverlaps(mafdb, loc[width(loc) == 1])$AF
-loc$MAF[width(loc) > 1] <- mafByOverlaps(mafdb, loc[width(loc) > 1], type="nonsnvs")$AF
+loc$MAF[width(loc) == 1] <- gscores(mafdb, loc[width(loc) == 1])$AF
+loc$MAF[width(loc) > 1] <- gscores(mafdb, loc[width(loc) > 1], type="nonsnvs")$AF
 loc[1:3]
 ```
 

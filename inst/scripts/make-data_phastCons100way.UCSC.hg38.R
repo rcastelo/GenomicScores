@@ -40,11 +40,11 @@ citationdata <- bibentry(bibtype="Article",
 registerDoParallel(cores=4) ## each process may need up to 20Gb of RAM
 
 ## transform WIG to BIGWIG format
-## si <- Seqinfo(seqnames=seqnames(Hsapiens), seqlengths=seqlengths(Hsapiens))
-## foreach (chr=seqnames(Hsapiens)) %dopar% {
-##   cat(chr, "\n")
-##   wigToBigWig(file.path("hg38.100way.phastCons", sprintf("%s.phastCons100way.wigFix.gz", chr)), seqinfo=si)
-## }
+si <- Seqinfo(seqnames=seqnames(Hsapiens), seqlengths=seqlengths(Hsapiens))
+foreach (chr=seqnames(Hsapiens)) %dopar% {
+  cat(chr, "\n")
+  wigToBigWig(file.path("hg38.100way.phastCons", sprintf("%s.phastCons100way.wigFix.gz", chr)), seqinfo=si)
+}
 
 ## freeze the GenomeDescription data for Hsapiens
 

@@ -22,6 +22,7 @@ setClass("GScores",
                                        data_serialized_objnames="character",
                                        data_tag="character",
                                        data_pops="character",
+                                       default_pop="character",
                                        data_nonsnrs="logical",
                                        data_nsites="integer",
                                        ## place to cache the serialized objects
