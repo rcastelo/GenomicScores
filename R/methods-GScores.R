@@ -308,7 +308,7 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
                            providerVersion(referenceGenome(object))))
             
             gscopops <- get(object@data_pkgname, envir=object@.data_cache)
-            if (names(gscopops) %in% seqlevels(object)) { ## temporary fix will working w/ outdated annotations
+            if (all(names(gscopops) %in% seqlevels(object))) { ## temporary fix will working w/ outdated annotations
               tmp <- gscopops
               gscopops <- list()
               gscopops[[defaultPopulation(object)]] <- RleList(tmp, compress=FALSE)
@@ -435,7 +435,7 @@ setMethod("citation", signature="GScores", citation.GScores)
 setMethod("show", "GScores",
           function(object) {
             snrobj <- get(name(object), envir=object@.data_cache) ## single-nucleotide ranges
-            if (names(snrobj) %in% seqlevels(object)) { ## temporary fix will working w/ outdated annotations
+            if (all(names(snrobj) %in% seqlevels(object))) { ## temporary fix will working w/ outdated annotations
               tmp <- snrobj
               snrobj <- list()
               snrobj[[defaultPopulation(object)]] <- RleList(tmp, compress=FALSE)
@@ -460,7 +460,7 @@ setMethod("show", "GScores",
               
             max.abs.error <- NA
             if (length(length(loadedsnrseqs)) > 0)
-              max.abs.error <- max(sapply(snrobj, function(x) sapply(lapply(x, metadata), "[[", "max_abs_error")))
+              max.abs.error <- max(unlist(sapply(snrobj, function(x) sapply(lapply(x, metadata), "[[", "max_abs_error")), use.names=FALSE))
 
             cat(class(object), " object \n",
                 "# organism: ", organism(object), " (", provider(referenceGenome(object)), ", ",
@@ -475,14 +475,14 @@ setMethod("show", "GScores",
                 cat("# loaded populations (SNRs): ", .pprintseqs(loadedsnrpops), "\n",
                     "# loaded populations (nonSNRs): ", .pprintseqs(loadednonsnrpops), "\n", sep="")
             } else {
-              cat("# loaded sequences: ", .pprintseqs(loadedsnrseqs), "\n")
+              cat("# loaded sequences: ", .pprintseqs(loadedsnrseqs), "\n", sep="")
               if (loadedsnrpops[1] != "none" && length(loadedsnrpops) > 1)
-                cat("# loaded populations: ", .pprintseqs(loadedsnrpops), "\n")
+                cat("# loaded populations: ", .pprintseqs(loadedsnrpops), "\n", sep="")
             }
             if (!is.na(nsites(object)))
-              cat("# number of sites: ", .pprintnsites(nsites(object)), "\n")
+              cat("# number of sites: ", .pprintnsites(nsites(object)), "\n", sep="")
             if (!is.na(max.abs.error))
-              cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n")
+              cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
             if (length(citation(object)) > 0)
               cat("# use 'citation()' to know how to cite these data in publications\n")
           })
