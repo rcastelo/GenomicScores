@@ -8,6 +8,8 @@ setGeneric("dqfun", function(object, ...) standardGeneric("dqfun"))
 setGeneric("populations", function(x) standardGeneric("populations"))
 setGeneric("defaultPopulation", function(x) standardGeneric("defaultPopulation"))
 setGeneric("defaultPopulation<-", function(x, value) standardGeneric("defaultPopulation<-"))
+setGeneric("gscoresTag", function(x) standardGeneric("gscoresTag"))
+setGeneric("gscoresTag<-", function(x, value) standardGeneric("gscoresTag<-"))
 setGeneric("nsites", function(x) standardGeneric("nsites"))
 
 ## for MafDb class

@@ -18,8 +18,7 @@ availableGScores()
 getGScores(x)
 \S4method{gscores}{GScores,GenomicRanges}(x, ranges, ...)
 \S4method{gscores}{MafDb,GenomicRanges}(x, ranges, ...)
-\S4method{score}{GScores}(x, ...)
-\S4method{score}{MafDb}(x, ...)
+\S4method{score}{GScores}(x, ..., simplify=TRUE)
 }
 \arguments{
   \item{x}{For \code{getGScores()}, a \code{character} vector of length 1 specifiying the
@@ -47,6 +46,9 @@ getGScores(x)
                               but slows down the performance when the \code{gscores()} method
                               is called multiple times.}
              }}
+  \item{simplify}{Flag setting whether the result should be simplified to a vector
+                  (\code{TRUE}, default) if possible. This happens when scores from a single
+                  population are queried.}
 }
 \details{
 The function \code{availableGScores()} shows genomic score sets available as \code{AnnotationHub}

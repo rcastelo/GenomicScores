@@ -95,11 +95,12 @@ exportMethods(citation,
               populations,
               defaultPopulation,
               "defaultPopulation<-",
+              gscoresTag,
+              "gscoresTag<-",
               nsites,
               show,
               mafByOverlaps,
-              mafById,
-              "$")
+              mafById)
 
 export(GScores,
        availableGScores,

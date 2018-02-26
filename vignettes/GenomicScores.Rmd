@@ -346,16 +346,10 @@ Consider the following example in which we are interested in MAF values for vari
 with _eye color_. We can start by fetching the corresponding variant identifers from the GWAS
 catalog using the `r Biocpkg("gwascat")` package, as follows.
 
-```{r, eval=FALSE, message=FALSE}
+```{r, message=FALSE}
 library(gwascat)
 data(ebicat37)
 eyersids <- subsetByTraits(ebicat37, tr="Eye color")$SNPS
-```
-```{r, echo=FALSE}
-## temporary fix until the gwaswloc class from the gwascat package is fixed
-eyersids <- readRDS(system.file("extdata", "eyersids.rds", package="GenomicScores"))
-```
-```{r}
 eyersids
 ```
 

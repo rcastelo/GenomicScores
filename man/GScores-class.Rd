@@ -22,7 +22,14 @@
 \alias{seqlevelsStyle,GScores-method}
 \alias{populations,GScores-method}
 \alias{populations}
-\alias{$,GScores-method}
+\alias{defaultPopulation,GScores-method}
+\alias{defaultPopulation<-,GScores,character-method}
+\alias{defaultPopulation<-}
+\alias{defaultPopulation}
+\alias{gscoresTag,GScores-method}
+\alias{gscoresTag<-,GScores,character-method}
+\alias{gscoresTag<-}
+\alias{gscoresTag}
 \alias{citation,missing-method}
 \alias{citation,character-method}
 \alias{citation,GScores-method}
@@ -31,6 +38,8 @@
 \alias{qfun}
 \alias{dqfun,GScores-method}
 \alias{dqfun}
+\alias{nsites,GScores-method}
+\alias{nsites}
 \alias{show,GScores-method}
 \alias{makeGScoresPackage}
 
@@ -101,24 +110,30 @@
   \describe{
     \item{}{
       \code{GScores(provider, provider_version, download_url,
-        download_date, reference_genome, data_pkgname, data_dirpath,
-        data_serialized_objnames)}:
+            download_date, reference_genome, data_pkgname, data_dirpath,
+            data_serialized_objnames, default_pop, data_tag)}:
       Creates a \code{GScores} object. In principle, the end-user needs not to call
       this function.
       \describe{
-        \item{\code{provider}}{character, containing the data provider.}
-        \item{\code{provider_version}}{character, containing the version of
+        \item{\code{provider}}{character string, containing the data provider.}
+        \item{\code{provider_version}}{character string, containing the version of
           the data as given by the data provider.}
-        \item{\code{download_url}}{character, containing the URL of the
+        \item{\code{download_url}}{character string, containing the URL of the
           data provider from where the original data were downloaded.}
         \item{\code{reference_genome}}{GenomeDescription, storing the
           information about the associated reference genome.}
-        \item{\code{data_pkgname}}{character, name given to the set of genomic
+        \item{\code{data_pkgname}}{character string, name given to the set of genomic
           scores stored through this object.}
-        \item{\code{data_dirpath}}{character, absolute path to the local
+        \item{\code{data_dirpath}}{character string, absolute path to the local
           directory where the genomic scores are stored.}
-        \item{\code{data_serialized_objname}}{character vector, containing
+        \item{\code{data_serialized_objname}}{character string vector, containing
           filenames where the genomic scores are stored.}
+        \item{\code{default_pop}}{character string, containing the name
+          of the default scores population.}
+        \item{\code{data_tag}}{character string, containing a tag that succintly
+          labels genomic scores from a particular source. This can be used to automatically
+          give, for instance, a name to a column storing genomic scores in data frame object.
+          Its default value takes the prefix of the package name.}
       }
     }
   }
@@ -165,6 +180,15 @@
       one scores population is available, then it shows only the term \code{default}.
     }
     \item{}{
+      \code{defaultPopulation(x)}: get or set the default population of scores.
+    }
+    \item{}{
+      \code{gscoresTag(x)}: get or set the genomic scores tag label.
+    }
+    \item{}{
+      \code{nsites(x)}: get the number of sites in the genome with genomic scores.
+    }
+    \item{}{
       \code{qfun(x)}: get the quantizer function.
     }
     \item{}{
@@ -182,7 +206,6 @@
   \code{\link{gscores}()}
   \code{\link{score}()}
   \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
-  \code{\link[phastCons100way.UCSC.hg38]{phastCons100way.UCSC.hg38}}
 }
 \examples{
 ## supporting annotation packages with genomic scores

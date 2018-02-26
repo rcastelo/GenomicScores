@@ -78,7 +78,17 @@ setReplaceMethod("defaultPopulation", c("GScores", "character"),
                    value <- value[1]
                    if (any(!value %in% populations(x)))
                      stop(sprintf("scores population %s is not part of the available scores populations. Use 'populations()' to figure out which ones are available.", value))
-                   x@default_pop <- value[1]
+                   x@default_pop <- value
+                   x
+                 })
+
+setMethod("gscoresTag", "GScores", function(x) x@data_tag)
+
+setReplaceMethod("gscoresTag", c("GScores", "character"),
+                 function(x, value) {
+                   if (length(value) > 1)
+                     warning("more than one genomic scores tag name supplied, using the 1st one only.")
+                   x@data_tag <- value[1]
                    x
                  })
 
@@ -298,6 +308,13 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
                            providerVersion(referenceGenome(object))))
             
             gscopops <- get(object@data_pkgname, envir=object@.data_cache)
+            if (names(gscopops) %in% seqlevels(object)) { ## temporary fix will working w/ outdated annotations
+              tmp <- gscopops
+              gscopops <- list()
+              gscopops[[defaultPopulation(object)]] <- RleList(tmp, compress=FALSE)
+              assign(object@data_pkgname, gscopops, envir=object@.data_cache)
+            }
+
             missingMask <- !pop %in% names(gscopops)
             for (popname in pop[missingMask])
               gscopops[[popname]] <- RleList(compress=FALSE)
@@ -418,6 +435,13 @@ setMethod("citation", signature="GScores", citation.GScores)
 setMethod("show", "GScores",
           function(object) {
             snrobj <- get(name(object), envir=object@.data_cache) ## single-nucleotide ranges
+            if (names(snrobj) %in% seqlevels(object)) { ## temporary fix will working w/ outdated annotations
+              tmp <- snrobj
+              snrobj <- list()
+              snrobj[[defaultPopulation(object)]] <- RleList(tmp, compress=FALSE)
+              assign(object@data_pkgname, snrobj, envir=object@.data_cache)
+            }
+
             nonsnrobj <- get(paste0(object@data_pkgname, ".nonsnvs"),
                              envir=object@.data_cache)
             loadedsnrpops <- loadedsnrseqs <- "none"
@@ -461,13 +485,4 @@ setMethod("show", "GScores",
               cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n")
             if (length(citation(object)) > 0)
               cat("# use 'citation()' to know how to cite these data in publications\n")
-          })
-
-## $ method
-setMethod("$", signature(x="GScores"),
-          function(x, name) {
-            switch(name,
-                   tag=x@data_tag,
-                   stop("uknown GScores slot.")
-                   )
           })
