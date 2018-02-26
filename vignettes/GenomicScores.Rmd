@@ -83,10 +83,7 @@ further compressed using the implementation of Rle vectors available in the
 To enable a seamless access to genomic scores stored with quantized values
 in compressed vectors the `r Biocpkg("GenomicScores")` defines the `GScores`
 class of objects. This class manages the location, loading and dequantization
-of genomic scores stored separately on each chromosome. A further class,
-called `MafDb`, is derived from `GScores` to store minor allele frequency (MAF)
-data accounting for specific features of this kind of values such as their
-organization into populations of individuals.
+of genomic scores stored separately on each chromosome.
 
 # Retrieval of genomic scores through annotation packages
 
@@ -109,8 +106,8 @@ Here, a `GScores` object is created when the package is loaded.
 
 ```{r, message=FALSE, warning=FALSE, cache=FALSE}
 library(phastCons100way.UCSC.hg19)
-gsco <- phastCons100way.UCSC.hg19
-class(gsco)
+phast <- phastCons100way.UCSC.hg19
+class(phast)
 ```
 
 The help page of the `GScores` class describes the different methods to access the
@@ -118,7 +115,7 @@ information and metadata stored in a `GScores` object. To retrieve genomic score
 for specific positions we should use the function `gscores()`, as follows.
 
 ```{r}
-gscores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
+gscores(phast, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
 ```
 
 The `r Biocpkg("GenomicScores")` package only loads the scores data from one
@@ -126,7 +123,7 @@ sequence to retrieve metadata and from the sequences that are being
 queried. Note that now the GScores object has loaded the scores from chr22.
 
 ```{r}
-gsco
+phast
 ```
 
 The bibliographic reference to cite the genomic scores stored in a `GScores`
@@ -135,7 +132,7 @@ name or on the `GScores` object. The latter is implemented in the
 `r Biocpkg("GenomicScores")` package and provides a `bibentry` object.
 
 ```{r}
-citation(gsco)
+citation(phast)
 ```
 
 Other methods tracing provenance and other metadata are `provider()`,
@@ -144,10 +141,10 @@ the help page of the `GScores` class for a comprehensive list of available
 methods.
 
 ```{r}
-provider(gsco)
-providerVersion(gsco)
-organism(gsco)
-seqlevelsStyle(gsco)
+provider(phast)
+providerVersion(phast)
+organism(phast)
+seqlevelsStyle(phast)
 ```
 
 # Retrieval of genomic scores through AnnotationHub resources
@@ -176,14 +173,14 @@ After the resource is downloaded the first time, the cached copy will
 enable a quicker retrieval later.
 
 ```{r retrieve3, message=FALSE, cache=FALSE, eval=FALSE}
-gsco <- getGScores("phastCons100way.UCSC.hg19")
+phast <- getGScores("phastCons100way.UCSC.hg19")
 ```
 
 Finally, the phastCons score of a particular genomic position
 is retrieved exactly in the same we did with the annotation package.
 
 ```{r retrieve4, message=FALSE, cache=FALSE}
-gscores(gsco, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
+gscores(phast, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
 ```
 
 ## Building an annotation package from a GScores object
@@ -196,7 +193,7 @@ from a `GScores` object corresponding to a downloaded `AnnotationHub` resource.
 To do that we use the function `makeGScoresPackage()` as follows:
 
 ```{r eval=FALSE}
-makeGScoresPackage(gsco, maintainer="Me <me@example.com>", author="Me", version="1.0.0")
+makeGScoresPackage(phast, maintainer="Me <me@example.com>", author="Me", version="1.0.0")
 ```
 ```{r echo=FALSE}
 cat("Creating package in ./phastCons100way.UCSC.hg19\n")
@@ -268,20 +265,20 @@ each range.
 
 ```{r}
 gr1 <- GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1))
-gr1sco <- gscores(gsco, gr1)
+gr1sco <- gscores(phast, gr1)
 gr1sco
 mean(gr1sco$default)
-gr2 <- GRanges(seqnames="chr22", IRanges(start=50967020, width=6))
-gscores(gsco, gr2)
+gr2 <- GRanges("chr22:50967020-50967025")
+gscores(phast, gr2)
 ```
 
 However, we may change the way in which scores from multiple-nucleotide ranges are
 summarized with the argument `summaryFun`, as follows.
 
 ```{r}
-gscores(gsco, gr2, summaryFun=max)
-gscores(gsco, gr2, summaryFun=min)
-gscores(gsco, gr2, summaryFun=median)
+gscores(phast, gr2, summaryFun=max)
+gscores(phast, gr2, summaryFun=min)
+gscores(phast, gr2, summaryFun=median)
 ```
 
 # Retrieval of quantized genomic scores
@@ -292,9 +289,9 @@ the metadata of a `GScores` object and they can be examined with the methods
 method to retrieve genomic scores.
 
 ```{r}
-phastqfun <- qfun(gsco)
+phastqfun <- qfun(phast)
 phastqfun
-phastdqfun <- dqfun(gsco)
+phastdqfun <- dqfun(phast)
 phastdqfun
 ```
 
@@ -302,7 +299,7 @@ For single-nucleotide ranges, we can retrieve the quantized genomic scores
 using the argument `quantized=TRUE`.
 
 ```{r}
-gr1 <- gscores(gsco, gr1, quantized=TRUE)
+gr1 <- gscores(phast, gr1, quantized=TRUE)
 gr1
 ```
 
@@ -314,7 +311,7 @@ phastdqfun(gr1$default)
 
 # Retrieval of minor allele frequency data
 
-The `MafDb` class derived from `GSscores` enables the storage and access
+The `GScores` class also enables the storage and access
 of minor allele frequency (MAF) data. There are currently 9 different annotation
 packages that store MAF values using the `r Biocpkg("GenomicScores")` package;
 see Table \@ref(tab:tableMafDb) below.
@@ -333,9 +330,8 @@ Annotation Package          | Description
 
 : (\#tab:tableMafDb) Bioconductor annotation packages storing MAF data.
 
-A `MafDb` object compresses the data in the same way as a `GScores` object but it
-can store multiple versions of the data corresponding to MAF values derived from
-different populations of individuals.
+In this context, the scores populations correspond to populations of individuals
+from which the MAF data were derived.
 
 ```{r, message=FALSE}
 library(MafDb.1Kgenomes.phase1.hs37d5)
@@ -345,32 +341,6 @@ mafdb
 
 populations(mafdb)
 ```
-
-Because `MafDb` objects derive from the `GScores` class, all the `GScores` methods
-also apply.
-
-```{r}
-citation(mafdb)
-provider(mafdb)
-providerVersion(mafdb)
-organism(mafdb)
-seqlevelsStyle(mafdb)
-```
-
-The interface to access MAF values is also different to be more consistent with
-the one of `SNPlocs.*` packages; see, for instance, `r Biocpkg("SNPlocs.Hsapiens.dbSNP144.GRCh37")`.
-More concretely, `MafDb` objects should be queried with the following two functions:
-
-  * `mafByOverlaps(x, ranges, pop="AF", type=c("snvs", "nonsnvs"), caching=TRUE)`: returns
-    MAF values from the `MafDb` object in the argument `x`, whose positions overlap with the
-    genomic ranges given in the argument `ranges` for the populations given in the argument
-    `pop`. Additionally, one may query for single nucleotide variants -SNVs- (default) or 
-    nonSNVs by indicating it in the argument `type`. The argument `caching` flags whether
-    the queried data should be cahced into main memory (default).
-
-  * `mafById(x, ids, pop, caching)`: return MAF values from the `MafDb` object in the argument
-    `x` annotated by the data producer to the identifiers given in the argument `ids`. Arguments
-    `pop` and `caching` work as in `mafByOverlaps()`.
 
 Consider the following example in which we are interested in MAF values for variants associated
 with _eye color_. We can start by fetching the corresponding variant identifers from the GWAS
@@ -389,11 +359,18 @@ eyersids <- readRDS(system.file("extdata", "eyersids.rds", package="GenomicScore
 eyersids
 ```
 
+<!--
 While we could directly interrogate a `MafDb` object with these identifiers and the function
 `mafById()`, that query relies on a specific dbSNP annotation used by the MAF data producer to
 annotate variants, which may not be the most up date nor may assign identifiers to every
 variant. From this perspective, it is safer to first query the genomic position of the variant
 identifiers with a recent release of dbSNP, as follows.
+-->
+
+We query the genomic position of the variant identifier through the
+`r Biocpkg("SNPlocs.Hsapiens.dbSNP144.GRCh37")` package, which stores the
+build 144 of the dbSNP database.
+
 
 ```{r, message=FALSE}
 library(SNPlocs.Hsapiens.dbSNP144.GRCh37)
@@ -401,7 +378,7 @@ rng <- snpsById(SNPlocs.Hsapiens.dbSNP144.GRCh37, ids=eyersids)
 rng
 ```
 
-Finally, query the MAF values on those positions.
+Finally, fetch the MAF values on those positions.
 
 ```{r}
 eyecolormafs <- gscores(mafdb, rng, pop=c("AF", "EUR_AF", "AFR_AF"))
@@ -471,7 +448,7 @@ the genomic scores as a numeric vector instead as a metadata column in the
 input ranges object.
 
 ```{r}
-loc$PHASTCONS <- score(gsco, loc)
+loc$PHASTCONS <- score(phast, loc)
 loc[1:3]
 ```
 
@@ -539,7 +516,7 @@ legend("bottomright", levels(loc$LOCATION), pch=19, col=hmcol, inset=0.01)
 Finally, we will show how to annotate MAF values on these variants. However,
 in this particular case, we should take care of the different sequence styles
 (UCSC vs NCBI) and genome version nomenclatures (hg19 vs. hs37d5) between the
-annotated variants and the `MafDb` object.
+annotated variants and the `GScores` object.
 
 ```{r}
 seqlevelsStyle(loc) <- seqlevelsStyle(mafdb)[1]
@@ -596,8 +573,8 @@ table(nd2)
 Retrieve the corresponding _phastCons_ scores stored in the annotation package.
 
 ```{r}
-pkgpcscoCDS <- score(gsco, origpcscoCDS)
-pkgpcsco3UTRs <- score(gsco, origpcsco3UTRs)
+pkgpcscoCDS <- score(phast, origpcscoCDS)
+pkgpcsco3UTRs <- score(phast, origpcsco3UTRs)
 ```
 
 In Figure \@ref(fig:plot2) we show a visual comparison between raw and rounded _phastCons_ scores.
