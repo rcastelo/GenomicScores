@@ -222,7 +222,8 @@ mcap <- GScores(provider=mdobj$provider,
                 reference_genome=mdobj$reference_genome,
                 data_pkgname=mdobj$data_pkgname,
                 data_dirpath="../inst/extdata",
-                data_serialized_objnames=c(mcap.v1.0.hg19.chr22.rds="mcap.v1.0.hg19.chr22.rds"))
+                data_serialized_objnames=c(mcap.v1.0.hg19.chr22.rds="mcap.v1.0.hg19.chr22.rds"),
+                data_tag="MCAP")
 gscopops <- get(mdobj$data_pkgname, envir=mcap@.data_cache)
 gscopops[["default"]] <- RleList(compress=FALSE)
 gscopops[["default"]][[mdobj$seqname]] <- obj
@@ -429,7 +430,7 @@ seqlevelsStyle(vcf) <- seqlevelsStyle(txdb)
 We annotate the location of variants using the function `locateVariants()`
 from the `r Biocpkg("VariantAnnotation")` package.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE}
 loc <- locateVariants(vcf, txdb, AllVariants())
 loc[1:3]
 table(loc$LOCATION)
@@ -471,7 +472,7 @@ loc$MCAP[maskSNVs] <- score(mcap, loc[maskSNVs],
 ```
 
 ```{r, echo=FALSE}
-obj <- readRDS(system.file("extdata", "cadd.v1.3.hg19.chr22sub.rds", package="GenomicScores"))
+obj <- readRDS(system.file("extdata", "cadd.v1.3.hg19.chr22.rds", package="GenomicScores"))
 mdobj <- metadata(obj)
 cadd <- GScores(provider=mdobj$provider,
                 provider_version=mdobj$provider_version,
@@ -480,7 +481,8 @@ cadd <- GScores(provider=mdobj$provider,
                 reference_genome=mdobj$reference_genome,
                 data_pkgname=mdobj$data_pkgname,
                 data_dirpath="../inst/extdata",
-                data_serialized_objnames=c(cadd.v1.3.hg19.chr22.rds="cadd.v1.3.hg19.chr22sub.rds"))
+                data_serialized_objnames=c(cadd.v1.3.hg19.chr22.rds="cadd.v1.3.hg19.chr22.rds"),
+                data_tag="CADD")
 gscopops <- get(mdobj$data_pkgname, envir=cadd@.data_cache)
 gscopops[["default"]] <- RleList(compress=FALSE)
 gscopops[["default"]][[mdobj$seqname]] <- obj

@@ -213,8 +213,11 @@ setMethod("score", "GScores",
           })
 
 setMethod("score", "MafDb",
-          function(x, ...) {
-            gscores(x, ..., maf.only=TRUE)
+          function(x, ..., simplify=TRUE) {
+            gsco <- gscores(x, ..., maf.only=TRUE)
+            if (ncol(gsco) == 1 && simplify)
+              gsco <- gsco[[1]]
+            gsco
           })
 
 setMethod("gscores", c("GScores", "GenomicRanges"),
@@ -276,6 +279,10 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
             objectname <- deparse(substitute(object))
             if (length(ranges) == 0)
               return(numeric(0))
+
+            mask <- pop %in% populations(object)
+            if (any(!mask))
+              stop(sprintf("scores population %s is not present in %s. Please use 'populations()' to find out the available ones.", pop[!mask], name(object)))
 
             if (length(ref) != length(alt))
               stop("'ref' and 'alt' arguments have different lengths.")
