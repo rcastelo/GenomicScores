@@ -518,7 +518,7 @@ annotated variants and the `GScores` object.
 seqlevelsStyle(loc) <- seqlevelsStyle(mafdb)[1]
 seqinfo(loc, new2old=match(seqlevels(mafdb), seqlevels(loc))) <- seqinfo(mafdb)
 loc$MAF[width(loc) == 1] <- gscores(mafdb, loc[width(loc) == 1])$AF
-loc$MAF[width(loc) > 1] <- gscores(mafdb, loc[width(loc) > 1], type="nonsnvs")$AF
+loc$MAF[width(loc) > 1] <- gscores(mafdb, loc[width(loc) > 1], type="nonsnrs")$AF
 loc[1:3]
 ```
 

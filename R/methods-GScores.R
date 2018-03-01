@@ -154,8 +154,8 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
     ans[ord, ] <- matrix(x, nrow=length(gr), ncol=valxpos, byrow=TRUE)
   }
 
-  if (length(whregions) > 0) { ## regions comprising more than one position
-    tmpans <- NA_real_         ## need to be summarized
+  if (length(whregions) > 0) { ## regions comprising more than
+    tmpans <- NA_real_         ## one position are summarized
     if (numericmean) {
       rngbyseq <- split(gr[whregions], seqnames(gr)[whregions])
       tmpans <- lapply(names(rngbyseq),
@@ -168,7 +168,7 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
                                          end=end(rngbyseq[[sname]])))
                        })
       tmpans <- unsplit(tmpans, as.factor(seqnames(gr)[whregions]))
-    } else { ## this allows for other summary and coercion functions
+    } else { ## this allows for other summary functions
              ## but it runs about 10-fold slower
       startbyseq <- split(start(gr)[whregions],
                           seqnames(gr)[whregions], drop=TRUE)
@@ -225,14 +225,15 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
             ## default non-generic arguments
             paramNames <- c("scores.only", "pop", "type",
                             "summaryFun", "quantized",
-                            "ref", "alt", "caching")
+                            "ref", "alt", "minoverlap", "caching")
             pop <- defaultPopulation(x)
-            type <- "snvs"
+            type <- "snrs"
             scores.only <- FALSE
             summaryFun <- mean
             quantized <- FALSE
             ref <- character(0)
             alt <- character(0)
+            minoverlap <- 1L ## only relevant for genomic scores associated to SNRs
             caching <- TRUE
 
             ## get arguments
@@ -246,8 +247,23 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
                 stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
             list2env(arglist, envir=sys.frame(sys.nframe()))
 
-            .scores(x, ranges, pop, type, summaryFun, quantized,
-                    scores.only, ref, alt, caching)
+            if (!type %in% c("snrs", "nonsnrs"))
+              stop("argument 'type' must be either 'snrs' (default) or 'nonsnrs'.")
+
+            mask <- pop %in% populations(x)
+            if (any(!mask))
+              stop(sprintf("scores population %s is not present in %s. Please use 'populations()' to find out the available ones.",
+                           pop[!mask], name(x)))
+
+            ans <- NULL
+            if (type == "snrs")
+              ans <- .scores_snrs(x, ranges, pop, summaryFun, quantized,
+                                  scores.only, ref, alt, caching)
+            else
+              ans <- .scores_nonsnrs(x, ranges, pop, quantized, scores.only,
+                                     ref, alt, minoverlap, caching)
+
+            ans
           })
 
 setMethod("gscores", c("MafDb", "GenomicRanges"),
@@ -273,120 +289,272 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
             mafByOverlaps(x, ranges, pop, type, maf.only, caching)
           })
 
-.scores <- function(object, ranges, pop, type, summaryFun=mean, quantized=FALSE,
-                    scores.only=FALSE, ref=character(0), alt=character(0),
-                    caching=TRUE) {
-            objectname <- deparse(substitute(object))
-            if (length(ranges) == 0)
-              return(numeric(0))
+## fetch genomic scores stored on disk for specific sequences given in 'snames'
+## and add them to the 'gsco1pop'data structure, which is then returned back
+.fetch_scores_snrs <- function(object, objectname, gsco1pop, pop, snames) {
+  slengths <- seqlengths(object)
+  for (sname in snames) {
+    if (pop == "default")
+      fname <- sprintf("%s.%s.rds", object@data_pkgname, sname)
+    else
+      fname <- sprintf("%s.%s.%s.rds", object@data_pkgname, pop, sname)
+    if (length(object@data_serialized_objnames) > 0 &&
+        fname %in% names(object@data_serialized_objnames))
+      fname <- object@data_serialized_objnames[fname]
+    fpath <- file.path(object@data_dirpath, fname)
+    if (file.exists(fpath))
+      gsco1pop[[sname]] <- readRDS(fpath)
+    else {
+      warning(sprintf("no %s scores for population %s in sequence %s from %s object %s.",
+                       name(object), pop, sname, class(object), objectname))
+      gsco1pop[[sname]] <- Rle(lengths=slengths[sname], values=as.raw(0L))
+    }
+  }
 
-            mask <- pop %in% populations(object)
-            if (any(!mask))
-              stop(sprintf("scores population %s is not present in %s. Please use 'populations()' to find out the available ones.", pop[!mask], name(object)))
+  gsco1pop
+}
 
-            if (length(ref) != length(alt))
-              stop("'ref' and 'alt' arguments have different lengths.")
+.check_ref_alt_args <- function(ref, alt) {
+  if (length(ref) != length(alt))
+    stop("'ref' and 'alt' arguments have different lengths.")
 
-            if (length(ref) > 0) {
-              if (!class(ref) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
-                stop("'ref' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
-              } else if (class(ref) == "DNAStringSetList") {
-                if (max(elementNROWS(ref)) > 1)
-                  stop("'ref' argument must contain only a single nucleotide per position.")
-                ref <- unlist(ref)
-              }
+  if (length(ref) > 0) {
+    if (!class(ref) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
+      stop("'ref' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
+    } else if (class(ref) == "DNAStringSetList") {
+      if (max(elementNROWS(ref)) > 1)
+        stop("'ref' argument must contain only a single nucleotide per position.")
+      ref <- unlist(ref)
+    }
 
-              if (!class(alt) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
-                stop("'alt' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
-              } else if (class(alt) == "DNAStringSetList") {
-                if (max(elementNROWS(alt)) > 1)
-                  stop("'alt' argument must contain only a single nucleotide per position.")
-                alt <- unlist(alt)
-              }
-            }
+    if (!class(alt) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
+      stop("'alt' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
+    } else if (class(alt) == "DNAStringSetList") {
+      if (max(elementNROWS(alt)) > 1)
+        stop("'alt' argument must contain only a single nucleotide per position.")
+      alt <- unlist(alt)
+    }
+  }
 
-            if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
-              seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
+  list(ref=ref, alt=alt)
+}
 
-            snames <- unique(as.character(runValue(seqnames(ranges))))
-            if (any(!snames %in% seqnames(object)))
-              stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
-                           paste(snames[!snames %in% seqnames(object)], collapse=", "),
-                           providerVersion(referenceGenome(object))))
-            
-            gscopops <- get(object@data_pkgname, envir=object@.data_cache)
-            if (all(names(gscopops) %in% seqlevels(object))) { ## temporary fix will working w/ outdated annotations
-              tmp <- gscopops
-              gscopops <- list()
-              gscopops[[defaultPopulation(object)]] <- RleList(tmp, compress=FALSE)
-              assign(object@data_pkgname, gscopops, envir=object@.data_cache)
-            }
+.scores_snrs <- function(object, ranges, pop, summaryFun=mean, quantized=FALSE,
+                         scores.only=FALSE, ref=character(0), alt=character(0),
+                         caching=TRUE) {
+  objectname <- deparse(substitute(object))
+  if (length(ranges) == 0)
+    return(numeric(0))
 
-            missingMask <- !pop %in% names(gscopops)
-            for (popname in pop[missingMask])
-              gscopops[[popname]] <- RleList(compress=FALSE)
-            anyMissing <- any(missingMask)
+  ra <- .check_ref_alt_args(ref, alt)
+  ref <- ra$ref
+  alt <- ra$alt
+  rm(ra)
 
-            ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges),
-                                                  ncol=length(pop), dimnames=list(NULL, pop))))
-            for (popname in pop) {
-              missingMask <- !snames %in% names(gscopops[[popname]])
-              anyMissing <- anyMissing || any(missingMask)
-              slengths <- seqlengths(object)
-              for (sname in snames[missingMask]) {
-                if (popname == "default")
-                  fname <- sprintf("%s.%s.rds", object@data_pkgname, sname)
-                else
-                  fname <- sprintf("%s.%s.%s.rds", object@data_pkgname, popname, sname)
-                if (length(object@data_serialized_objnames) > 0 &&
-                    fname %in% names(object@data_serialized_objnames))
-                  fname <- object@data_serialized_objnames[fname]
-                fpath <- file.path(object@data_dirpath, fname)
-                if (file.exists(fpath))
-                  gscopops[[popname]][[sname]] <- readRDS(fpath)
-                else {
-                  warning(sprintf("No %s scores for sequence %s in %s object '%s'.",
-                                  object@data_pkgname, sname, class(object),
-                                  objectname))
-                  gscopops[[popname]][[sname]] <- Rle(lengths=slengths[sname],
-                                                      values=as.raw(0L))
-                }
-              }
+  if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
+    seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
 
-              sco <- rep(NA_real_, length(ranges))
-              if (length(metadata(gscopops[[popname]][[1]])) > 0 &&
-                  class(metadata(gscopops[[popname]][[1]])$dqfun) == "function")
-                sco <- .rleGetValues(gscopops[[popname]], ranges, summaryFun=summaryFun,
-                                     quantized=quantized)
-              else
-                warning(sprintf("No dequantization function available for scores population %s. Scores will be all NA.",
-                                popname))
+  snames <- unique(as.character(runValue(seqnames(ranges))))
+  if (any(!snames %in% seqnames(object)))
+    stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
+                 paste(snames[!snames %in% seqnames(object)], collapse=", "),
+                 providerVersion(referenceGenome(object))))
 
-              if (length(ref) > 0) {
-                if (is.matrix(sco)) {
-                  mt.r <- match(ref, DNA_BASES)
-                  mt.a <- match(alt, DNA_BASES)
-                  mask <- mt.r < mt.a
-                  idxcol <- mt.a
-                  idxcol[mask] <- mt.a[mask] - 1L
-                  sco <- sco[cbind(1:nrow(sco), idxcol)]
-                } else
-                  warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
-              }
+  gscopops <- get(object@data_pkgname, envir=object@.data_cache)
+  if (all(names(gscopops) %in% seqlevels(object))) { ## temporary fix will working w/ outdated annotations
+    tmp <- gscopops
+    gscopops <- list()
+    gscopops[[defaultPopulation(object)]] <- RleList(tmp, compress=FALSE)
+    assign(object@data_pkgname, gscopops, envir=object@.data_cache)
+  }
 
-              ans[[popname]] <- sco
-            }
+  missingMask <- !pop %in% names(gscopops)
+  for (popname in pop[missingMask])
+    gscopops[[popname]] <- RleList(compress=FALSE)
+  anyMissing <- any(missingMask)
 
-            if (anyMissing && caching)
-              assign(object@data_pkgname, gscopops, envir=object@.data_cache)
-            rm(gscopops)
+  ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges),
+                                        ncol=length(pop), dimnames=list(NULL, pop))))
+  for (popname in pop) {
+    missingMask <- !snames %in% names(gscopops[[popname]])
+    anyMissing <- anyMissing || any(missingMask)
+    if (any(missingMask))
+      gscopops[[popname]] <- .fetch_scores_snrs(object, objectname, gscopops[[popname]],
+                                                popname, snames[missingMask])
 
-            if (scores.only)
-              return(ans)
+    sco <- rep(NA_real_, length(ranges))
+    if (length(metadata(gscopops[[popname]][[1]])) > 0 &&
+        class(metadata(gscopops[[popname]][[1]])$dqfun) == "function")
+      sco <- .rleGetValues(gscopops[[popname]], ranges, summaryFun=summaryFun,
+                           quantized=quantized)
+    else
+      warning(sprintf("No dequantization function available for scores population %s. Scores will be all NA for this population.",
+                      popname))
 
-            mcols(ranges) <- cbind(mcols(ranges), ans)
-            ranges
+  if (length(ref) > 0 && length(alt) > 0) {
+    if (is.matrix(sco)) {
+      mt.r <- match(ref, DNA_BASES)
+      mt.a <- match(alt, DNA_BASES)
+      mask <- mt.r < mt.a
+      idxcol <- mt.a
+      idxcol[mask] <- mt.a[mask] - 1L
+      sco <- sco[cbind(1:nrow(sco), idxcol)]
+    } else
+      warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+  }
+
+  ans[[popname]] <- sco
+  }
+  if (anyMissing && caching)
+    assign(object@data_pkgname, gscopops, envir=object@.data_cache)
+  rm(gscopops)
+  if (scores.only)
+    return(ans)
+
+  mcols(ranges) <- cbind(mcols(ranges), ans)
+  ranges
+}
+
+## fetch genomic scores stored on disk for specific sequences given in 'snames'
+## and add them to the 'gscononsnrs'data structure, which is then returned back
+.fetch_scores_nonsnrs <- function(object, objectname, gscononsnrs, pop, snames) {
+  popnames <- character(0)
+  if (length(gscononsnrs) > 0)
+    popnames <- colnames(mcols(gscononsnrs[[1]]))
+
+  if (length(snames) > 0) {
+    md <- list()
+    slengths <- seqlengths(object)
+    for (sname in snames) {
+      fname <- file.path(object@data_dirpath,
+                         sprintf("%s.GRnonsnv.%s.rds", name(object), sname))
+      obj <- GRanges()
+      if (file.exists(fname)) {
+        obj <- readRDS(fname)
+        for (popname in popnames) {
+          fname <- file.path(object@data_dirpath,
+                             sprintf("%s.RLEnonsnv.%s.%s.rds", name(object), popname, sname))
+          if (file.exists(fname)) {
+            rleobj <- readRDS(fname)
+            md <- metadata(rleobj)
+            mcols(obj)[[popname]] <- rleobj
+          } else {
+            warning(sprintf("no %s scores for population %s nonSNRs in sequence %s from %s object %s.",
+                            name(object), popname, sname, class(object), objectname))
+            mcols(obj)[[popname]] <- rep(NA_real_, length(obj))
           }
+        }
+      } else {
+        warning(sprintf("no %s scores for nonSNRs in sequence %s from %s object %s.",
+                        name(object), sname, class(object), objectname))
+        mcols(obj) <- DataFrame(as.data.frame(matrix(raw(0), nrow=0, ncol=length(popnames),
+                                                     dimnames=list(NULL, popnames))))
+      }
+      gscononsnrs[[sname]] <- obj
+    }
+    metadata(gscononsnrs) <- md
+  }
+
+  if (length(pop) > 0) {
+    md <- list()
+    tmp <- unlist(gscononsnrs)
+    names(tmp) <- NULL
+    for (popname in pop) {
+      scovalues <- Rle(raw(length(tmp)))
+      i <- 1
+      ## b/c we're storing MAF values as metadata columns of GRanges
+      ## populations need to be loaded for all already loaded chromosomes
+      for (sname in names(gscononsnrs)) {
+        fname <- file.path(object@data_dirpath,
+                           sprintf("%s.RLEnonsnv.%s.%s.rds", name(object), popname, sname))
+        if (file.exists(fname)) {
+          obj <- readRDS(fname)
+          md <- metadata(obj)
+          scovalues[i:(i+length(gscononsnrs[[sname]])-1)] <- obj
+        }
+        i <- i + length(gscononsnrs)
+      }
+      mcols(tmp)[[popname]] <- scovalues
+    }
+    gscononsnrs <- split(tmp, seqnames(tmp), drop=TRUE)
+    metadata(gscononsnrs) <- md
+    rm(tmp)
+  }
+
+  gscononsnrs
+}
+
+.scores_nonsnrs <- function(object, ranges, pop, quantized=FALSE,
+                            scores.only=FALSE, ref=character(0), alt=character(0),
+                            minoverlap=1L, caching=TRUE) {
+  objectname <- deparse(substitute(object))
+  gscononsnrs<- get(sprintf("%s.nonsnvs", name(object)), envir=object@.data_cache)
+
+  ra <- .check_ref_alt_args(ref, alt)
+  ref <- ra$ref
+  alt <- ra$alt
+  rm(ra)
+
+  ## by now, only multiple SNR alleles considered
+  if (length(ref) > 0 && length(alt) > 0)
+    warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+
+  if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
+    seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
+
+  snames <- unique(as.character(runValue(seqnames(ranges))))
+  if (any(!snames %in% seqnames(object)))
+    stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
+                 paste(snames[!snames %in% seqnames(object)], collapse=", "),
+                 providerVersion(referenceGenome(object))))
+
+  missingSeqMask <- !snames %in% names(gscononsnrs)
+  anyMissing <- any(missingSeqMask)
+  popnames <- character(0)
+  if (length(gscononsnrs) > 0)
+    popnames <- colnames(mcols(gscononsnrs[[1]]))
+  missingPopMask <- !pop %in% popnames
+  anyMissing <- anyMissing || any(missingPopMask)
+
+  if (any(missingSeqMask) || any(missingPopMask)) ## if genomic scores belong to queried sequences that are not cached, load them
+    gscononsnrs <- .fetch_scores_nonsnrs(object, objectname, gscononsnrs,
+                                         pop[missingPopMask], snames[missingSeqMask])
+
+  ans <- NULL
+  if (quantized)
+    ans <- DataFrame(as.data.frame(matrix(raw(0), nrow=length(ranges), ncol=length(pop),
+                                        dimnames=list(NULL, pop))))
+  else
+    ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges), ncol=length(pop),
+                                        dimnames=list(NULL, pop))))
+
+  ## the default value of 'minoverlap=1L' assumes that the sought nonsnrs are
+  ## stored as in VCF files, using the nucleotide composition of the reference sequence
+  ov <- findOverlaps(ranges, unlist(gscononsnrs), minoverlap=minoverlap)
+  if (length(ov) > 0) {
+    q <- mcols(unlist(gscononsnrs))[subjectHits(ov), pop, drop=FALSE]
+    if (quantized)
+      ans[queryHits(ov), pop] <- DataFrame(lapply(q, decode))
+    else {
+      .dequantizer <- metadata(gscononsnrs)$dqfun
+      dqargs <- metadata(gscononsnrs)$dqfun_args
+      lappargs <- c(list(X=q, FUN=.dequantizer), dqargs)
+      ans[queryHits(ov), pop] <- DataFrame(do.call("lapply", lappargs))
+    }
+
+    if (any(duplicated(queryHits(ov))))
+      message("gscores: more than one genomic score overlapping queried positions, reporting only the first hit.")
+  }
+
+  if (anyMissing && caching)
+    assign(sprintf("%s.nonsnvs", name(object)), gscononsnrs, envir=object@.data_cache)
+  rm(gscononsnrs)
+  if (scores.only)
+    return(ans)
+
+  mcols(ranges) <- cbind(mcols(ranges), ans)
+  ranges
+}
 
 ## getters qfun and dqfun
 setMethod("qfun", "GScores",
