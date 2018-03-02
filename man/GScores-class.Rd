@@ -208,13 +208,25 @@
   \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
 }
 \examples{
+## one genomic range of width 5
+gr1 <- GRanges(seqnames="chr7", IRanges(start=117232380, width=5))
+gr1
+
+## five genomic ranges of width 1
+gr2 <- GRanges(seqnames="chr7", IRanges(start=117232380:117232384, width=1))
+gr2
+
 ## supporting annotation packages with genomic scores
 if (require(phastCons100way.UCSC.hg19)) {
   library(GenomicRanges)
 
   gsco <- phastCons100way.UCSC.hg19
   gsco
-  gscores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
+  gscores(gsco, gr1)
+  score(gsco, gr1)
+  gscores(gsco, gr2)
+  populations(gsco)
+  gscores(gsco, gr2, pop="DP2")
 }
 
 ## supporting AnnotationHub resources
@@ -222,10 +234,10 @@ if (require(phastCons100way.UCSC.hg19)) {
 availableGScores()
 gsco <- getGScores("phastCons100way.UCSC.hg19")
 gsco
-gscores(gsco, GRanges(seqnames="chr7", IRanges(start=117232380, width=5)))
+gscores(gsco, gr1)
 }
 
-## meta data from a GScores object
+## metadata from a GScores object
 name(gsco)
 type(gsco)
 provider(gsco)
@@ -236,6 +248,9 @@ seqlevelsStyle(gsco)
 seqinfo(gsco)
 head(seqnames(gsco))
 head(seqlengths(gsco))
+gscoresTag(gsco)
+populations(gsco)
+defaultPopulation(gsco)
 qfun(gsco)
 dqfun(gsco)
 citation(gsco)

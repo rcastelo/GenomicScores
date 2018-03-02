@@ -233,7 +233,7 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
             quantized <- FALSE
             ref <- character(0)
             alt <- character(0)
-            minoverlap <- 1L ## only relevant for genomic scores associated to SNRs
+            minoverlap <- 1L ## only relevant for genomic scores associated with nonSNRs
             caching <- TRUE
 
             ## get arguments
@@ -266,6 +266,112 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
             ans
           })
 
+setMethod("gscores", c("GScores", "character"),
+          function(x, ranges, ...) {
+            ## default non-generic arguments
+            paramNames <- c("scores.only", "pop",
+                            "summaryFun", "quantized",
+                            "ref", "alt", "minoverlap", "caching")
+            pop <- defaultPopulation(x)
+            scores.only <- FALSE
+            summaryFun <- mean
+            quantized <- FALSE
+            ref <- character(0)
+            alt <- character(0)
+            minoverlap <- 1L ## only relevant for genomic scores associated with nonSNRs
+            caching <- TRUE
+            ids <- ranges
+
+            ## get arguments
+            arglist <- list(...)
+            mask <- nchar(names(arglist)) == 0
+            if (any(mask))
+              names(arglist)[mask] <- paste0("X", 1:sum(mask))
+
+            mask <- names(arglist) %in% paramNames
+            if (any(!mask))
+                stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
+            list2env(arglist, envir=sys.frame(sys.nframe()))
+
+            mask <- pop %in% populations(x)
+            if (any(!mask))
+              stop(sprintf("scores population %s is not present in %s. Please use 'populations()' to find out the available ones.",
+                           pop[!mask], name(x)))
+
+            ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ids),
+                                                  ncol=length(pop),
+                                                  dimnames=list(NULL, pop))),
+                             row.names=ids)
+            if (!exists("rsIDs", envir=x@.data_cache)) {
+              if (file.exists(file.path(x@data_dirpath, "rsIDs.rds"))) {
+                message("Loading first time annotations of identifiers to genomic positions, produced by data provider.")
+                rsIDs <- readRDS(file.path(x@data_dirpath, "rsIDs.rds"))
+                assign("rsIDs", rsIDs, envir=x@.data_cache)
+              } else {
+                warning("The data provider did not produce annotations of rs identifiers to variants.")
+                return(ans)
+              }
+            }
+
+            rsIDs <- get("rsIDs", envir=x@.data_cache)
+            stopifnot(is.integer(rsIDs)) ## QC
+            idsint <- rep(NA_integer_, length(ids))
+            rsMask <- regexpr("^rs", ids) == 1
+            idsint[rsMask] <- as.integer(sub(pattern="^rs", replacement="", x=ids[rsMask]))
+            mt <- rep(NA_integer_, length(idsint))
+            if (any(!is.na(idsint))) {
+              idsintnoNAs <- idsint[!is.na(idsint)]
+              ord <- order(idsintnoNAs)                     ## order ids to speed up
+              mtfi <- findInterval(idsintnoNAs[ord], rsIDs) ## call to findInterval()
+              mtfi[ord] <- mtfi                             ## put matches into original order
+              mt[!is.na(idsint)] <- mtfi                    ## integrate matches into result
+            }
+            mt[mt == 0] <- 1
+            if (any(!is.na(mt))) {
+              maskNAs <- idsint != rsIDs[mt]
+              mt[maskNAs] <- NA
+            }
+            if (any(!is.na(mt))) {
+              if (!exists("rsIDidx", envir=x@.data_cache)) {
+                rsIDidx <- readRDS(file.path(x@data_dirpath, "rsIDidx.rds"))
+                assign("rsIDidx", rsIDidx, envir=x@.data_cache)
+              }
+              rsIDidx <- get("rsIDidx", envir=x@.data_cache)
+              mt <- rsIDidx[mt]
+            }
+
+            if (any(!is.na(mt))) {
+              if (!exists("rsIDgp", envir=x@.data_cache)) {
+                rsIDgp <- readRDS(file.path(x@data_dirpath, "rsIDgp.rds"))
+                assign("rsIDgp", rsIDgp, envir=x@.data_cache)
+              }
+              rsIDgp <- get("rsIDgp", envir=x@.data_cache)
+              issnvmask <- rsIDgp$isSNV
+              rsIDgp <- updateObject(rsIDgp, verbose=FALSE) ## temporary solution until GPos objects are updated
+              rsIDgp$isSNV <- issnvmask
+              rm(issnvmask)
+              rng <- rsIDgp[mt[!is.na(mt)]]
+              mask <- logical(length(mt))
+              mask[!is.na(mt)] <- rng$isSNV
+              if (any(mask))
+                ans[mask, pop] <- gscores(x, rng[rng$isSNV], pop=pop, type="snrs",
+                                          summaryFun=summaryFun, quantized=quantized,
+                                          scores.only=TRUE, ref=ref, alt=alt,
+                                          minoverlap=minoverlap, caching=caching)
+              mask <- logical(length(mt))
+              mask[!is.na(mt)] <- !rng$isSNV
+              if (any(mask))
+                ans[mask, pop] <- gscores(x, rng[!rng$isSNV], pop=pop, type="nonsnrs",
+                                          summaryFun=summaryFun, quantized=quantized,
+                                          scores.only=TRUE, ref=ref, alt=alt,
+                                          minoverlap=minoverlap, caching=caching)
+            }
+
+            ans
+          })
+
+## for compatibility with MafDb objects during deprecation of the
+## MafDb class
 setMethod("gscores", c("MafDb", "GenomicRanges"),
           function(x, ranges, ...) {
             ## default non-generic arguments
