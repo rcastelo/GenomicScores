@@ -664,7 +664,7 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
 
 ## getters qfun and dqfun
 setMethod("qfun", "GScores",
-          function(object, pop="default") {
+          function(object, pop=defaultPopulation(object)) {
             if (!pop %in% populations(object))
               stop(sprintf("There is no score population %s in this GScores object. Use populations() to find out what score populations are available.", pop))
             obj <- get(object@data_pkgname, envir=object@.data_cache)
@@ -672,7 +672,7 @@ setMethod("qfun", "GScores",
           })
 
 setMethod("dqfun", "GScores",
-          function(object, pop="default") {
+          function(object, pop=defaultPopulation(object)) {
             if (!pop %in% populations(object))
               stop(sprintf("There is no score population %s in this GScores object. Use populations() to find out what score populations are available.", pop))
             obj <- get(object@data_pkgname, envir=object@.data_cache)
@@ -741,7 +741,8 @@ setMethod("show", "GScores",
               
             max.abs.error <- NA
             if (length(length(loadedsnrseqs)) > 0)
-              max.abs.error <- max(unlist(sapply(snrobj, function(x) sapply(lapply(x, metadata), "[[", "max_abs_error")), use.names=FALSE))
+              max.abs.error <- max(unlist(sapply(lapply(snrobj[[defaultPopulation(object)]], metadata), "[[", "max_abs_error"), use.names = FALSE))
+              ## max.abs.error <- max(unlist(sapply(snrobj, function(x) sapply(lapply(x, metadata), "[[", "max_abs_error")), use.names=FALSE))
 
             cat(class(object), " object \n",
                 "# organism: ", organism(object), " (", provider(referenceGenome(object)), ", ",
@@ -760,10 +761,16 @@ setMethod("show", "GScores",
               if (loadedsnrpops[1] != "none" && length(loadedsnrpops) > 1)
                 cat("# loaded populations: ", .pprintseqs(loadedsnrpops), "\n", sep="")
             }
+            if (defaultPopulation(object) != "default")
+              cat("# default scores population: ", defaultPopulation(object), "\n", sep="")
             if (!is.na(nsites(object)))
               cat("# number of sites: ", .pprintnsites(nsites(object)), "\n", sep="")
-            if (!is.na(max.abs.error))
-              cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
+            if (!is.na(max.abs.error)) {
+              if (defaultPopulation(object) != "default")
+                cat("# maximum abs. error (def. pop.): ", signif(max.abs.error, 3), "\n", sep="")
+              else
+                cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
+            }
             if (length(citation(object)) > 0)
               cat("# use 'citation()' to know how to cite these data in publications\n")
           })

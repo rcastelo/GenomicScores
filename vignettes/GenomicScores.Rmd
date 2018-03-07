@@ -206,7 +206,8 @@ Afterwards, we should still build and install the package via, e.g.,
 
 # Retrieval of multiple scores per genomic position
 
-Among the score sets available as [AnnotationHub](https://bioconductor.org/packages/AnnotationHub)
+Among the score sets available as
+[AnnotationHub](https://bioconductor.org/packages/AnnotationHub)
 web resources shown in the previous section, two of them, CADD [@kircher14] and
 M-CAP [@jagadeesh16], provide multiple scores per genomic position that capture
 the tolerance to mutations of single nucleotides. Using M-CAP scores, we will
@@ -300,8 +301,8 @@ For single-nucleotide ranges, we can retrieve the quantized genomic scores
 using the argument `quantized=TRUE`.
 
 ```{r}
-gr1 <- gscores(phast, gr1, quantized=TRUE)
-gr1
+gr1sco <- gscores(phast, gr1, quantized=TRUE)
+gr1sco
 ```
 
 Using the dequantization function we can obtain later the genomic scores.
@@ -310,10 +311,52 @@ Using the dequantization function we can obtain later the genomic scores.
 phastdqfun(gr1$default)
 ```
 
+# Populations of scores
+
+A single `GScores` object may store multiple populations of scores of the same
+kind. One such case is when scores are stored with different precision levels.
+This is the case for the package `r Biocpkg("phastCons100way.UCSC.hg19")`, in
+which _phastCons_ scores are compressed rounding values to 1 and 2 decimal
+places. To figure out what are the available score populations in a `GScores`
+object we should use the method `populations()`:
+
+```{r}
+populations(phast)
+```
+
+Whenever one of these populations is called `default`, this is the one used
+by default. In other cases we can find out which is the default population as
+follows:
+
+```{r}
+defaultPopulation(phast)
+```
+
+To use one of the available score populations we should use the argument
+`pop` in the corresponding methods, as follows:
+
+
+```{r}
+gscores(phast, gr1, pop="DP2")
+qfun(phast, pop="DP2")
+dqfun(phast, pop="DP2")
+```
+
+We can also change the default scores population to use, as follows:
+
+```{r}
+defaultPopulation(phast) <- "DP2"
+phast
+gscores(phast, gr1)
+qfun(phast)
+dqfun(phast)
+```
+
 # Retrieval of minor allele frequency data
 
-The `GScores` class also enables the storage and access
-of minor allele frequency (MAF) data. There are currently 9 different annotation
+One particular type of genomic scores that are accessible through
+the `GScores` class is minor allele frequency (MAF) data.
+There are currently 9 different annotation
 packages that store MAF values using the `r Biocpkg("GenomicScores")` package;
 see Table \@ref(tab:tableMafDb) below.
 
@@ -332,7 +375,9 @@ Annotation Package          | Description
 : (\#tab:tableMafDb) Bioconductor annotation packages storing MAF data.
 
 In this context, the scores populations correspond to populations of individuals
-from which the MAF data were derived.
+from which the MAF data were derived, while all MAF data were compressed using
+a precision of one significant figure for MAF < 0.1 and two significant figures for
+MAF >= 0.1.
 
 ```{r, message=FALSE}
 library(MafDb.1Kgenomes.phase1.hs37d5)
@@ -566,6 +611,14 @@ nd2 <- numDecimals(origpcsco3UTRs$score)
 table(nd2)
 ```
 
+Reset the default scores population to the one that achieves more compression
+by rounding to 1 decimal place.
+
+```{r}
+defaultPopulation(phast) <- "default"
+phast
+```
+
 Retrieve the corresponding _phastCons_ scores stored in the annotation package.
 
 ```{r}
@@ -634,10 +687,11 @@ legend("topleft", c("Original score", "Rounded score"), pch=c(46, 19),
 labelPanel(letters[4])
 ```
 
-The bottom plots in Figure \@ref(fig:plot2) also reveal that when the cumulative distribution is
-of interest, such as in the context of filtering genetic variants above or below certain threshold
-of conservation, the quantization of _phastCons_ scores to one significant figure provides sufficient
-precision for a wide range of conservation values.
+The bottom plots in Figure \@ref(fig:plot2) also reveal that when the cumulative
+distribution is of interest, such as in the context of filtering genetic variants
+above or below certain threshold of conservation, the quantization of _phastCons_
+scores to 1 decimal place provides sufficient precision for a wide range of
+conservation values.
 
 # Session information
 
