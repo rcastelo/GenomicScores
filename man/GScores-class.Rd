@@ -78,10 +78,10 @@
       sequence.}
     \item{\code{data_serialized_objnames}}{(\code{character}), named vector of
       filenames pointing to files containing the genomic scores in one file per
-      genome sequence. The names of this vector correspond to the genome sequence
-      names.}
-    \item{\code{.data_cache}}{(\code{environment}), data structure where objects
-      storing genomic scores are cached into main memory.}
+      genome sequence. The names of this vector correspond to the genome
+      sequence names.}
+    \item{\code{.data_cache}}{(\code{environment}), data structure where
+      objects storing genomic scores are cached into main memory.}
   }
   The goal of the design behind the \code{GScores} class is to load into main
   memory only the objects associated with the queried sequences to minimize the
@@ -95,13 +95,13 @@
   \describe{
     \item{\code{phastCons100way.UCSC.hg19}}{
       Nucleotide-level phastCons conservation scores from the UCSC Genome Browser
-      calculated from multiple genome alignments from the human genome version hg19
-      to 99 vertebrate species.
+      calculated from multiple genome alignments from the human genome version
+      hg19 to 99 vertebrate species.
     }
     \item{\code{phastCons100way.UCSC.hg38}}{
       Nucleotide-level phastCons conservation scores from the UCSC Genome Browser
-      calculated from multiple genome alignments from the human genome version hg38
-      to 99 vertebrate species.
+      calculated from multiple genome alignments from the human genome version
+      hg38 to 99 vertebrate species.
     }
   }
 }
@@ -112,28 +112,29 @@
       \code{GScores(provider, provider_version, download_url,
             download_date, reference_genome, data_pkgname, data_dirpath,
             data_serialized_objnames, default_pop, data_tag)}:
-      Creates a \code{GScores} object. In principle, the end-user needs not to call
-      this function.
+      Creates a \code{GScores} object. In principle, the end-user needs not to
+      call this function.
       \describe{
         \item{\code{provider}}{character string, containing the data provider.}
-        \item{\code{provider_version}}{character string, containing the version of
-          the data as given by the data provider.}
+        \item{\code{provider_version}}{character string, containing the version
+          of the data as given by the data provider.}
         \item{\code{download_url}}{character string, containing the URL of the
           data provider from where the original data were downloaded.}
         \item{\code{reference_genome}}{GenomeDescription, storing the
           information about the associated reference genome.}
-        \item{\code{data_pkgname}}{character string, name given to the set of genomic
-          scores stored through this object.}
+        \item{\code{data_pkgname}}{character string, name given to the set of
+          genomic scores stored through this object.}
         \item{\code{data_dirpath}}{character string, absolute path to the local
           directory where the genomic scores are stored.}
-        \item{\code{data_serialized_objname}}{character string vector, containing
-          filenames where the genomic scores are stored.}
+        \item{\code{data_serialized_objname}}{character string vector,
+          containing filenames where the genomic scores are stored.}
         \item{\code{default_pop}}{character string, containing the name
           of the default scores population.}
-        \item{\code{data_tag}}{character string, containing a tag that succintly
-          labels genomic scores from a particular source. This can be used to automatically
-          give, for instance, a name to a column storing genomic scores in data frame object.
-          Its default value takes the prefix of the package name.}
+        \item{\code{data_tag}}{character string, containing a tag that
+          succintly labels genomic scores from a particular source. This can be
+          used to automatically give, for instance, a name to a column storing
+          genomic scores in data frame object. Its default value takes the
+          prefix of the package name.}
       }
     }
   }
@@ -145,10 +146,10 @@
       \code{name(x)}: get the name of the set of genomic scores.
     }
     \item{}{
-      \code{type(x)}: get the substring of the name of the set of genomic scores
-      comprised between the first character until the first period. This should
-      typically match the type of genomic scores such as, \code{phastCons},
-      \code{phyloP}, etc.
+      \code{type(x)}: get the substring of the name of the set of genomic
+      scores comprised between the first character until the first period. This
+      should typically match the type of genomic scores such as,
+      \code{phastCons}, \code{phyloP}, etc.
     }
     \item{}{
       \code{provider(x)}: get the data provider.
@@ -176,8 +177,9 @@
       \code{seqlengths(x)}: get the genome sequence lengths.
     }
     \item{}{
-      \code{populations(x)}: get the identifiers of the available scores populations. If only
-      one scores population is available, then it shows only the term \code{default}.
+      \code{populations(x)}: get the identifiers of the available scores
+      populations. If only one scores population is available, then it shows
+      only the term \code{default}.
     }
     \item{}{
       \code{defaultPopulation(x)}: get or set the default population of scores.
@@ -186,7 +188,8 @@
       \code{gscoresTag(x)}: get or set the genomic scores tag label.
     }
     \item{}{
-      \code{nsites(x)}: get the number of sites in the genome with genomic scores.
+      \code{nsites(x)}: get the number of sites in the genome with genomic
+      scores.
     }
     \item{}{
       \code{qfun(x)}: get the quantizer function.

@@ -218,6 +218,8 @@ setMethod("mafByOverlaps", signature="MafDb",
             type <- match.arg(type)
             ranges <- .str2gr(ranges)
 
+            warning("The 'mafByOverlaps()' method has been deprecated and will become defunct in the next release version of Biocondcutor 3.8. Please use its replacement functions 'gscores()' and 'score()'.")
+
             if (class(pop) != "character")
               stop("argument 'pop' must be a character vector")
 
@@ -246,6 +248,8 @@ setMethod("mafById", signature="MafDb",
           function(x, ids, pop="AF", maf.only=FALSE, caching=TRUE) {
             if (class(ids) != "character")
               stop("argument 'ids' must be a character string vector.")
+
+            warning("The 'mafByOverlaps()' method has been deprecated and will become defunct in the next release version of Biocondcutor 3.8. Please use its replacement functions 'gscores()' and 'score()'.")
 
             if (!exists("rsIDs", envir=x@.data_cache)) {
               if (file.exists(file.path(x@data_dirpath, "rsIDs.rds"))) {

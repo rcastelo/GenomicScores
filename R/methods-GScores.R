@@ -340,6 +340,10 @@ setMethod("gscores", c("GScores", "character"),
               mt <- rsIDidx[mt]
             }
 
+            ranges <- GRanges()
+            mcols(ranges) <- DataFrame(as.data.frame(matrix(NA_real_, nrow=0,
+                                                            ncol=length(pop),
+                                                            dimnames=list(NULL, pop))))
             if (any(!is.na(mt))) {
               if (!exists("rsIDgp", envir=x@.data_cache)) {
                 rsIDgp <- readRDS(file.path(x@data_dirpath, "rsIDgp.rds"))
@@ -365,9 +369,14 @@ setMethod("gscores", c("GScores", "character"),
                                           summaryFun=summaryFun, quantized=quantized,
                                           scores.only=TRUE, ref=ref, alt=alt,
                                           minoverlap=minoverlap, caching=caching)
+              ranges <- as(rng, "GRanges")
+              mcols(ranges) <- ans[!is.na(mt), ]
             }
 
-            ans
+            if (scores.only)
+              return(ans[!is.na(mt), ])
+
+            ranges
           })
 
 ## for compatibility with MafDb objects during deprecation of the
@@ -772,5 +781,5 @@ setMethod("show", "GScores",
                 cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
             }
             if (length(citation(object)) > 0)
-              cat("# use 'citation()' to know how to cite these data in publications\n")
+              cat("# use 'citation()' to cite these data in publications\n")
           })
