@@ -395,7 +395,7 @@ catalog using the `r Biocpkg("gwascat")` package, as follows.
 ```{r, message=FALSE}
 library(gwascat)
 data(ebicat37)
-eyersids <- subsetByTraits(ebicat37, tr="Eye color")$SNPS
+eyersids <- unique(subsetByTraits(ebicat37, tr="Eye color")$SNPS)
 eyersids
 ```
 
@@ -423,6 +423,14 @@ Finally, fetch the MAF values on those positions.
 ```{r}
 eyecolormafs <- gscores(mafdb, rng, pop=c("AF", "EUR_AF", "AFR_AF"))
 eyecolormafs
+```
+
+Sometimes, data producers may annotate identifiers to genomic scores,
+such as dbSNP rs identifiers to MAF values. In such a case, we can directly
+attempt to fetch genomic scores using those identifiers as follows.
+
+```{r}
+gscores(mafdb, eyersids, pop=c("AF", "EUR_AF", "AFR_AF"))
 ```
 
 The following code produces the barplot shown in Figure \@ref(fig:eyecolormafs) illustrating

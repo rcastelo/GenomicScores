@@ -21,6 +21,7 @@ getGScores(x)
 \S4method{gscores}{GScores,character}(x, ranges, ...)
 \S4method{gscores}{MafDb,GenomicRanges}(x, ranges, ...)
 \S4method{score}{GScores}(x, ..., simplify=TRUE)
+\S4method{score}{MafDb}(x, ..., simplify=TRUE)
 }
 \arguments{
   \item{x}{For \code{getGScores()}, a \code{character} vector of length 1

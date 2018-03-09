@@ -370,6 +370,7 @@ setMethod("gscores", c("GScores", "character"),
                                           scores.only=TRUE, ref=ref, alt=alt,
                                           minoverlap=minoverlap, caching=caching)
               ranges <- as(rng, "GRanges")
+              names(ranges) <- rownames(ans)[!is.na(mt)]
               mcols(ranges) <- ans[!is.na(mt), ]
             }
 
