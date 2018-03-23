@@ -4,6 +4,7 @@ GScores <- function(provider, provider_version, download_url,
                     data_pkgname, data_dirpath,
                     data_serialized_objnames=character(0),
                     default_pop="default",
+                    data_group=sub("\\..*$", "", data_pkgname),
                     data_tag=sub("\\..*$", "", data_pkgname)) {
   data_cache <- new.env(hash=TRUE, parent=emptyenv())
   data_pops <- list.files(path=data_dirpath, pattern=data_pkgname)
@@ -36,6 +37,7 @@ GScores <- function(provider, provider_version, download_url,
                  data_pkgname=data_pkgname,
                  data_dirpath=data_dirpath,
                  data_serialized_objnames=data_serialized_objnames,
+                 data_group=data_group,
                  data_tag=data_tag,
                  data_pops=data_pops,
                  default_pop=default_pop,
@@ -67,6 +69,9 @@ setMethod("seqlengths", "GScores", function(x) seqlengths(referenceGenome(x)))
 setMethod("seqlevelsStyle", "GScores",
           function(x) seqlevelsStyle(referenceGenome(x)))
 
+setMethod("gscoresNonSNRs", "GScores",
+          function(x) x@data_nonsnrs)
+
 setMethod("populations", "GScores", function(x) x@data_pops)
 
 setMethod("defaultPopulation", "GScores", function(x) x@default_pop)
@@ -89,6 +94,16 @@ setReplaceMethod("gscoresTag", c("GScores", "character"),
                    if (length(value) > 1)
                      warning("more than one genomic scores tag name supplied, using the 1st one only.")
                    x@data_tag <- value[1]
+                   x
+                 })
+
+setMethod("gscoresGroup", "GScores", function(x) x@data_group)
+
+setReplaceMethod("gscoresGroup", c("GScores", "character"),
+                 function(x, value) {
+                   if (length(value) > 1)
+                     warning("more than one genomic scores group name supplied, using the 1st one only.")
+                   x@data_group <- value[1]
                    x
                  })
 
@@ -254,6 +269,25 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
             if (any(!mask))
               stop(sprintf("scores population %s is not present in %s. Please use 'populations()' to find out the available ones.",
                            pop[!mask], name(x)))
+
+            ## adapt to sequence style and genome version from the input
+            ## GScores object, thus assuming positions are based on the same
+            ## genome even though might be differently specified
+            ## (i.e., hg19 vs hs37d5 or hg38 vs GRCh38)
+            if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(x))) == 0)
+              seqlevelsStyle(ranges) <- seqlevelsStyle(x)[1]
+            commonSeqs <- intersect(seqlevels(ranges), seqlevels(x))
+            if (any(is.na(genome(ranges)))) {
+              warning(sprintf("assuming query ranges genome build is the one of the GScores object (%s).",
+                              unique(genome(x))[commonSeqs]))
+              genome(ranges) <- genome(x)
+            } else if (any(genome(ranges)[commonSeqs] != genome(x)[commonSeqs])) {
+              warning(sprintf("assuming %s represent the same genome build between query ranges and the GScores object, respectively.",
+                              paste(c(unique(genome(ranges)[commonSeqs]),
+                                      unique(genome(x)[commonSeqs])),
+                                    collapse=" and ")))
+              genome(ranges) <- genome(x)
+            }
 
             ans <- NULL
             if (type == "snrs")
@@ -421,8 +455,8 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
     if (file.exists(fpath))
       gsco1pop[[sname]] <- readRDS(fpath)
     else {
-      warning(sprintf("no %s scores for population %s in sequence %s from %s object %s.",
-                       name(object), pop, sname, class(object), objectname))
+      warning(sprintf("no %s scores for population %s in sequence %s from %s object %s (%s).",
+                       type(object), pop, sname, class(object), objectname, name(object)))
       gsco1pop[[sname]] <- Rle(lengths=slengths[sname], values=as.raw(0L))
     }
   }
@@ -455,6 +489,7 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
   list(ref=ref, alt=alt)
 }
 
+## assumes 'object' and 'ranges' have the same sequence "styles"
 .scores_snrs <- function(object, ranges, pop, summaryFun=mean, quantized=FALSE,
                          scores.only=FALSE, ref=character(0), alt=character(0),
                          caching=TRUE) {
@@ -466,9 +501,6 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
   ref <- ra$ref
   alt <- ra$alt
   rm(ra)
-
-  if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
-    seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
 
   snames <- unique(as.character(runValue(seqnames(ranges))))
   if (any(!snames %in% seqnames(object)))
@@ -760,7 +792,7 @@ setMethod("show", "GScores",
                 "# provider: ", provider(object), "\n",
                 "# provider version: ", providerVersion(object), "\n",
                 "# download date: ", object@download_date, "\n", sep="")
-            if (object@data_nonsnrs) {
+            if (gscoresNonSNRs(object)) {
               cat("# loaded sequences (SNRs): ", .pprintseqs(loadedsnrseqs), "\n",
                   "# loaded sequences (nonSNRs): ", .pprintseqs(loadednonsnrseqs), "\n", sep="")
               if (loadedsnrpops[1] != "none" && length(loadedsnrpops) > 1)
