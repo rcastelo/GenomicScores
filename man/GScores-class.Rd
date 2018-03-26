@@ -30,6 +30,12 @@
 \alias{gscoresTag<-,GScores,character-method}
 \alias{gscoresTag<-}
 \alias{gscoresTag}
+\alias{gscoresGroup,GScores-method}
+\alias{gscoresGroup<-,GScores,character-method}
+\alias{gscoresGroup<-}
+\alias{gscoresGroup}
+\alias{gscoresNonSNRs,GScores-method}
+\alias{gscoresNonSNRs}
 \alias{citation,missing-method}
 \alias{citation,character-method}
 \alias{citation,GScores-method}
@@ -80,6 +86,20 @@
       filenames pointing to files containing the genomic scores in one file per
       genome sequence. The names of this vector correspond to the genome
       sequence names.}
+    \item{\code{data_group}}{(\code{character}), name denoting a category of
+      genomic scores to which the scores stored in the object belong to.
+      Typical values are "Conservation", "MAF", "Pathogenicity", etc.}
+    \item{\code{data_tag}}{(\code{character}), name identifying the genomic
+      scores stored in the object and which can be used, for instance, to
+      assign a column name storing these scores.}
+    \item{\code{data_pops}}{(\code{character}), vector of character strings
+      storing score population names. The term "default" is reserved to denote
+      a score set that is not associated to a particular population name and
+      is used by default.}
+    \item{\code{data_nonsnrs}}{(\code{logical}), flag indicating whether the
+      object stores genomic scores associated with non-single nucleotide ranges.}
+    \item{\code{data_nsites}}{(\code{integer}), number of sites in the genome
+      associated with the genomic scores stored in the object.}
     \item{\code{.data_cache}}{(\code{environment}), data structure where
       objects storing genomic scores are cached into main memory.}
   }
@@ -130,6 +150,9 @@
           containing filenames where the genomic scores are stored.}
         \item{\code{default_pop}}{character string, containing the name
           of the default scores population.}
+        \item{\code{data_group}}{character string, containing a name that
+          indicates a category of genomic scores to which the scores in the
+          object belong to. Typical names could be "Conservation", "MAF", etc.}
         \item{\code{data_tag}}{character string, containing a tag that
           succintly labels genomic scores from a particular source. This can be
           used to automatically give, for instance, a name to a column storing
@@ -185,7 +208,14 @@
       \code{defaultPopulation(x)}: get or set the default population of scores.
     }
     \item{}{
+      \code{gscoresGroup(x)}: get or set the genomic scores group label.
+    }
+    \item{}{
       \code{gscoresTag(x)}: get or set the genomic scores tag label.
+    }
+    \item{}{
+      \code{gscoresNonSNRs(x)}: get whether there are genomic scores associated
+      with non-single nucleotide ranges.
     }
     \item{}{
       \code{nsites(x)}: get the number of sites in the genome with genomic
