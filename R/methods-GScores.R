@@ -279,7 +279,7 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
             commonSeqs <- intersect(seqlevels(ranges), seqlevels(x))
             if (any(is.na(genome(ranges)))) {
               warning(sprintf("assuming query ranges genome build is the one of the GScores object (%s).",
-                              unique(genome(x))[commonSeqs]))
+                              unique(genome(x)[commonSeqs])))
               genome(ranges) <- genome(x)
             } else if (any(genome(ranges)[commonSeqs] != genome(x)[commonSeqs])) {
               warning(sprintf("assuming %s represent the same genome build between query ranges and the GScores object, respectively.",
