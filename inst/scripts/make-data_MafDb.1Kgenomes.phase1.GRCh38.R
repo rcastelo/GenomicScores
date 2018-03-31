@@ -1,30 +1,35 @@
 ## This README file explains the steps to download and freeze in this
-## annotation package the allele frequencies of the Phase 3 of the
+## annotation package the allele frequencies of the Phase 1 of the
 ## 1000 Genomes Project. If you use these data please cite the following publication:
 
-## The 1000 Genomes Project Consortium. A global reference for human genetic variation.
-## Nature, 526:68-74, 2015.
-## doi: http://dx.doi.org/10.1038/nature15393
+## The 1000 Genomes Project Consortium. An integrated map of genetic variation
+## from 1,092 human genomes. Nature, 491:56-65, 2012.
+## doi: http://dx.doi.org/10.1038/nature11632
 
 ## The data were downloaded from the FTP server of the 1000 Genomes Project as follows:
 ##
-## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz
-## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz.tbi
+## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/integrated_call_sets/ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz
+## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/integrated_call_sets/ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz.tbi
 
 ## The data were first splitted into tabix VCF files per chromosome as follows:
 ##
-## mkdir -p phase3_by_chr
-## allchr=`tabix -l ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz`
+## mkdir -p phase1_by_chr
+## allchr=`tabix -l ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz`
 ## for chr in $allchr ; do {
 ##   echo chr$chr
-##   tabix -h ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz $chr | bgzip -c > phase3_by_chr/chr$chr.vcf.gz
+##   tabix -h ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz $chr | bgzip -c > phase1_by_chr/chr$chr.vcf.gz
 ##
-##   if [ -s phase3_by_chr/chr$chr.vcf.gz ] ; then
-##     tabix -p vcf phase3_by_chr/chr$chr.vcf.gz
+##   if [ -s phase1_by_chr/chr$chr.vcf.gz ] ; then
+##     tabix -p vcf phase1_by_chr/chr$chr.vcf.gz
 ##   else
-##     rm phase3_by_chr/chr$chr.vcf.gz
+##     rm phase1_by_chr/chr$chr.vcf.gz
 ##   fi
 ## } done
+
+## Because we are going to lift GRCh37 coordinates over to GRCh38 coordinates
+## we need to download first the corresponding UCSC chain file
+## download.file("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz",
+##               "hg19ToHg38.over.chain.gz", method="curl")
 
 ## The following R script processes the downloaded and splitted data
 ## to transform the allele frequencies into minor allele frequencies
@@ -36,18 +41,22 @@ library(Rsamtools)
 library(GenomicRanges)
 library(GenomeInfoDb)
 library(VariantAnnotation)
-library(BSgenome.Hsapiens.1000genomes.hs37d5)
+library(BSgenome.Hsapiens.NCBI.GRCh38) ## this is not the assembly used by
+                                       ## the 1000 Genomes Project but is
+                                       ## the assembly to which GRCh37
+                                       ## corrdinates will be lifted
+library(rtracklayer)
 library(doParallel)
 
 downloadURL <- "http://www.internationalgenome.org/data"
 citationdata <- bibentry(bibtype="Article",
                          author=person("The 1000 Genomes Project Consortium"),
-                         title="A global reference for human genetic variation",
+                         title="An integrated map of genetic variation from 1,092 human genomes",
                          journal="Nature",
-                         volume="526",
-                         pages="68-74",
-                         year="2015",
-                         doi="10.1038/nature15393")
+                         volume="491",
+                         pages="56-65",
+                         year="2012",
+                         doi="10.1038/nature11632")
 
 registerDoParallel(cores=8)
 
@@ -97,15 +106,14 @@ attr(.quantizer, "description") <- "quantize [0.1-1] with 2 significant digits a
 }
 attr(.dequantizer, "description") <- "dequantize [0-100] dividing by 100, [101-255] subtract 100, take modulus 10 and divide by the corresponding power in base 10"
 
-vcfFilename <- "ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz"
-genomeversion <- "hs37d5"
-pkgname <- sprintf("MafDb.1Kgenomes.phase3.%s", genomeversion)
+vcfFilename <- "ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz"
+genomeversion <- "GRCh38"
+pkgname <- sprintf("MafDb.1Kgenomes.phase1.%s", genomeversion)
 dir.create(pkgname)
 
 vcfHeader <- scanVcfHeader(vcfFilename)
 
-Hsapiens <- hs37d5
-## no genome reference information in the VCF header
+## no seqinfo and genome reference information in the VCF header
 ## stopifnot(all(seqlengths(vcfHeader)[1:25] == seqlengths(Hsapiens)[1:25])) ## QC
 
 ## save the GenomeDescription object
@@ -133,10 +141,12 @@ tbx <- open(TabixFile(vcfFilename))
 tbxchr <- sortSeqlevels(seqnamesTabix(tbx))
 close(tbx)
 
+hg19tohg38chain <- import.chain("hg19ToHg38.over.chain")
+
 foreach (chr=tbxchr) %dopar% {
 
-  ## the whole VCF for the chromosome into main memory
-  vcf <- readVcf(sprintf("phase3_by_chr/chr%s.vcf.gz", chr), genome=genomeversion, param=vcfPar)
+  ## read the whole VCF for the chromosome into main memory
+  vcf <- readVcf(sprintf("phase1_by_chr/chr%s.vcf.gz", chr), genome="hs37d5", param=vcfPar)
 
   ## mask variants where all alternate alleles are SNVs
   evcf <- expand(vcf)
@@ -155,6 +165,19 @@ foreach (chr=tbxchr) %dopar% {
   ## fetch SNVs coordinates
   rr <- rowRanges(vcfsnvs)
 
+  ## lift over coordinates to hg38
+  ## we exclude nonuniquely mapping positions
+  ## and positions mapping to a different chromosome
+  seqlevelsStyle(rr) <- "UCSC"
+  rr2 <- liftOver(rr, hg19tohg38chain)
+  lomask <- elementNROWS(rr2) == 1
+  chrmask <- rep(FALSE, length(rr))
+  chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+  lomask <- lomask & chrmask
+  stopifnot(any(lomask)) ## QC
+  rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
+  seqlevelsStyle(rr) <- "NCBI"
+
   ## clean up the ranges
   mcols(rr) <- NULL
   names(rr) <- NULL
@@ -167,7 +190,7 @@ foreach (chr=tbxchr) %dopar% {
   genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
 
   ## fetch allele frequency data
-  afValues <- info(vcfsnvs)
+  afValues <- info(vcfsnvs)[lomask, ]
   clsValues <- sapply(afValues, class)
 
   for (j in seq_along(AFcols)) {
@@ -210,7 +233,7 @@ foreach (chr=tbxchr) %dopar% {
       runValue(obj) <- as.raw(runValue(obj))
       metadata(obj) <- list(seqname=chr,
                             provider="IGSR",
-                            provider_version="Phase3",
+                            provider_version="Phase1",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -233,6 +256,19 @@ foreach (chr=tbxchr) %dopar% {
   ## fetch nonSNVs coordinates
   rr <- rowRanges(vcfnonsnvs)
 
+  ## lift over coordinates to hg38
+  ## we exclude nonuniquely mapping positions
+  ## and positions mapping to a different chromosome
+  seqlevelsStyle(rr) <- "UCSC"
+  rr2 <- liftOver(rr, hg19tohg38chain)
+  lomask <- elementNROWS(rr2) == 1
+  chrmask <- rep(FALSE, length(rr))
+  chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+  lomask <- lomask & chrmask
+  stopifnot(any(lomask)) ## QC
+  rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
+  seqlevelsStyle(rr) <- "NCBI"
+
   ## fill up SeqInfo data
   si <- seqinfo(vcf)
   seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
@@ -245,7 +281,7 @@ foreach (chr=tbxchr) %dopar% {
   saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
 
   ## fetch allele frequency data
-  afValues <- info(vcfnonsnvs)
+  afValues <- info(vcfnonsnvs)[lomask, ]
   clsValues <- sapply(afValues, class)
 
   for (j in seq_along(AFcols)) {
@@ -265,7 +301,7 @@ foreach (chr=tbxchr) %dopar% {
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
     mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
     if (any(mask))
-       mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+      mafValuesCol[mask] <- 1 - mafValuesCol[mask]
 
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
@@ -289,7 +325,7 @@ foreach (chr=tbxchr) %dopar% {
       runValue(obj) <- as.raw(runValue(obj))
       metadata(obj) <- list(seqname=chr,
                             provider="IGSR",
-                            provider_version="Phase3",
+                            provider_version="Phase1",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -321,10 +357,26 @@ rsIDs <- character(0)  ## to store rsIDs annotated by the 1000 genomes project
 rsIDgp <- GPos()       ## to store positions of rsIDs
 maskSNVs <- logical(0) ## to store a mask whether the variant is an SNV or not
 
-nVar <- 0
-while (nrow(vcf <- readVcf(tbx, genome=genomeversion, param=vcfPar))) {
+nVar <- nremVar <- 0
+while (nrow(vcf <- readVcf(tbx, genome="hs37d5", param=vcfPar))) {
   nVar <- nVar + nrow(vcf)
   rr <- rowRanges(vcf)
+
+  ## lift over coordinates to hg38
+  ## we exclude nonuniquely mapping positions
+  ## and positions mapping to a different chromosome
+  seqlevelsStyle(rr) <- "UCSC"
+  rr2 <- liftOver(rr, hg19tohg38chain)
+  lomask <- elementNROWS(rr2) == 1
+  chrmask <- rep(FALSE, length(rr))
+  chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+  lomask <- lomask & chrmask
+  stopifnot(any(lomask)) ## QC
+  rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
+  seqlevelsStyle(rr) <- "NCBI"
+  nremVar <- nremVar + sum(!lomask)
+  vcf <- vcf[lomask, ]
+
   whrsIDs <- grep("^rs", names(rr))
   evcf <- expand(vcf)
   maskSNVs <- c(maskSNVs, sapply(relist(isSNV(evcf), alt(vcf)), all)[whrsIDs])
@@ -349,18 +401,13 @@ while (nrow(vcf <- readVcf(tbx, genome=genomeversion, param=vcfPar))) {
 close(tbx)
 
 ## save total number of variants
-saveRDS(nVar, file=file.path(pkgname, "nsites.rds"))
+saveRDS(nVar-nremVar, file=file.path(pkgname, "nsites.rds"))
 
 ## store mask flagging SNVs
 rsIDgp$isSNV <- Rle(maskSNVs)
 
 ## double check that all identifiers start with 'rs'
 stopifnot(identical(grep("^rs", rsIDs), 1:length(rsIDs))) ## QC
-
-## there are multiple rsID assignments separated
-## by semicolons, take the first one
-rsIDs <- strsplit(rsIDs, ";")
-rsIDs <- sapply(rsIDs, "[", 1)
 
 ## chop the 'rs' prefix and convert the character ids into integer values
 rsIDs <- as.integer(sub(pattern="^rs", replacement="", x=rsIDs))

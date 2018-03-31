@@ -36,7 +36,7 @@ library(Rsamtools)
 library(GenomicRanges)
 library(GenomeInfoDb)
 library(VariantAnnotation)
-library(BSgenome.Hsapiens.1000genomes.hs37d5) ## this is the assembly presumably used by the 1000 Genomes Project
+library(BSgenome.Hsapiens.1000genomes.hs37d5)
 library(doParallel)
 
 downloadURL <- "http://www.internationalgenome.org/data"
@@ -135,7 +135,7 @@ close(tbx)
 
 foreach (chr=tbxchr) %dopar% {
 
-  ## the whole VCF for the chromosome into main memory
+  ## read the whole VCF for the chromosome into main memory
   vcf <- readVcf(sprintf("phase1_by_chr/chr%s.vcf.gz", chr), genome=genomeversion, param=vcfPar)
 
   ## mask variants where all alternate alleles are SNVs
@@ -349,7 +349,7 @@ while (nrow(vcf <- readVcf(tbx, genome=genomeversion, param=vcfPar))) {
 close(tbx)
 
 ## save total number of variants
-saveRDS(nVar, file=file.path(pkgname, "nov.rds"))
+saveRDS(nVar, file=file.path(pkgname, "nsites.rds"))
 
 ## store mask flagging SNVs
 rsIDgp$isSNV <- Rle(maskSNVs)
