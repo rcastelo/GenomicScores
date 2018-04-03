@@ -79,7 +79,7 @@ setMethod("defaultPopulation", "GScores", function(x) x@default_pop)
 setReplaceMethod("defaultPopulation", c("GScores", "character"),
                  function(x, value) {
                    if (length(value) > 1)
-                     warning("more than one default scores population name supplied, using the 1st one only.")
+                     message("more than one default scores population name supplied, using the 1st one only.")
                    value <- value[1]
                    if (any(!value %in% populations(x)))
                      stop(sprintf("scores population %s is not part of the available scores populations. Use 'populations()' to figure out which ones are available.", value))
@@ -92,7 +92,7 @@ setMethod("gscoresTag", "GScores", function(x) x@data_tag)
 setReplaceMethod("gscoresTag", c("GScores", "character"),
                  function(x, value) {
                    if (length(value) > 1)
-                     warning("more than one genomic scores tag name supplied, using the 1st one only.")
+                     message("more than one genomic scores tag name supplied, using the 1st one only.")
                    x@data_tag <- value[1]
                    x
                  })
@@ -102,7 +102,7 @@ setMethod("gscoresGroup", "GScores", function(x) x@data_group)
 setReplaceMethod("gscoresGroup", c("GScores", "character"),
                  function(x, value) {
                    if (length(value) > 1)
-                     warning("more than one genomic scores group name supplied, using the 1st one only.")
+                     message("more than one genomic scores group name supplied, using the 1st one only.")
                    x@data_group <- value[1]
                    x
                  })
@@ -278,11 +278,11 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
               seqlevelsStyle(ranges) <- seqlevelsStyle(x)[1]
             commonSeqs <- intersect(seqlevels(ranges), seqlevels(x))
             if (any(is.na(genome(ranges)))) {
-              warning(sprintf("assuming query ranges genome build is the one of the GScores object (%s).",
+              message(sprintf("assuming query ranges genome build is the one of the GScores object (%s).",
                               unique(genome(x)[commonSeqs])))
               genome(ranges) <- genome(x)
             } else if (any(genome(ranges)[commonSeqs] != genome(x)[commonSeqs])) {
-              warning(sprintf("assuming %s represent the same genome build between query ranges and the GScores object, respectively.",
+              message(sprintf("assuming %s represent the same genome build between query ranges and the GScores object, respectively.",
                               paste(c(unique(genome(ranges)[commonSeqs]),
                                       unique(genome(x)[commonSeqs])),
                                     collapse=" and ")))
@@ -342,7 +342,7 @@ setMethod("gscores", c("GScores", "character"),
                 rsIDs <- readRDS(file.path(x@data_dirpath, "rsIDs.rds"))
                 assign("rsIDs", rsIDs, envir=x@.data_cache)
               } else {
-                warning("The data provider did not produce annotations of rs identifiers to variants.")
+                message("The data provider did not produce annotations of rs identifiers to variants.")
                 return(ans)
               }
             }
@@ -455,7 +455,7 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
     if (file.exists(fpath))
       gsco1pop[[sname]] <- readRDS(fpath)
     else {
-      warning(sprintf("no %s scores for population %s in sequence %s from %s object %s (%s).",
+      message(sprintf("no %s scores for population %s in sequence %s from %s object %s (%s).",
                        type(object), pop, sname, class(object), objectname, name(object)))
       gsco1pop[[sname]] <- Rle(lengths=slengths[sname], values=as.raw(0L))
     }
@@ -587,13 +587,13 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
             md <- metadata(rleobj)
             mcols(obj)[[popname]] <- rleobj
           } else {
-            warning(sprintf("no %s scores for population %s nonSNRs in sequence %s from %s object %s.",
+            message(sprintf("no %s scores for population %s nonSNRs in sequence %s from %s object %s.",
                             name(object), popname, sname, class(object), objectname))
             mcols(obj)[[popname]] <- rep(NA_real_, length(obj))
           }
         }
       } else {
-        warning(sprintf("no %s scores for nonSNRs in sequence %s from %s object %s.",
+        message(sprintf("no %s scores for nonSNRs in sequence %s from %s object %s.",
                         name(object), sname, class(object), objectname))
         mcols(obj) <- DataFrame(as.data.frame(matrix(raw(0), nrow=0, ncol=length(popnames),
                                                      dimnames=list(NULL, popnames))))
@@ -645,7 +645,7 @@ setMethod("gscores", c("MafDb", "GenomicRanges"),
 
   ## by now, only multiple SNR alleles considered
   if (length(ref) > 0 && length(alt) > 0)
-    warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+    message("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
 
   if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
     seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]

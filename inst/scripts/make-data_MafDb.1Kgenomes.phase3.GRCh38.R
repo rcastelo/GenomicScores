@@ -161,7 +161,7 @@ foreach (chr=tbxchr) %dopar% {
   gc()
 
   ## override SeqInfo data because despite chromosomal positions
-  ## in the VCF are GRCh38, the genome informationin the VCF file
+  ## in the VCF are GRCh38, the genome information in the VCF file
   ## is still from hs37d5
   rr <- keepStandardChromosomes(rr)
   seqinfo(rr, new2old=match(seqlevels(Hsapiens), seqlevels(rr))) <- seqinfo(Hsapiens)
@@ -238,7 +238,6 @@ foreach (chr=tbxchr) %dopar% {
   ## is still from hs37d5
   rr <- keepStandardChromosomes(rr)
   seqinfo(rr, new2old=match(seqlevels(Hsapiens), seqlevels(rr))) <- seqinfo(Hsapiens)
-
 
   ## clean up the GRanges and save it
   mcols(rr) <- NULL

@@ -12,6 +12,11 @@
 ## wget ftp://ftp.broadinstitute.org/pub/ExAC_release/release1/subsets/ExAC_nonTCGA.r1.sites.vep.vcf.gz
 ## wget ftp://ftp.broadinstitute.org/pub/ExAC_release/release1/subsets/ExAC_nonTCGA.r1.sites.vep.vcf.gz.tbi
 
+## Because we are going to lift GRCh37 coordinates over to GRCh38 coordinates
+## we need to download first the corresponding UCSC chain file
+## download.file("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz",
+##               "hg19ToHg38.over.chain.gz", method="curl")
+
 ## The following R script processes the downloaded data to
 ## transform the allele frequencies into minor allele frequencies
 ## and store them using only one significant digit for values < 0.1
@@ -22,7 +27,10 @@ library(Rsamtools)
 library(GenomicRanges)
 library(GenomeInfoDb)
 library(VariantAnnotation)
-library(BSgenome.Hsapiens.1000genomes.hs37d5)
+library(BSgenome.Hsapiens.NCBI.GRCh38) ## this is not the assembly used by
+                                       ## ExAC but is the assembly to which
+                                       ## GRCh37 coordinates will be lifted
+library(rtracklayer)
 
 downloadURL <- "ftp://ftp.broadinstitute.org/pub/ExAC_release/release1"
 citationdata <- bibentry(bibtype="Article",
@@ -120,19 +128,14 @@ attr(.quantizer, "description") <- "quantize [0.1-1] with 2 significant digits a
 attr(.dequantizer, "description") <- "dequantize [0-100] dividing by 100, [101-255] subtract 100, take modulus 10 and divide by the corresponding power in base 10"
 
 vcfFilename <- "ExAC_nonTCGA.r1.sites.vep.vcf.gz"
-genomeversion <- "hs37d5"
+genomeversion <- "GRCh38"
 pkgname <- sprintf("MafDb.ExAC.r1.0.nonTCGA.%s", genomeversion)
 dir.create(pkgname)
 
 vcfHeader <- scanVcfHeader(vcfFilename)
 
-Hsapiens <- hs37d5
-stopifnot(all(seqlengths(vcfHeader)[1:25] == seqlengths(Hsapiens)[1:25])) ## QC
-
-## fill up SeqInfo data
-si <- seqinfo(vcfHeader)
-isCircular(si) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-genome(si) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
+## seqinfo in vcf is from GRCh37
+## stopifnot(all(seqlengths(vcfHeader)[1:25] == seqlengths(Hsapiens)[1:25])) ## QC
 
 ## save the GenomeDescription object
 refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
@@ -141,7 +144,7 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
                                  provider_version=providerVersion(Hsapiens),
                                  release_date=releaseDate(Hsapiens),
                                  release_name=releaseName(Hsapiens),
-                                 seqinfo=si)
+                                 seqinfo=seqinfo(Hsapiens))
 saveRDS(refgenomeGD, file=file.path(pkgname, "refgenomeGD.rds"))
 
 ## read INFO column data
@@ -154,6 +157,8 @@ ACcols <- sub("AN", "AC", ANcols)
 pops <- substr(ACcols, 4, 20)
 AFcols <- gsub("^_", "", paste(pops, "AF", sep="_"))
 
+hg19tohg38chain <- import.chain("hg19ToHg38.over.chain")
+
 message("Starting to process variants")
 
 ## restrict VCF INFO columns to AC and AN values
@@ -162,10 +167,7 @@ vcfPar <- ScanVcfParam(geno=NA,
                        info=c(ACcols, ANcols))
 
 ## read the whole VCF file into main memory. the resulting object 'vcf' takes 2.5Gb of RAM
-vcf <- readVcf(vcfFilename, genome=genomeversion, param=vcfPar)
-
-## save the total number of variants
-saveRDS(nrow(vcf), file=file.path(pkgname, "nsites.rds"))
+vcf <- readVcf(vcfFilename, genome="hs37d5", param=vcfPar)
 
 ## mask variants where all alternate alleles are SNVs
 evcf <- expand(vcf)
@@ -184,11 +186,32 @@ vcfnonsnvs <- vcf[!maskSNVs, ]
 ## fetch SNVs coordinates
 rr <- rowRanges(vcfsnvs)
 
-## fill up missing SeqInfo data
-isCircular(rr) <- isCircular(si)
+## lift over coordinates to hg38
+## we exclude nonuniquely mapping positions
+## and positions mapping to a different chromosome
+seqlevelsStyle(rr) <- "UCSC"
+rr2 <- liftOver(rr, hg19tohg38chain)
+lomask <- elementNROWS(rr2) == 1
+chrmask <- rep(FALSE, length(rr))
+chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+lomask <- lomask & chrmask
+stopifnot(any(lomask)) ## QC
+rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
+seqlevelsStyle(rr) <- "NCBI"
+
+## store number of SNVs
+nsites <- length(rr)
+
+## clean up the ranges
+mcols(rr) <- NULL
+names(rr) <- NULL
+gc()
+
+## fill up SeqInfo data
+seqinfo(rr, new2old=match(seqnames(seqinfo(Hsapiens)), seqnames(seqinfo(rr)))) <- seqinfo(Hsapiens)
 
 ## fetch allele frequency data
-acanValues <- info(vcfsnvs)
+acanValues <- info(vcfsnvs)[lomask, ]
 clsValues <- sapply(acanValues, class)
 
 for (j in seq_along(ACcols)) {
@@ -278,18 +301,37 @@ for (j in seq_along(ACcols)) {
 ## fetch nonSNVs coordinates
 rr <- rowRanges(vcfnonsnvs)
 
-## fill up missing SeqInfo data
-isCircular(rr) <- isCircular(si)
+## lift over coordinates to hg38
+## we exclude nonuniquely mapping positions
+## and positions mapping to a different chromosome
+seqlevelsStyle(rr) <- "UCSC"
+rr2 <- liftOver(rr, hg19tohg38chain)
+lomask <- elementNROWS(rr2) == 1
+chrmask <- rep(FALSE, length(rr))
+chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+lomask <- lomask & chrmask
+stopifnot(any(lomask)) ## QC
+rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
+seqlevelsStyle(rr) <- "NCBI"
 
-## clean up the GRanges and split it by chromosome
+## store number of SNVs
+nsites <- nsites + length(rr)
+
+## clean up the ranges
 mcols(rr) <- NULL
 names(rr) <- NULL
+gc()
+
+## fill up SeqInfo data
+seqinfo(rr, new2old=match(seqnames(seqinfo(Hsapiens)), seqnames(seqinfo(rr)))) <- seqinfo(Hsapiens)
+
+## split it by chromosome
 stopifnot(identical(order(seqnames(rr)), 1:length(rr))) ## QC
 rrbychr <- split(rr, seqnames(rr))
 stopifnot(identical(unlist(rrbychr, use.names=FALSE), rr)) ## QC
 
 ## fetch allele frequency data
-acanValues <- info(vcfnonsnvs)
+acanValues <- info(vcfnonsnvs)[lomask, ]
 clsValues <- sapply(acanValues, class)
 
 seqs <- names(rrbychr)
@@ -376,8 +418,32 @@ for (j in seq_along(ACcols)) {
   }
 }
 
+## save the total number of variants
+saveRDS(nsites, file=file.path(pkgname, "nsites.rds"))
+
 ## save rsID assignments from ExAC
 rr <- rowRanges(vcf)
+
+## lift over coordinates to hg38
+## we exclude nonuniquely mapping positions
+## and positions mapping to a different chromosome
+seqlevelsStyle(rr) <- "UCSC"
+rr2 <- liftOver(rr, hg19tohg38chain)
+lomask <- elementNROWS(rr2) == 1
+chrmask <- rep(FALSE, length(rr))
+chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+lomask <- lomask & chrmask
+stopifnot(any(lomask)) ## QC
+rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
+seqlevelsStyle(rr) <- "NCBI"
+
+## clean up the ranges
+mcols(rr) <- NULL
+gc()
+
+## fill up SeqInfo data
+seqinfo(rr, new2old=match(seqnames(seqinfo(Hsapiens)), seqnames(seqinfo(rr)))) <- seqinfo(Hsapiens)
+
 whrsIDs <- grep("^rs", names(rr))
 rsIDrr <- rr[whrsIDs]
 mcols(rsIDrr) <- NULL

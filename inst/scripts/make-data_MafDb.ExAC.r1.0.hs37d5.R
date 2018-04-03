@@ -18,6 +18,12 @@
 ## and two significant digits for values > 0.1, to reduce the memory
 ## footprint through RleList objects
 
+library(Rsamtools)
+library(GenomicRanges)
+library(GenomeInfoDb)
+library(VariantAnnotation)
+library(BSgenome.Hsapiens.1000genomes.hs37d5)
+
 downloadURL <- "ftp://ftp.broadinstitute.org/pub/ExAC_release/release1"
 citationdata <- bibentry(bibtype="Article",
                          author=c(person("Monkol Lek"), person("Konrad J. Karczewski"),
@@ -66,9 +72,6 @@ citationdata <- bibentry(bibtype="Article",
                          pages="285-291",
                          year="2016",
                          doi="10.1038/nature19057")
-
-library(BSgenome.Hsapiens.1000genomes.hs37d5) ## this is the assembly presumably used by ExAC
-library(VariantAnnotation)
 
 ## quantizer function. it maps input real-valued [0, 1] allele frequencies
 ## to positive integers [1, 255] so that each of them can be later
@@ -162,7 +165,7 @@ vcfPar <- ScanVcfParam(geno=NA,
 vcf <- readVcf(vcfFilename, genome=genomeversion, param=vcfPar)
 
 ## save the total number of variants
-saveRDS(nrow(vcf), file=file.path(pkgname, "nov.rds"))
+saveRDS(nrow(vcf), file=file.path(pkgname, "nsites.rds"))
 
 ## mask variants where all alternate alleles are SNVs
 evcf <- expand(vcf)
@@ -247,11 +250,11 @@ for (j in seq_along(ACcols)) {
                }, mafValuesCol)
 
   ## coerce to raw-Rle, add metadata and save
-  for (j in seq_along(seqs)) {
-    if (any(runValue(rlelst[[seqs[j]]]) != 0)) {
-      obj <- rlelst[[seqs[j]]]
+  for (k in seq_along(seqs)) {
+    if (any(runValue(rlelst[[seqs[k]]]) != 0)) {
+      obj <- rlelst[[seqs[k]]]
       runValue(obj) <- as.raw(runValue(obj))
-      metadata(obj) <- list(seqname=seqs[j],
+      metadata(obj) <- list(seqname=seqs[k],
                             provider="BroadInstitute",
                             provider_version="r1.0",
                             citation=citationdata,
@@ -261,9 +264,9 @@ for (j in seq_along(ACcols)) {
                             data_pkgname=pkgname,
                             qfun=.quantizer,
                             dqfun=.dequantizer,
-                            ecdf=Fn[[seqs[j]]],
-                            max_abs_error=max.abs.error[[seqs[j]]])
-      saveRDS(obj, file=file.path(pkgname, sprintf("%s.%s.%s.rds", pkgname, afCol, seqs[j])))
+                            ecdf=Fn[[seqs[k]]],
+                            max_abs_error=max.abs.error[[seqs[k]]])
+      saveRDS(obj, file=file.path(pkgname, sprintf("%s.%s.%s.rds", pkgname, afCol, seqs[k])))
     }
   }
 }
@@ -352,11 +355,11 @@ for (j in seq_along(ACcols)) {
   stopifnot(identical(sapply(rrbychr, length), sapply(qbychr, length))) ## QC
 
   ## coerce to raw-Rle, add metadata and save
-  for (j in seq_along(seqs)) {
-    if (length(rrbychr[[seqs[j]]]) > 0) {
-      obj <- Rle(qbychr[[seqs[j]]])
+  for (k in seq_along(seqs)) {
+    if (length(rrbychr[[seqs[k]]]) > 0) {
+      obj <- Rle(qbychr[[seqs[k]]])
       runValue(obj) <- as.raw(runValue(obj))
-      metadata(obj) <- list(seqname=seqs[j],
+      metadata(obj) <- list(seqname=seqs[k],
                             provider="BroadInstitute",
                             provider_version="r1.0",
                             citation=citationdata,
@@ -366,9 +369,9 @@ for (j in seq_along(ACcols)) {
                             data_pkgname=pkgname,
                             qfun=.quantizer,
                             dqfun=.dequantizer,
-                            ecdf=Fn[[seqs[j]]],
-                            max_abs_error=max.abs.error[[seqs[j]]])
-      saveRDS(obj, file=file.path(pkgname, sprintf("%s.RLEnonsnv.%s.%s.rds", pkgname, afCol, seqs[j])))
+                            ecdf=Fn[[seqs[k]]],
+                            max_abs_error=max.abs.error[[seqs[k]]])
+      saveRDS(obj, file=file.path(pkgname, sprintf("%s.RLEnonsnv.%s.%s.rds", pkgname, afCol, seqs[k])))
     }
   }
 }

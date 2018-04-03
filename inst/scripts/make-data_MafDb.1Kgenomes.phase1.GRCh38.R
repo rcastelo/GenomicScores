@@ -44,7 +44,7 @@ library(VariantAnnotation)
 library(BSgenome.Hsapiens.NCBI.GRCh38) ## this is not the assembly used by
                                        ## the 1000 Genomes Project but is
                                        ## the assembly to which GRCh37
-                                       ## corrdinates will be lifted
+                                       ## coordinates will be lifted
 library(rtracklayer)
 library(doParallel)
 

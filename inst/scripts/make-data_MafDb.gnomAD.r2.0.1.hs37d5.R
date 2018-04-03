@@ -23,6 +23,13 @@
 ## and two significant digits for values > 0.1, to reduce the memory
 ## footprint through RleList objects
 
+library(Rsamtools)
+library(GenomicRanges)
+library(GenomeInfoDb)
+library(VariantAnnotation)
+library(BSgenome.Hsapiens.1000genomes.hs37d5)
+library(doParallel)
+
 downloadURL <- "http://gnomad.broadinstitute.org/downloads"
 citationdata <- bibentry(bibtype="Article",
                          author=c(person("Monkol Lek"), person("Konrad J. Karczewski"),
@@ -71,13 +78,6 @@ citationdata <- bibentry(bibtype="Article",
                          pages="285-291",
                          year="2016",
                          doi="10.1038/nature19057")
-
-library(Rsamtools)
-library(GenomicRanges)
-library(GenomeInfoDb)
-library(VariantAnnotation)
-library(BSgenome.Hsapiens.1000genomes.hs37d5) ## this is the assembly presumably used by gnomAD
-library(doParallel)
 
 registerDoParallel(cores=2) ## up to 30 Gb per process
 
@@ -398,7 +398,7 @@ for (chr in seqlevels(vcfHeader)[1:23]) {
 message(sprintf("%d variants processed in total", nTotalVar))
 
 ## save the total number of variants
-saveRDS(nTotalVar, file=file.path(pkgname, "nov.rds"))
+saveRDS(nTotalVar, file=file.path(pkgname, "nsites.rds"))
 
 ## store mask flagging SNVs
 rsIDgp$isSNV <- Rle(maskSNVs)
