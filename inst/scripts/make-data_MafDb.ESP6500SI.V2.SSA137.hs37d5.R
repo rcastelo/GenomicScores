@@ -338,7 +338,7 @@ for (chr in seqlevels(si)) {
 message(sprintf("%d variants processed in total", nTotalVar))
 
 ## save total number of variants
-saveRDS(nTotalVar, file=file.path(pkgname, "nov.rds"))
+saveRDS(nTotalVar, file=file.path(pkgname, "nsites.rds"))
 
 ## store mask flagging SNVs
 rsIDgp$isSNV <- Rle(maskSNVs)

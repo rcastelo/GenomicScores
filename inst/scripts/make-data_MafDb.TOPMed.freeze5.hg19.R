@@ -24,6 +24,11 @@
 ##   fi
 ## } done
 
+## Because we are going to lift GRCh37 coordinates over to GRCh38 coordinates
+## we need to download first the corresponding UCSC chain file
+## download.file("http://hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/hg38ToHg19.over.chain.gz",
+##               "hg38ToHg19.over.chain.gz", method="curl")
+
 ## The following R script processes the downloaded and splitted data
 ## to transform the allele frequencies into minor allele frequencies
 ## and store them using only one significant digit for values < 0.1,
@@ -34,7 +39,11 @@ library(Rsamtools)
 library(GenomicRanges)
 library(GenomeInfoDb)
 library(VariantAnnotation)
-library(BSgenome.Hsapiens.UCSC.hg38)
+library(BSgenome.Hsapiens.UCSC.hg19) ## this is not the assembly used
+                                     ## by TOPMed but is the assembly
+                                     ## to which hg38 coordinates will
+                                     ## be lifted
+library(rtracklayer)
 library(doParallel)
 
 downloadURL <- "https://bravo.sph.umich.edu/freeze5/hg38/download/all"
@@ -94,11 +103,12 @@ attr(.quantizer, "description") <- "quantize [0.1-1] with 2 significant digits a
 attr(.dequantizer, "description") <- "dequantize [0-100] dividing by 100, [101-255] subtract 100, take modulus 10 and divide by the corresponding power in base 10"
 
 vcfFilename <- "ALL.TOPMed_freeze5_hg38_dbSNP.vcf.gz"
-genomeversion <- "hg38"
+genomeversion <- "hg19"
 pkgname <- sprintf("MafDb.TOPMed.freeze5.%s", genomeversion)
 dir.create(pkgname)
 
 vcfHeader <- scanVcfHeader(vcfFilename)
+
 ## no genome reference information in the VCF header
 ## stopifnot(all(seqlengths(vcfHeader)[1:25] == seqlengths(Hsapiens)[1:25])) ## QC
 
@@ -129,12 +139,20 @@ vcfPar <- ScanVcfParam(geno=NA,
 tbx <- open(TabixFile(vcfFilename))
 tbxchr <- sortSeqlevels(seqnamesTabix(tbx))
 close(tbx)
-nVar <- 0
 
+hg38tohg19chain <- import.chain("hg38ToHg19.over.chain")
+
+nVar <- 0
 foreach (chr=tbxchr) %dopar% {
 
   ## the whole VCF for the chromosome into main memory
-  vcf <- readVcf(sprintf("topmed_by_chr/%s.vcf.gz", chr), genome=genomeversion, param=vcfPar)
+  vcf <- readVcf(sprintf("topmed_by_chr/%s.vcf.gz", chr), genome="hg38", param=vcfPar)
+
+  ## override SeqInfo data because chromosomal positions
+  ## in the VCF are hg38 but we are going to lift them to hg19
+  seqinfo(vcf, new2old=match(seqlevels(Hsapiens), seqlevels(vcf)),
+          pruning.mode="coarse") <- seqinfo(Hsapiens)
+
   nVar <- nVar + nrow(vcf)
 
   ## mask variants where all alternate alleles are SNVs
@@ -154,75 +172,80 @@ foreach (chr=tbxchr) %dopar% {
   ## fetch SNVs coordinates
   rr <- rowRanges(vcfsnvs)
 
+  ## lift over coordinates to hg19
+  ## we exclude nonuniquely mapping positions
+  ## and positions mapping to a different chromosome
+  rr2 <- liftOver(rr, hg38tohg19chain)
+  lomask <- elementNROWS(rr2) == 1
+  chrmask <- rep(FALSE, length(rr))
+  chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+  lomask <- lomask & chrmask
+  stopifnot(any(lomask)) ## QC
+  rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
+
   ## clean up the ranges
   mcols(rr) <- NULL
   names(rr) <- NULL
   gc()
 
-  ## fill up SeqInfo data
-  si <- seqinfo(vcf)
-  seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-  isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-  genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-
   ## fetch allele frequency data
-  acanValues <- info(vcfsnvs)
+  acanValues <- info(vcfsnvs)[lomask, ]
   clsValues <- sapply(acanValues, class)
 
-  for (j in seq_along(ACcols)) {
-    acCol <- ACcols[j]
-    anCol <- ANcols[j]
-    message(sprintf("Processing SNVs allele frequencies from chromosome %s", chr))
-    acValuesCol <- acanValues[[acCol]]
-    anValuesCol <- acanValues[[anCol]]
-    if (clsValues[acCol] == "CompressedIntegerList") {    ## in multiallelic variants take the
-      acValuesCol <- as.numeric(sapply(acValuesCol, max)) ## maximum allele count
-    }
+  ## for (j in seq_along(ACcols)) {
+  ##   acCol <- ACcols[j]
+  ##   anCol <- ANcols[j]
+  ##   message(sprintf("Processing SNVs allele frequencies from chromosome %s", chr))
+  ##   acValuesCol <- acanValues[[acCol]]
+  ##   anValuesCol <- acanValues[[anCol]]
+  ##   if (clsValues[acCol] == "CompressedIntegerList") {    ## in multiallelic variants take the
+  ##     acValuesCol <- as.numeric(sapply(acValuesCol, max)) ## maximum allele count
+  ##   }
 
-    mafValuesCol <- acValuesCol / anValuesCol
+  ##   mafValuesCol <- acValuesCol / anValuesCol
 
     ## allele frequencies from TOPMED are calculated from alternative alleles,
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
-    mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-    if (any(mask))
-      mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+  ##   mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+  ##   if (any(mask))
+  ##     mafValuesCol[mask] <- 1 - mafValuesCol[mask]
 
-    q <- .quantizer(mafValuesCol)
-    x <- .dequantizer(q)
-    f <- cut(x, breaks=c(0, 10^c(seq(floor(min(log10(x[x!=0]), na.rm=TRUE)),
-                                     ceiling(max(log10(x[x!=0]), na.rm=TRUE)), by=1))),
-             include.lowest=TRUE)
-    err <- abs(mafValuesCol-x)
-    max.abs.error <- tapply(err, f, mean, na.rm=TRUE)
+  ##   q <- .quantizer(mafValuesCol)
+  ##   x <- .dequantizer(q)
+  ##   f <- cut(x, breaks=c(0, 10^c(seq(floor(min(log10(x[x!=0]), na.rm=TRUE)),
+  ##                                    ceiling(max(log10(x[x!=0]), na.rm=TRUE)), by=1))),
+  ##            include.lowest=TRUE)
+  ##   err <- abs(mafValuesCol-x)
+  ##   max.abs.error <- tapply(err, f, mean, na.rm=TRUE)
 
     ## build an integer-Rle object using the 'coverage()' function
-    obj <- coverage(rr, weight=q)[[chr]]
-    if (length(unique(mafValuesCol)) <= 10000) {
-      Fn <- ecdf(mafValuesCol)
-    } else {
-      Fn <- ecdf(sample(mafValuesCol, size=10000, replace=TRUE))
-    }
+  ##   obj <- coverage(rr, weight=q)[[chr]]
+  ##   if (length(unique(mafValuesCol)) <= 10000) {
+  ##     Fn <- ecdf(mafValuesCol)
+  ##   } else {
+  ##     Fn <- ecdf(sample(mafValuesCol, size=10000, replace=TRUE))
+  ##   }
 
     ## coerce to raw-Rle, add metadata and save
-     if (any(runValue(obj) != 0)) {
-       runValue(obj) <- as.raw(runValue(obj))
-       metadata(obj) <- list(seqname=chr,
-                             provider="NHLBI",
-                             provider_version="Freeze5",
-                             citation=datacitation,
-                             download_url=downloadURL,
-                             download_date=format(Sys.Date(), "%b %d, %Y"),
-                             reference_genome=refgenomeGD,
-                             data_pkgname=pkgname,
-                             qfun=.quantizer,
-                             dqfun=.dequantizer,
-                             ecdf=Fn,
-                             max_abs_error=max.abs.error)
-       saveRDS(obj, file=file.path(pkgname, sprintf("%s.AF.%s.rds", pkgname, chr)))
-     } else {
-       warning(sprintf("No MAF values for SNVs in chromosome %s", chr))
-     }
-  }
+  ##    if (any(runValue(obj) != 0)) {
+  ##      runValue(obj) <- as.raw(runValue(obj))
+  ##      metadata(obj) <- list(seqname=chr,
+  ##                            provider="NHLBI",
+  ##                            provider_version="Freeze5",
+  ##                            citation=datacitation,
+  ##                            download_url=downloadURL,
+  ##                            download_date=format(Sys.Date(), "%b %d, %Y"),
+  ##                            reference_genome=refgenomeGD,
+  ##                            data_pkgname=pkgname,
+  ##                            qfun=.quantizer,
+  ##                            dqfun=.dequantizer,
+  ##                            ecdf=Fn,
+  ##                            max_abs_error=max.abs.error)
+  ##      saveRDS(obj, file=file.path(pkgname, sprintf("%s.AF.%s.rds", pkgname, chr)))
+  ##    } else {
+  ##      warning(sprintf("No MAF values for SNVs in chromosome %s", chr))
+  ##    }
+  ## }
 
   ##
   ## nonSNVs
@@ -231,11 +254,16 @@ foreach (chr=tbxchr) %dopar% {
   ## fetch nonSNVs coordinates
   rr <- rowRanges(vcfnonsnvs)
 
-  ## fill up SeqInfo data
-  si <- seqinfo(vcf)
-  seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-  isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-  genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
+  ## lift over coordinates to hg38
+  ## we exclude nonuniquely mapping positions
+  ## and positions mapping to a different chromosome
+  rr2 <- liftOver(rr, hg38tohg19chain)
+  lomask <- elementNROWS(rr2) == 1
+  chrmask <- rep(FALSE, length(rr))
+  chrmask[lomask] <- as.character(seqnames(unlist(rr2[lomask]))) == as.character(seqnames(rr[lomask]))
+  lomask <- lomask & chrmask
+  stopifnot(any(lomask)) ## QC
+  rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
 
   ## clean up the GRanges and save it
   mcols(rr) <- NULL
@@ -243,7 +271,7 @@ foreach (chr=tbxchr) %dopar% {
   saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
 
   ## fetch allele frequency data
-  acanValues <- info(vcfsnvs)
+  acanValues <- info(vcfsnvs)[lomask, ]
   clsValues <- sapply(acanValues, class)
 
   for (j in seq_along(ACcols)) {

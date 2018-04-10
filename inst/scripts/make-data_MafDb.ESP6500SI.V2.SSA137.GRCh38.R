@@ -171,7 +171,7 @@ foreach (fname=vcfFilenames) %dopar% {
   maskNoLift <- rr == "-1"
   vcfsnvs <- vcfsnvs[!maskNoLift, ]
   rr <- rr[!maskNoLift]
-  rr <- VariantFiltering:::.str2gr(rr)
+  rr <- GenomicScores:::.str2gr(rr)
 
   ## discard variants whose hs37d5 coordinates have been lifted to
   ## alternate loci in GRCh38
@@ -242,7 +242,7 @@ foreach (fname=vcfFilenames) %dopar% {
   maskNoLift <- rr == "-1"
   vcfnonsnvs <- vcfnonsnvs[!maskNoLift, ]
   rr <- rr[!maskNoLift]
-  rr <- VariantFiltering:::.str2gr(rr)
+  rr <- GenomicScores:::.str2gr(rr)
 
   ## discard variants whose hs37d5 coordinates have been lifted to
   ## alternate loci in GRCh38
@@ -344,7 +344,7 @@ for (chr in seqlevels(si)) {
   vcf <- vcf[!maskNoLift, ]
   origrr <- origrr[!maskNoLift]
   rr <- rr[!maskNoLift]
-  rr <- VariantFiltering:::.str2gr(rr)
+  rr <- GenomicScores:::.str2gr(rr)
 
   ## discard variants whose hs37d5 coordinates have been lifted to
   ## alternate loci in GRCh38
@@ -384,7 +384,7 @@ for (chr in seqlevels(si)) {
 message(sprintf("%d variants processed in total", nTotalVar))
 
 ## save total number of variants
-saveRDS(nTotalVar, file=file.path(pkgname, "nov.rds"))
+saveRDS(nTotalVar, file=file.path(pkgname, "nsites.rds"))
 
 ## store mask flagging SNVs
 rsIDgp$isSNV <- Rle(maskSNVs)
