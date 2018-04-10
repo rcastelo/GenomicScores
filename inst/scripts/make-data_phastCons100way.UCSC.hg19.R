@@ -47,6 +47,9 @@ foreach (chr=seqnames(Hsapiens)) %dopar% {
   wigToBigWig(file.path("hg19.100way.phastCons", sprintf("%s.phastCons100way.wigFix.gz", chr)), seqinfo=si)
 }
 
+pkgname <- "phastCons100way.UCSC.hg19"
+dir.create(pkgname)
+
 ## freeze the GenomeDescription data for Hsapiens
 
 refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
@@ -60,20 +63,22 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
                                                  isCircular=isCircular(Hsapiens),
                                                  genome=releaseName(Hsapiens)))
 
-saveRDS(refgenomeGD, file=file.path("hg19.100way.phastCons", "refgenomeGD.rds"))
+saveRDS(refgenomeGD, file=file.path(pkgname, "refgenomeGD.rds"))
 
 ## transform BIGWIG into Rle objects coercing phastCons scores into
 ## 1-decimal digit raw-encoded values to reduce memory requirements
 ## in principle deciles of phastCons probabilities should give the
 ## necessary resolution for the purpose of filtering genetic variants
-## on conservation
+## on conservation. We also include a version of the scores with
+## 2-decimal digits.
 
-## quantizer function. it maps input real-valued [0, 1]
+## quantizer function for 1-decimal place. it maps input real-valued [0, 1]
 ## phastCons scores to non-negative integers [0, 255] so that
 ## each of them can be later coerced into a single byte (raw type).
-## quantization is done by rounding to one decimal significant digit,
+## quantization is done by rounding to one decimal place,
 ## and therefore, mapping is restricted to 11 different positive
 ## integers only [1-11], where the 0 value is kept to code for missingness
+## because there is no NA value in the raw class (Sec. 3.3.4 NA handling, R Language Definition)
 .quantizer <- function(x) {
   q <- as.integer(sprintf("%.0f", 10*x))
   q <- q + 1L
@@ -81,7 +86,21 @@ saveRDS(refgenomeGD, file=file.path("hg19.100way.phastCons", "refgenomeGD.rds"))
 }
 attr(.quantizer, "description") <- "multiply by 10, round to nearest integer, add up one"
 
-## dequantizer function. it maps input non-negative integers [0, 255]
+## quantizer function for 2-decimal places. it maps input real-valued [0, 1]
+## phastCons scores to non-negative integers [0, 255] so that
+## each of them can be later coerced into a single byte (raw type).
+## quantization is done by rounding to two decimal places,
+## and therefore, mapping is restricted to 101 different positive
+## integers only [1-101], where the 0 value is kept to code for missingness
+## because there is no NA value in the raw class (Sec. 3.3.4 NA handling, R Language Definition)
+.quantizerDP2 <- function(x) {
+  q <- as.integer(sprintf("%.0f", 100*x))
+  q <- q + 1L
+  q
+}
+attr(.quantizerDP2, "description") <- "multiply by 100, round to nearest integer, add up one"
+
+## dequantizer function for 1-decimal place. it maps input non-negative integers [0, 255]
 ## to real-valued phastCons scores, where 0 codes for NA
 .dequantizer <- function(q) {
   x <- as.numeric(q)
@@ -91,42 +110,73 @@ attr(.quantizer, "description") <- "multiply by 10, round to nearest integer, ad
 }
 attr(.dequantizer, "description") <- "subtract one integer unit, divide by 10"
 
-foreach (chr=seqnames(Hsapiens)) %dopar% {
+## dequantizer function for 2-decimal places. it maps input non-negative integers [0, 255]
+## to real-valued phastCons scores, where 0 codes for NA
+.dequantizerDP2 <- function(q) {
+  x <- as.numeric(q)
+  x[x == 0] <- NA
+  x <- (x - 1) / 100
+  x
+}
+attr(.dequantizerDP2, "description") <- "subtract one integer unit, divide by 100"
+
+nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
   cat(chr, "\n")
   tryCatch({
-    rawscores <- import.bw(BigWigFile(file.path("hg19.100way.phastCons", sprintf("%s.phastCons100way.bw", chr))))
-    qscores <- .quantizer(rawscores$score)
-    max.abs.error <- max(abs(rawscores$score - .dequantizer(qscores)))
-    assign(sprintf("phastCons100way_%s", chr), coverage(rawscores, weight=qscores)[[chr]])
-    assign(sprintf("phastCons100way_%s", chr),
-           do.call("runValue<-", list(get(sprintf("phastCons100way_%s", chr)),
-                                      as.raw(runValue(get(sprintf("phastCons100way_%s", chr)))))))
-    obj <- get(sprintf("phastCons100way_%s", chr))
-    n <- length(unique(rawscores$score[!is.na(rawscores$score)]))
-    if (n > 10) {
-      if (n <= 10000) {
-        Fn <- ecdf(rawscores$score)
-      } else { ## to save space with more than 10,000 different values use sampling
-        Fn <- ecdf(sample(rawscores$score[!is.na(rawscores$score)], size=10000, replace=TRUE))
+    rawscores <- import.bw(BigWigFile(file.path("hg19.100way.phastCons",
+                                                sprintf("%s.phastCons100way.bw", chr))))
+    qscoresDP1 <- .quantizer(rawscores$score)
+    qscoresDP2 <- .quantizerDP2(rawscores$score)
+    max.abs.error.DP1 <- max(abs(rawscores$score - .dequantizer(qscoresDP1)))
+    max.abs.error.DP2 <- max(abs(rawscores$score - .dequantizerDP2(qscoresDP2)))
+    objDP1 <- coverage(rawscores, weight=qscoresDP1)[[chr]]
+    objDP2 <- coverage(rawscores, weight=qscoresDP2)[[chr]]
+    if (any(runValue(objDP1) > 0) && any(runValue(objDP2) > 0)) {
+      runValue(objDP1) <- as.raw(runValue(objDP1))
+      runValue(objDP2) <- as.raw(runValue(objDP2))
+      Fn <- function(x) { warning("no ecdf() function available") ; numeric(0) }
+      n <- length(unique(rawscores$score[!is.na(rawscores$score)]))
+      if (n > 10) {
+        if (n <= 10000) {
+          Fn <- ecdf(rawscores$score)
+        } else { ## to save space with more than 10,000 different values use sampling
+          Fn <- ecdf(sample(rawscores$score[!is.na(rawscores$score)], size=10000, replace=TRUE))
+        }
       }
+      metadata(objDP1) <- list(seqname=chr,
+                               provider="UCSC",
+                               provider_version="09Feb2014",
+                               citation=citationdata,
+                               download_url=downloadURL,
+                               download_date=format(Sys.Date(), "%b %d, %Y"),
+                               reference_genome=refgenomeGD,
+                               data_pkgname=pkgname,
+                               qfun=.quantizer,
+                               dqfun=.dequantizer,
+                               ecdf=Fn,
+                               max_abs_error=max.abs.error.DP1)
+      saveRDS(objDP1, file=file.path(pkgname, sprintf("phastCons100way.UCSC.hg19.%s.rds", chr)))
+      metadata(objDP2) <- list(seqname=chr,
+                               provider="UCSC",
+                               provider_version="09Feb2014",
+                               citation=citationdata,
+                               download_url=downloadURL,
+                               download_date=format(Sys.Date(), "%b %d, %Y"),
+                               reference_genome=refgenomeGD,
+                               data_pkgname=pkgname,
+                               qfun=.quantizerDP2,
+                               dqfun=.dequantizerDP2,
+                               ecdf=Fn,
+                               max_abs_error=max.abs.error.DP2)
+      saveRDS(objDP2, file=file.path(pkgname, sprintf("phastCons100way.UCSC.hg19.DP2.%s.rds", chr)))
     }
-    metadata(obj) <- list(seqname=chr,
-                          provider="UCSC",
-                          provider_version="09Feb2014", ## it'd better to grab the date from downloaded file
-                          citation=citationdata,
-                          download_url=downloadURL,
-                          download_date=format(Sys.Date(), "%b %d, %Y"),
-                          reference_genome=refgenomeGD,
-                          data_pkgname="phastCons100way.UCSC.hg19",
-                          qfun=.quantizer,
-                          dqfun=.dequantizer,
-                          ecdf=Fn,
-                          max_abs_error=max.abs.error)
-    saveRDS(obj, file=file.path("hg19.100way.phastCons", sprintf("phastCons100way.UCSC.hg19.%s.rds", chr)))
-    rm(rawscores, obj)
-    rm(list=sprintf("phastCons100way_%s", chr))
+    nsites <- sum(runValue(objDP1) > 0)
+    rm(rawscores, objDP1, objDP2)
     gc()
+    nsites
   }, error=function(err) {
       message(chr, " ", conditionMessage(err), call.=TRUE)
   })
 }
+
+saveRDS(sum(nsites), file=file.path(pkgname, "nsites.rds"))

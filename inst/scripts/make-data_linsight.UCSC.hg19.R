@@ -1,18 +1,19 @@
-## This file explains the steps to download and freeze the fitCons
-## scores version 1.01 for human genome version hg19. If you use
-## these data on your own research please cite the following publication:
+## This file explains the steps to download and freeze the LINSIGHT
+## scores for human genome version hg19. If you use these data on
+## your own research please cite the following publication:
 
-## Gulko B, Hubisz MJ, Gronau I, Siepel A. Probabilities of fitness consequences
-## for point mutations across the human genome. Nat. Genet. 2015 Aug;47:276-83.
-## (http://www.nature.com/ng/journal/v47/n3/full/ng.3196.html)
+## Huang Y-F, Gulko B, Siepel A. Fast, scalable prediction of deleterious
+## noncoding variants from functional and population genomic data.
+## Nat. Genet. 2015 Aug;47:276-83.
+## (http://www.nature.com/articles/ng.3810)
 
 ## The data were downloaded from the CSHL mirror of the UCSC genome browser as follows
 ##
-## wget http://compgen.cshl.edu/fitCons/0downloads/tracks/V1.01/i6/scores/fc-i6-0.bw
+## wget http://compgen.cshl.edu/%7Eyihuang/tracks/LINSIGHT.bw
 ##
-## further information about these data can be found in the README file at
+## further information about these data can be found at the following URL:
 ##
-## http://compgen.cshl.edu/fitCons/0downloads/tracks/V1.01/readme.txt
+## http://compgen.cshl.edu/~yihuang/LINSIGHT
 ##
 ## and at the Adam Siepel Lab website
 ##
@@ -26,20 +27,20 @@ library(rtracklayer)
 library(doParallel)
 library(S4Vectors)
 
-downloadURL <- "http://compgen.cshl.edu/fitCons/0downloads/tracks/V1.01/i6/scores/fc-i6-0.bw"
+downloadURL <- "http://compgen.cshl.edu/%7Eyihuang/tracks/LINSIGHT.bw"
 citationdata <- bibentry(bibtype="Article",
-                         author=c(person("Brad Gulko"), person("Melissa J. Hubisz"),
-                                  person("Ilan Gronau"), person("Adam Siepel")),
-                         title="Probabilities of fitness consequences for point mutations across the human genome",
+                         author=c(person("Yi-Fei Huang"), person("Brad Gulko"),
+                                  person("Adam Siepel")),
+                         title="Fast, scalable prediction of deleterious noncoding variants from functional and population genomic data",
                          journal="Nature Genetics",
-                         volume="47",
-                         pages="276-283",
-                         year="2015",
-                         doi="10.1038/ng.3196")
+                         volume="49",
+                         pages="618-624",
+                         year="2017",
+                         doi="10.1038/ng.3810")
 
 registerDoParallel(cores=4)
 
-pkgname <- "fitCons.UCSC.hg19"
+pkgname <- "linsight.UCSC.hg19"
 dir.create(pkgname)
 
 ## freeze the GenomeDescription data for Hsapiens
@@ -57,14 +58,14 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
 
 saveRDS(refgenomeGD, file=file.path(pkgname, "refgenomeGD.rds"))
 
-## transform BIGWIG into Rle objects coercing fitCons scores into
+## transform BIGWIG into Rle objects coercing LINSIGHT scores into
 ## 2-decimal digit raw-encoded values to reduce memory requirements
-## in principle centiles of fitCons probabilities should give the
+## in principle centiles of LINSIGHT probabilities should give the
 ## necessary resolution for the purpose of filtering genetic variants
-## with fitCons scores
+## with LINSIGHT scores
 
 ## quantizer function. it maps input real-valued [0, 1]
-## fitCons scores to non-negative integers [0, 255] so that
+## LINSIGHT scores to non-negative integers [0, 255] so that
 ## each of them can be later coerced into a single byte (raw type).
 ## quantization is done by rounding to two decimal significant digits,
 ## and therefore, mapping is restricted to 101 different positive
@@ -89,7 +90,7 @@ attr(.dequantizer, "description") <- "subtract one integer unit, divide by 100"
 nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
   cat(chr, "\n")
   tryCatch({
-    rawscores <- import.bw(BigWigFile("fc-i6-0.bw"),
+    rawscores <- import.bw(BigWigFile("LINSIGHT.bw"),
                            which=GRanges(seqnames=chr, IRanges(1, seqlengths(Hsapiens)[chr])))
     qscores <- .quantizer(rawscores$score)
     max.abs.error <- max(abs(rawscores$score - .dequantizer(qscores)))
@@ -107,17 +108,18 @@ nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
       }
       metadata(obj) <- list(seqname=chr,
                             provider="UCSC",
-                            provider_version="21Aug2014",
+                            provider_version="19Aug2016",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
                             reference_genome=refgenomeGD,
                             data_pkgname=pkgname,
+                            data_group="Fitness",
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn,
                             max_abs_error=max.abs.error)
-      saveRDS(obj, file=file.path(pkgname, sprintf("fitCons.UCSC.hg19.%s.rds", chr)))
+      saveRDS(obj, file=file.path(pkgname, sprintf("linsight.UCSC.hg19.%s.rds", chr)))
     }
     nsites <- sum(runValue(obj) > 0)
     rm(rawscores, obj)
