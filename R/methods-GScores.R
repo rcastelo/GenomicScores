@@ -730,7 +730,11 @@ setMethod("citation", signature="missing", citation.character)
 setMethod("citation", signature="character", citation.character)
 citation.GScores <- function(package, ...) {
   obj <- get(package@data_pkgname, envir=package@.data_cache)
-  cit <- metadata(obj[[1]][[1]])$citation
+  cit <- bibentry()
+  if (class(obj[[1]]) == "Rle")
+    cit <- metadata(obj[[1]])$citation
+  else
+    cit <- metadata(obj[[1]][[1]])$citation
   if (is.null(cit))
     cit <- bibentry()
   cit
