@@ -23,7 +23,7 @@ GScores <- function(provider, provider_version, download_url,
   assign(data_pkgname, list(), envir=data_cache)
   assign(sprintf("%s.nonsnvs", data_pkgname), GRangesList(), envir=data_cache)
 
-  nsites <- NA_integer_
+  nsites <- NA_real_
   if (file.exists(file.path(data_dirpath, "nsites.rds")))
     nsites <-  as.integer(readRDS(file.path(data_dirpath, "nsites.rds")))
   else if (file.exists(file.path(data_dirpath, "nov.rds"))) ## temporary during deprecation of MafDb
