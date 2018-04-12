@@ -308,7 +308,7 @@ gr1sco
 Using the dequantization function we can obtain later the genomic scores.
 
 ```{r}
-phastdqfun(gr1$default)
+phastdqfun(gr1sco$default)
 ```
 
 # Populations of scores

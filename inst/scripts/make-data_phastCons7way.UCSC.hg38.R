@@ -166,7 +166,7 @@ nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
                                max_abs_error=max.abs.error.DP2)
       saveRDS(objDP2, file=file.path(pkgname, sprintf("phastCons7way.UCSC.hg38.%s.rds", chr)))
     }
-    nsites <- sum(runValue(objDP1) > 0)
+    nsites <- as.numeric(sum(objDP1 > 0)) ## use 'numeric' to avoid integer overflow
     rm(rawscores, objDP1, objDP2)
     gc()
     nsites
