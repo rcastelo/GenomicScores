@@ -278,8 +278,8 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
               seqlevelsStyle(ranges) <- seqlevelsStyle(x)[1]
             commonSeqs <- intersect(seqlevels(ranges), seqlevels(x))
             if (any(is.na(genome(ranges)))) {
-              message(sprintf("assuming query ranges genome build is the one of the GScores object (%s).",
-                              unique(genome(x)[commonSeqs])))
+              ## message(sprintf("assuming query ranges genome build is the one of the GScores object (%s).",
+              ##                 unique(genome(x)[commonSeqs])))
               genome(ranges) <- genome(x)
             } else if (any(genome(ranges)[commonSeqs] != genome(x)[commonSeqs])) {
               message(sprintf("assuming %s represent the same genome build between query ranges and the GScores object, respectively.",
@@ -809,7 +809,7 @@ setMethod("show", "GScores",
             }
             if (defaultPopulation(object) != "default")
               cat("# default scores population: ", defaultPopulation(object), "\n", sep="")
-            if (!is.na(nsites(object)))
+            if (!is.na(nsites(object)) && nsites(object) > 0)
               cat("# number of sites: ", .pprintnsites(nsites(object)), "\n", sep="")
             if (!is.na(max.abs.error)) {
               if (defaultPopulation(object) != "default")
