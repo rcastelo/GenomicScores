@@ -129,13 +129,12 @@ vcfPar <- ScanVcfParam(geno=NA,
 tbx <- open(TabixFile(vcfFilename))
 tbxchr <- sortSeqlevels(seqnamesTabix(tbx))
 close(tbx)
-nVar <- 0
 
-foreach (chr=tbxchr) %dopar% {
+nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
 
   ## the whole VCF for the chromosome into main memory
   vcf <- readVcf(sprintf("topmed_by_chr/%s.vcf.gz", chr), genome=genomeversion, param=vcfPar)
-  nVar <- nVar + nrow(vcf)
+  nsites <- as.numeric(nrow(vcf))
 
   ## mask variants where all alternate alleles are SNVs
   evcf <- expand(vcf)
@@ -301,6 +300,8 @@ foreach (chr=tbxchr) %dopar% {
       warning(sprintf("No MAF values for nonSNVs in chromosome %s", chr))
     }
   }
+
+  nsites
 }
 
-saveRDS(nVar, file=file.path(pkgname, "nsites.rds"))
+saveRDS(sum(nsites), file=file.path(pkgname, "nsites.rds"))

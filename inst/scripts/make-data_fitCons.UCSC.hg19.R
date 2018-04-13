@@ -94,7 +94,8 @@ nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
     qscores <- .quantizer(rawscores$score)
     max.abs.error <- max(abs(rawscores$score - .dequantizer(qscores)))
     obj <- coverage(rawscores, weight=qscores)[[chr]]
-    if (any(runValue(obj) > 0)) {
+    nsites <- 0
+    if (!is.null(obj) && any(runValue(obj) > 0)) {
       runValue(obj) <- as.raw(runValue(obj))
       Fn <- function(x) { warning("no ecdf() function available") ; numeric(0) }
       n <- length(unique(rawscores$score[!is.na(rawscores$score)]))
@@ -118,8 +119,8 @@ nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
                             ecdf=Fn,
                             max_abs_error=max.abs.error)
       saveRDS(obj, file=file.path(pkgname, sprintf("fitCons.UCSC.hg19.%s.rds", chr)))
+      nsites <- as.numeric(sum(obj > 0))
     }
-    nsites <- sum(runValue(obj) > 0)
     rm(rawscores, obj)
     gc()
     nsites

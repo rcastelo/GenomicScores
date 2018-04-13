@@ -1,0 +1,12 @@
+citHeader("To cite package 'GenomicScores' in publications use:")
+
+citEntry(entry="Article",
+  author = personList(as.person("Pau Puigdevall"),
+                      as.person("Robert Castelo")),
+  title = "GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor",
+  journal = "Bioinformatics",
+  year = "2018",
+  textVersion = paste("Puigdevall, P. and Castelo, R.",
+                      "GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor",
+                      "Bioinformatics, accepted.")
+)
