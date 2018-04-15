@@ -1,4 +1,4 @@
-# GenomicScores: Infrastructure to work with genomewide position-specific scores
+# GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor
 
 [![Bioconductor Time](http://bioconductor.org/shields/years-in-bioc/GenomicScores.svg)](http://bioconductor.org/packages/release/bioc/html/GenomicScores.html "How long has been GenomicScores in a release of Bioconductor")
 [![Bioconductor Downloads](http://bioconductor.org/shields/downloads/GenomicScores.svg)](http://bioconductor.org/packages/stats/bioc/GenomicScores.html "Percentile (top 5/20/50% or 'available') of downloads over the last 6 full months")
@@ -11,6 +11,10 @@
 [![Bioconductor Release Build](http://bioconductor.org/shields/build/release/bioc/GenomicScores.svg)](http://bioconductor.org/checkResults/release/bioc-LATEST/GenomicScores/ "Bioconductor release build")
 - `development` [![Bioconductor Availability](http://bioconductor.org/shields/availability/devel/GenomicScores.svg)](http://bioconductor.org/packages/devel/bioc/html/GenomicScores.html#archives "Whether GenomicScores devel is available on all platforms") 
 [![Bioconductor Devel Build](http://bioconductor.org/shields/build/devel/bioc/GenomicScores.svg)](http://bioconductor.org/checkResults/devel/bioc-LATEST/GenomicScores/ "Bioconductor devel build")
+
+The `GenomicScores` package facilitates an efficient storage and seamless access of genomic scores, and their integration into genome analysis workflows on top of R and Bioconductor. Users using these genomic scores should cite their original source included in the metadata of the scores and accessible through the function `citation()`. For citing `GenomicScores` as a software package, please use the following reference:
+
+   Puigdevall, P. and Castelo. R. GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor. _Bioinformatics, accepted_.
 
 ## Installation
 
