@@ -5,7 +5,7 @@
 [![Bioconductor Commits](http://bioconductor.org/shields/commits/bioc/GenomicScores.svg)](http://bioconductor.org/packages/devel/bioc/html/GenomicScores.html#svn_source "Average SVN commits (to the devel branch) per month over the last 6 months")
 [![Support posts](http://bioconductor.org/shields/posts/GenomicScores.svg)](https://support.bioconductor.org/t/GenomicScores/ "Bioconductor support site activity on GenomicScores, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
 
-<img src="https://raw.githubusercontent.com/Bioconductor/BiocStickers/master/GenomicScores/GenomicScores.png" height="200" style="float:right;">
+<img src="https://raw.githubusercontent.com/Bioconductor/BiocStickers/master/GenomicScores/GenomicScores.png" height="200" style="float:right;"/>
 
 **Current build status**
 - `release` [![Bioconductor Availability](http://bioconductor.org/shields/availability/release/GenomicScores.svg)](http://bioconductor.org/packages/release/bioc/html/GenomicScores.html#archives "Whether GenomicScores release is available on all platforms") 
