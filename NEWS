@@ -1,5 +1,25 @@
+CHANGES IN VERSION 1.4.0
+------------------------
+
+USER VISIBLE CHANGES
+
+    o The function 'scores()' has been deprecated and replaced by the function 'gscores()'.
+
+    o The argument 'scores.only' in the function 'scores()' has been deprecated and replaced by calling the function 'score()'.
+
+    o The 'MafDb' class has been deprecated and now the 'GScores' class supports former 'MafDb' objects. The 'mafByOverlaps()' and 'mafById()' functions have been deprecated and replaced by the function 'gscores()'. The 'populations()' function from the 'MafDb' API has been integrated into the 'GScores' API.
+
+    o Added metadata on genomic scores groups, available through the function 'gscoresGroups()', on availability of non-single nucleotide regions through the function 'gscoresNonSNRs()', and on the default population used through the function 'defaultPopulation()'.
+
+    o New AnnotationHub resources have been added during this release cycle: phyloP60way.UCSC.mm10, LINSIGHT, phastCons46wayPlacental, phastcons46wayPrimates.
+
+    o Added a BiocSticker at https://github.com/Bioconductor/BiocStickers/tree/master/GenomicScores
+
+    o Added citation information after package publication has been accepted at Bioinformatics.
+
+
 CHANGES IN VERSION 1.2.0
--------------------------
+------------------------
 
 USER VISIBLE CHANGES
 
