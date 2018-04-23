@@ -238,7 +238,7 @@
 \seealso{
   \code{\link{gscores}()}
   \code{\link{score}()}
-  \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
+  \code{\link{phastCons100way.UCSC.hg19}}
 }
 \examples{
 ## one genomic range of width 5
