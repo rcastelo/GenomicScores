@@ -143,7 +143,7 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
   .dequantizer <- metadata(rlelst[[1]])$dqfun
   dqargs <- metadata(rlelst[[1]])$dqfun_args
   seqlevels(gr) <- names(rlelst)
-  ord <- order(seqnames(gr))
+  ord <- order(seqnames(gr)) ## store ordering below in 'split()'
   startbyseq <- split(start(gr), seqnames(gr), drop=TRUE)
   x <- ans <- numeric(0)
   if (quantized)
@@ -171,8 +171,9 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
 
   if (length(whregions) > 0) { ## regions comprising more than
     tmpans <- NA_real_         ## one position are summarized
+    ord2 <- order(seqnames(gr)[whregions]) ## store ordering below in 'split()'
     if (numericmean) {
-      rngbyseq <- split(gr[whregions], seqnames(gr)[whregions])
+      rngbyseq <- split(gr[whregions], seqnames(gr)[whregions], drop=TRUE)
       tmpans <- lapply(names(rngbyseq),
                        function(sname) {
                          coercedrle <- rlelst[[sname]]
@@ -182,7 +183,7 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
                                          start=start(rngbyseq[[sname]]),
                                          end=end(rngbyseq[[sname]])))
                        })
-      tmpans <- unsplit(tmpans, as.factor(seqnames(gr)[whregions]))
+      tmpans <- unsplit(tmpans, seqnames(gr)[whregions])
     } else { ## this allows for other summary functions
              ## but it runs about 10-fold slower
       startbyseq <- split(start(gr)[whregions],
@@ -203,7 +204,7 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
                        use.names=FALSE)
     }
 
-    ans[ord[whregions]] <- tmpans
+    ans[ord[whregions]] <- tmpans[ord2]
   }
   ans
 }
