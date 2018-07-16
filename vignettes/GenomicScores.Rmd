@@ -32,8 +32,8 @@ options(width=80)
 Bioconductor project. To install the package, start R and enter:
 
 ```{r library_install, message=FALSE, cache=FALSE, eval=FALSE}
-source("http://bioconductor.org/biocLite.R")
-biocLite("GenomicScores")
+install.packages("BiocManager")
+BiocManager::install("GenomicScores")
 ```
 
 Once `r Biocpkg("GenomicScores")` is installed, it can be loaded with the following command.
