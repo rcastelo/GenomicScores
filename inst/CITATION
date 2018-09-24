@@ -5,8 +5,11 @@ citEntry(entry="Article",
                       as.person("Robert Castelo")),
   title = "GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor",
   journal = "Bioinformatics",
+  volume = "34",
+  number = "18",
+  pages = "3208-3210",
   year = "2018",
   textVersion = paste("Puigdevall, P. and Castelo, R.",
                       "GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor",
-                      "Bioinformatics, accepted.")
+                      "Bioinformatics, 34(18):3208-3210, 2018.")
 )
