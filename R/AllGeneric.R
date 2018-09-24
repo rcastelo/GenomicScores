@@ -14,7 +14,3 @@ setGeneric("gscoresGroup<-", function(x, value) standardGeneric("gscoresGroup<-"
 setGeneric("gscoresTag", function(x) standardGeneric("gscoresTag"))
 setGeneric("gscoresTag<-", function(x, value) standardGeneric("gscoresTag<-"))
 setGeneric("nsites", function(x) standardGeneric("nsites"))
-
-## for MafDb class
-setGeneric("mafByOverlaps", function(x, ...) standardGeneric("mafByOverlaps"))
-setGeneric("mafById", function(x, ...) standardGeneric("mafById"))

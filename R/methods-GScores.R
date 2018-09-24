@@ -209,17 +209,6 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
   ans
 }
 
-setMethod("scores", c("GScores", "GenomicRanges"),
-          function(object, ranges, ...) {
-            warning("The 'scores()' method has been deprecated and will become defunct in the next release version of Biocondcutor 3.8. Please use its replacement functions 'gscores()' and 'score()'.")
-            gsco <- gscores(object, ranges, ...)
-            if (is(gsco, "GRanges")) {
-              gsco$scores <- gsco$score
-              gsco$score <- NULL
-            }
-            gsco
-          })
-
 setMethod("score", "GScores",
           function(x, ..., simplify=TRUE) {
             gsco <- gscores(x, ..., scores.only=TRUE)
@@ -413,31 +402,6 @@ setMethod("gscores", c("GScores", "character"),
               return(ans[!is.na(mt), ])
 
             ranges
-          })
-
-## for compatibility with MafDb objects during deprecation of the
-## MafDb class
-setMethod("gscores", c("MafDb", "GenomicRanges"),
-          function(x, ranges, ...) {
-            ## default non-generic arguments
-            paramNames <- c("pop", "type", "maf.only", "caching")
-            maf.only <- FALSE
-            pop <- "AF"
-            type <- "snvs"
-            caching <- TRUE
-
-            ## get arguments
-            arglist <- list(...)
-            mask <- nchar(names(arglist)) == 0
-            if (any(mask))
-              names(arglist)[mask] <- paste0("X", 1:sum(mask))
-
-            mask <- names(arglist) %in% paramNames
-            if (any(!mask))
-                stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
-            list2env(arglist, envir=sys.frame(sys.nframe()))
-
-            mafByOverlaps(x, ranges, pop, type, maf.only, caching)
           })
 
 ## fetch genomic scores stored on disk for specific sequences given in 'snames'

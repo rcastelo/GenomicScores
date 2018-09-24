@@ -73,8 +73,7 @@ importFrom(AnnotationHub, AnnotationHub,
 
 S3method(citation, GScores)
 
-exportClasses(GScores,
-              MafDb)
+exportClasses(GScores)
 
 exportMethods(citation,
               name,
@@ -101,12 +100,9 @@ exportMethods(citation,
               gscoresGroup,
               "gscoresGroup<-",
               nsites,
-              show,
-              mafByOverlaps,
-              mafById)
+              show)
 
 export(GScores,
        availableGScores,
        getGScores,
-       makeGScoresPackage,
-       MafDb)
+       makeGScoresPackage)
