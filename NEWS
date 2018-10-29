@@ -1,3 +1,12 @@
+CHANGES IN VERSION 1.6.0
+------------------------
+
+USER VISIBLE CHANGES
+
+    o Functions and classes deprecated in the previous release (scores, MafDb class) have been now removed from the package.
+
+    o Added support to latest release 2.1 of gnomAD MAF data, stored in packages MafDb.gnomAD.r2.1.hs37d5 and MafDb.gnomADex.r2.1.hs37d5.
+
 CHANGES IN VERSION 1.4.0
 ------------------------
 
