@@ -9,15 +9,11 @@
 ## See http://gnomad.broadinstitute.org/terms for further information
 ## on using this data for your own research
 
-## The data were downloaded from as follows:
+## The data were downloaded from the FTP server at Ensembl as follows:
 ##
-## allchr=`seq 1 22`" X"
-## for chr in $allchr ; do {
-##   gsutil -m cp -r gs://gnomad-public/release-170228/vcf/genomes/gnomad.genomes.r2.0.1.sites.$chr.vcf.gz gnomad_data
-##   wget https://data.broadinstitute.org/gnomAD/release-170228/genomes/vcf/gnomad.genomes.r2.0.1.sites.$chr.vcf.gz.tbi
-## } done
+## wget --recursive --no-parent  --reject "index.html" ftp://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_genotype/gnomad/r2.1
 
-## The following R script processes the downloaded data to
+## The following R script processes the downloaded and splitted data to
 ## transform the allele frequencies into minor allele frequencies
 ## and store them using only one significant digit for values < 0.1,
 ## and two significant digits for values > 0.1, to reduce the memory
@@ -27,10 +23,12 @@ library(Rsamtools)
 library(GenomicRanges)
 library(GenomeInfoDb)
 library(VariantAnnotation)
-library(BSgenome.Hsapiens.1000genomes.hs37d5)
+library(BSgenome.Hsapiens.NCBI.GRCh38) ## this is not the assembly used by
+                                       ## gnomAD but is the assembly to which
+                                       ## GRCh37 coordinates were lifted
 library(doParallel)
 
-downloadURL <- "http://gnomad.broadinstitute.org/downloads"
+downloadURL <- "ftp://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_genotype/gnomad/r2.1"
 citationdata <- bibentry(bibtype="Article",
                          author=c(person("Monkol Lek"), person("Konrad J. Karczewski"),
                                   person("Eric V. Minikel"), person("Kaitlin E. Samocha"),
@@ -79,7 +77,7 @@ citationdata <- bibentry(bibtype="Article",
                          year="2016",
                          doi="10.1038/nature19057")
 
-registerDoParallel(cores=2) ## up to 30 Gb per process
+registerDoParallel(cores=3) ## up to 30 Gb per process
 
 ## quantizer function. it maps input real-valued [0, 1] allele frequencies
 ## to positive integers [1, 255] so that each of them can be later
@@ -127,15 +125,22 @@ attr(.quantizer, "description") <- "quantize [0.1-1] with 2 significant digits a
 }
 attr(.dequantizer, "description") <- "dequantize [0-100] dividing by 100, [101-255] subtract 100, take modulus 10 and divide by the corresponding power in base 10"
 
-vcfFilename <- "gnomad.genomes.r2.0.1.sites.21.vcf.gz" ## just pick one file
-genomeversion <- "hs37d5"
-pkgname <- sprintf("MafDb.gnomAD.r2.0.1.%s", genomeversion)
+vcfFilename <- "gnomad.genomes.r2.1.sites.grch38.chr21_noVEP.vcf.gz"
+genomeversion <- "GRCh38"
+pkgname <- sprintf("MafDb.gnomAD.r2.1.%s", genomeversion)
 dir.create(pkgname)
+
+path2vcfs <- "/projects_fg/GenomicScores/gnomad/GRCh38/r2.1/genomes"
 
 vcfHeader <- scanVcfHeader(vcfFilename)
 
-Hsapiens <- hs37d5
-stopifnot(all(seqlengths(vcfHeader)[1:25] == seqlengths(Hsapiens)[1:25])) ## QC
+namesstdchr <- standardChromosomes(Hsapiens)
+stopifnot(all(seqlengths(vcfHeader)[namesstdchr] == seqlengths(Hsapiens)[namesstdchr])) ## QC
+
+## fill up SeqInfo data
+si <- keepStandardChromosomes(seqinfo(vcfHeader))
+isCircular(si) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
+genome(si) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
 
 ## save the GenomeDescription object
 refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
@@ -144,13 +149,13 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
                                  provider_version=providerVersion(Hsapiens),
                                  release_date=releaseDate(Hsapiens),
                                  release_name=releaseName(Hsapiens),
-                                 seqinfo=seqinfo(Hsapiens))
+                                 seqinfo=si)
 saveRDS(refgenomeGD, file=file.path(pkgname, "refgenomeGD.rds"))
 
 ## read INFO column data
 infoCols <- rownames(info(vcfHeader))
 AFcols <- infoCols[grep("^AF", infoCols)]
-exclude <- grep("raw|POPMAX", AFcols)
+exclude <- grep("raw|POPMAX|popmax", AFcols)
 if (length(exclude) > 0)
   AFcols <- AFcols[-exclude] ## remove columns such as those for maximum allele frequency among populations
 
@@ -161,11 +166,16 @@ vcfPar <- ScanVcfParam(geno=NA,
                        fixed="ALT",
                        info=AFcols)
 
-foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
+foreach (chr=setdiff(namesstdchr, c("Y", "MT"))) %dopar% { ## no VCF file for Y and MT
 
-  ## the whole VCF for the chromosome into main memory (up to 32Gb of RAM for chromosome 1)
-  vcf <- readVcf(sprintf("gnomad.genomes.r2.0.1.sites.%s.vcf.gz", chr),
+  message(sprintf("Processing chromosome %s", chr))
+
+  ## read the whole VCF into main memory (up to 32Gb of RAM for chromosome 1)
+  vcf <- readVcf(file.path(path2vcfs, sprintf("gnomad.genomes.r2.1.sites.grch38.chr%s_noVEP.vcf.gz", chr)),
                  genome=genomeversion, param=vcfPar)
+
+  vcf <- keepStandardChromosomes(vcf)
+  seqinfo(vcf) <- si
 
   ## mask variants where all alternate alleles are SNVs
   evcf <- expand(vcf)
@@ -189,11 +199,20 @@ foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
   names(rr) <- NULL
   gc()
 
-  ## fill up SeqInfo data
-  si <- seqinfo(vcf)
+  ## fill up missing SeqInfo data
+  isCircular(rr) <- isCircular(si)
   seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
+
+  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+  ## "It is permitted to have multiple records with the same POS"
+  ## and according to the release notes of gnomAD v2.1
+  ## "all multi-allelic sites have been split. This means that
+  ## multiple lines now have the same chromosome and position."
+  ## in such a case we take the maximum MAF by looking at repeated positions
+  rrbypos <- split(rr, start(rr))
+  rr <- rr[!duplicated(rr)]
 
   ## fetch allele frequency data
   afValues <- info(vcfsnvs)
@@ -222,6 +241,10 @@ foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
     if (any(mask))
       mafValuesCol[mask] <- 1 - mafValuesCol[mask]
 
+    mafValuesCol <- relist(mafValuesCol, rrbypos)
+    mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                              ## take the maximum allele frequenc
+
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
     f <- cut(x, breaks=c(0, 10^c(seq(floor(min(log10(x[x!=0]), na.rm=TRUE)),
@@ -243,7 +266,7 @@ foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
       runValue(obj) <- as.raw(runValue(obj))
       metadata(obj) <- list(seqname=chr,
                             provider="BroadInstitute",
-                            provider_version="r2.0.1",
+                            provider_version="r2.1",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -259,6 +282,9 @@ foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
     }
   }
 
+  rm(vcfsnvs)
+  gc()
+
   ##
   ## nonSNVs
   ##
@@ -266,25 +292,42 @@ foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
   ## fetch nonSNVs coordinates
   rr <- rowRanges(vcfnonsnvs)
 
-  ## fill up SeqInfo data
+  ## fill up missing SeqInfo data
   si <- seqinfo(vcf)
   seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
 
-  ## clean up the GRanges and save it
+  ## clean up the GRanges
   mcols(rr) <- NULL
   names(rr) <- NULL
-  saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
+  gc()
+
+  ## re-order by chromosomal coordinates to deal with wrongly-ordered nonSNVs over multiple VCF lines
+  ord <- order(rr)
+  rr <- rr[ord]
 
   ## fetch allele frequency data
   afValues <- info(vcfnonsnvs)
   clsValues <- sapply(afValues, class)
 
   rm(vcf)
-  rm(vcfsnvs)
   rm(vcfnonsnvs)
   gc()
+
+  ## re-order by chromosomal coordinates
+  afValues <- afValues[ord, ]
+  rm(ord)
+
+  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+  ## "It is permitted to have multiple records with the same POS"
+  ## and according to the release notes of gnomAD v2.1
+  ## "all multi-allelic sites have been split. This means that
+  ## multiple lines now have the same chromosome and position."
+  ## in such a case we take the maximum MAF by looking at repeated positions
+  rrbypos <- split(rr, paste(start(rr), end(rr), sep="-"))
+  rr <- rr[!duplicated(rr)]
+  saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
 
   for (j in seq_along(AFcols)) {
     afCol <- AFcols[j]
@@ -309,6 +352,10 @@ foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
     if (any(mask))
       mafValuesCol[mask] <- 1 - mafValuesCol[mask]
 
+    mafValuesCol <- relist(mafValuesCol, rrbypos)
+    mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                              ## take the maximum allele frequency
+
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
     f <- cut(x, breaks=c(0, 10^c(seq(floor(min(log10(x[x!=0]), na.rm=TRUE)),
@@ -331,7 +378,7 @@ foreach (chr=seqlevels(vcfHeader)[1:23]) %dopar% {
       runValue(obj) <- as.raw(runValue(obj))
       metadata(obj) <- list(seqname=chr,
                             provider="BroadInstitute",
-                            provider_version="r2.0.1",
+                            provider_version="r2.1",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -361,14 +408,16 @@ rsIDgp <- GPos()       ## to store positions of rsIDs
 maskSNVs <- logical(0) ## to store a mask whether the variant is an SNV or not
 
 nTotalVar <- 0
-for (chr in seqlevels(vcfHeader)[1:23]) {
-  vcf <- readVcf(sprintf("gnomad.genomes.r2.0.1.sites.%s.vcf.gz", chr),
+for (chr in setdiff(namesstdchr, c("Y", "MT"))) { ## no VCF file for MT and Y
+  vcf <- readVcf(file.path(path2vcfs, sprintf("gnomad.exomes.r2.1.sites.grch38.chr%s_noVEP.vcf.gz", chr)),
                  genome=genomeversion, param=vcfPar)
   nVar <- nrow(vcf)
   nTotalVar <- nTotalVar + nVar
   rr <- rowRanges(vcf)
   mcols(rr) <- NULL
   gc()
+  ord <- order(rr)
+  rr <- rr[ord]
   whrsIDs <- grep("^rs", names(rr))
   evcf <- expand(vcf)
   maskSNVs <- c(maskSNVs, sapply(relist(isSNV(evcf), alt(vcf)), all)[whrsIDs])
@@ -382,7 +431,7 @@ for (chr in seqlevels(vcfHeader)[1:23]) {
   gpTmp <- as(rrTmp, "GPos")
 
   ## just in case there are multiple rsID assignments separated by
-  ## semicolons like it happens with ExAC
+  ## semicolons like it happens with ExAC, assign just the first one
   idTmp <- strsplit(idTmp, ";")
   idTmp <- sapply(idTmp, "[", 1)
 
@@ -413,10 +462,10 @@ gc()
 ## calculate the indices that lead to an increasing values of the (integer) ids
 rsIDidx <- order(rsIDs)
 
-## order increasingly the integer values of rs IDs
+## order increasingly the integer values of rsIDs
 rsIDs <- rsIDs[rsIDidx]
 
-## save the objects that enable the search for rs ID
+## save the objects that enable the search for rsID
 saveRDS(rsIDs, file=file.path(pkgname, "rsIDs.rds"))
 saveRDS(rsIDidx, file=file.path(pkgname, "rsIDidx.rds"))
 saveRDS(rsIDgp, file=file.path(pkgname, "rsIDgp.rds"))

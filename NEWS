@@ -1,3 +1,14 @@
+CHANGES IN VERSION 1.8.0
+------------------------
+
+USER VISIBLE CHANGES
+
+    o Added support to latest release 2.1 of gnomAD MAF data lifted to GRCh38 by Ensembl, stored in packages MafDb.gnomAD.r2.1.GRCh38 and MafDb.gnomADex.r2.1.GRCh38.
+
+BUG FIXES
+
+    o Bugfix in the support to TOPMED MAF data, to discard variants whose VCF FILTER is not set to PASS.
+
 CHANGES IN VERSION 1.6.0
 ------------------------
 

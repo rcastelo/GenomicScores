@@ -3,10 +3,10 @@
 ## NHLBI TOPMED project. If you use these data please include the following
 ## citation:
 
-## NHLBI TOPMed Program, URL https://bravo.sph/umich.edu,
-## accessed Mar. 2018
+## Taliun et al. Sequencing of 53,831 diverse genomes from the NHLBI TOPMed Program.
+## bioRxiv, doi:10.1101/563866, 2019.
 
-## The data were downloaded from
+## The data were downloaded on March 2019 from
 ## https://bravo.sph.umich.edu/freeze5/hg38/download/all
 
 ## The data were first splitted into tabix VCF files per chromosome as follows:
@@ -38,11 +38,14 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 library(doParallel)
 
 downloadURL <- "https://bravo.sph.umich.edu/freeze5/hg38/download/all"
-datacitation <- bibentry(bibtype="Unpublished",
-                         author=person("TOPMed Consortium"),
-                         title="Trans-Omics for Precision Medicine (TOPMed)",
-                         year="2017",
-                         note="Allele frequency data accessed on Mar. 2018",
+datacitation <- bibentry(bibtype="Article",
+                         author=c(person("Daniel Taliun"),
+                                  person("et al.")),
+                         title="Sequencing of 53,831 diverse genomes from the NHLBI TOPMed Program",
+                         journal="bioRxiv",
+                         year="2019",
+                         doi="10.1101/563866",
+                         note="Allele frequency data accessed on Mar. 2019",
                          url="http://bravo.sph.umich.edu")
 
 registerDoParallel(cores=2)
@@ -122,7 +125,7 @@ message("Starting to process variants")
 
 ## restrict VCF INFO columns to AC and AN values
 vcfPar <- ScanVcfParam(geno=NA,
-                       fixed="ALT",
+                       fixed=c("ALT", "FILTER"),
                        info=c(ACcols, ANcols))
 
 ## fetch sequence names
@@ -134,6 +137,12 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
 
   ## the whole VCF for the chromosome into main memory
   vcf <- readVcf(sprintf("topmed_by_chr/%s.vcf.gz", chr), genome=genomeversion, param=vcfPar)
+
+  ## discard variants not passing all FILTERS
+  mask <- fixed(vcf)$FILTER == "PASS"
+  vcf <- vcf[mask, ]
+  gc()
+
   nsites <- as.numeric(nrow(vcf))
 
   ## mask variants where all alternate alleles are SNVs
@@ -164,6 +173,12 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
   isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
 
+  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+  ## "It is permitted to have multiple records with the same POS"
+  ## in such a case we take the maximum MAF by looking at repeated positions
+  rrbypos <- split(rr, start(rr))
+  rr <- rr[!duplicated(rr)]
+
   ## fetch allele frequency data
   acanValues <- info(vcfsnvs)
   clsValues <- sapply(acanValues, class)
@@ -185,6 +200,10 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
     mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
     if (any(mask))
       mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+
+    mafValuesCol <- relist(mafValuesCol, rrbypos)
+    mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                              ## take the maximum allele frequency
 
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
@@ -239,11 +258,22 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
   ## clean up the GRanges and save it
   mcols(rr) <- NULL
   names(rr) <- NULL
+
+  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+  ## "It is permitted to have multiple records with the same POS"
+  ## in such a case we take the maximum MAF by looking at repeated positions
+  rrbypos <- split(rr, paste(start(rr), end(rr), sep="-"))
+  rr <- rr[!duplicated(rr)]
   saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
 
   ## fetch allele frequency data
-  acanValues <- info(vcfsnvs)
+  acanValues <- info(vcfnonsnvs)
   clsValues <- sapply(acanValues, class)
+
+  rm(vcf)
+  rm(vcfsnvs)
+  rm(vcfnonsnvs)
+  gc()
 
   for (j in seq_along(ACcols)) {
     acCol <- ACcols[j]
@@ -263,6 +293,9 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
     if (any(mask))
       mafValuesCol[mask] <- 1 - mafValuesCol[mask]
 
+    mafValuesCol <- relist(mafValuesCol, rrbypos)
+    mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                              ## take the maximum allele frequency
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
     f <- cut(x, breaks=c(0, 10^c(seq(floor(min(log10(x[x!=0]), na.rm=TRUE)),
