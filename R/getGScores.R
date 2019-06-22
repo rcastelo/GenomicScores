@@ -86,7 +86,11 @@ getGScores <- function(x) {
   mdah <- mcols(ah)
   objnames <- mdah$title
   ahids <- rownames(mdah)
-  fnames <- cache(ah[names(ah)])
+  fnames <- cache(ah[ahids])
+
+  ## in BioC 3.8 names from 'cache()' became 'AHXXXX : YYYY'
+  ## so we need to override those names.
+  names(fnames) <- ahids
   serializedobjs <- basename(fnames[ahids])
   names(serializedobjs) <- objnames
 
