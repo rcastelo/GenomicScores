@@ -26,8 +26,6 @@ GScores <- function(provider, provider_version, download_url,
   nsites <- NA_real_
   if (file.exists(file.path(data_dirpath, "nsites.rds")))
     nsites <-  as.numeric(readRDS(file.path(data_dirpath, "nsites.rds")))
-  else if (file.exists(file.path(data_dirpath, "nov.rds"))) ## temporary during deprecation of MafDb
-    nsites <-  as.numeric(readRDS(file.path(data_dirpath, "nov.rds")))
 
   new("GScores", provider=provider,
                  provider_version=provider_version,
@@ -212,14 +210,6 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
 setMethod("score", "GScores",
           function(x, ..., simplify=TRUE) {
             gsco <- gscores(x, ..., scores.only=TRUE)
-            if (ncol(gsco) == 1 && simplify)
-              gsco <- gsco[[1]]
-            gsco
-          })
-
-setMethod("score", "MafDb",
-          function(x, ..., simplify=TRUE) {
-            gsco <- gscores(x, ..., maf.only=TRUE)
             if (ncol(gsco) == 1 && simplify)
               gsco <- gsco[[1]]
             gsco

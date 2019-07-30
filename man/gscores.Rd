@@ -2,10 +2,8 @@
 
 \alias{gscores,GScores,GenomicRanges-method}
 \alias{gscores,GScores,character-method}
-\alias{gscores,MafDb,GenomicRanges-method}
 \alias{gscores}
 \alias{score,GScores-method}
-\alias{score,MafDb-method}
 \alias{availableGScores}
 \alias{getGScores}
 
@@ -19,9 +17,7 @@ availableGScores()
 getGScores(x)
 \S4method{gscores}{GScores,GenomicRanges}(x, ranges, ...)
 \S4method{gscores}{GScores,character}(x, ranges, ...)
-\S4method{gscores}{MafDb,GenomicRanges}(x, ranges, ...)
 \S4method{score}{GScores}(x, ..., simplify=TRUE)
-\S4method{score}{MafDb}(x, ..., simplify=TRUE)
 }
 \arguments{
   \item{x}{For \code{getGScores()}, a \code{character} vector of length 1
