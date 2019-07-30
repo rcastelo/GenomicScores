@@ -207,6 +207,23 @@ setMethod("nsites", "GScores", function(x) x@data_nsites)
   ans
 }
 
+.rleGetMetaValues <- function(rlelst, gr, metadataID) {
+  stopifnot(all(width(gr) == 1)) ## QC
+  rlelst <- endoapply(rlelst, function(x) metadata(x)[[metadataID]])
+  if (all(sapply(rlelst, length) == 0L))
+    return(Rle(rep(FALSE, length(gr))))
+
+  seqlevels(gr) <- names(rlelst)
+  ord <- order(seqnames(gr)) ## store ordering below in 'split()'
+  startbyseq <- split(start(gr), seqnames(gr), drop=TRUE)
+  x <- as.logical(decode(unlist(rlelst[startbyseq], use.names=FALSE)))
+  ans <- vector(mode=class(x), length=length(gr))
+  ans[ord] <- x
+  ans <- Rle(ans)
+
+  ans
+}
+
 setMethod("score", "GScores",
           function(x, ..., simplify=TRUE) {
             gsco <- gscores(x, ..., scores.only=TRUE)
@@ -478,6 +495,8 @@ setMethod("gscores", c("GScores", "character"),
 
   ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges),
                                         ncol=length(pop), dimnames=list(NULL, pop))))
+  ans2 <- NULL
+
   for (popname in pop) {
     missingMask <- !snames %in% names(gscopops[[popname]])
     anyMissing <- anyMissing || any(missingMask)
@@ -495,15 +514,27 @@ setMethod("gscores", c("GScores", "character"),
                       popname))
 
   if (length(ref) > 0 && length(alt) > 0) {
-    if (is.matrix(sco)) {
+    if (is.matrix(sco)) { ## if it's a matrix, then we have multiple scores per position
       mt.r <- match(ref, DNA_BASES)
       mt.a <- match(alt, DNA_BASES)
       mask <- mt.r < mt.a
       idxcol <- mt.a
       idxcol[mask] <- mt.a[mask] - 1L
       sco <- sco[cbind(1:nrow(sco), idxcol)]
-    } else
-      warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+    } else { # if it's not a matrix, then assume we have metadata associated with the scores
+      ## DEPRECATED: warning("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+      maskREF <- as.logical(.rleGetMetaValues(gscopops[[popname]], ranges, "maskREF"))
+      if (is.null(ans2) && length(maskREF) > 0) {
+        ans2 <- ans
+        colnames(ans) <- paste0(colnames(ans), "_REF")
+        colnames(ans2) <- paste0(colnames(ans2), "_ALT")
+      }
+      popnameALT <- paste0(popname, "_ALT")
+      popname <- paste0(popname, "_REF")
+      ans2[[popnameALT]] <- sco
+      ans2[[popnameALT]][maskREF] <- 1 - sco[maskREF]
+      sco[!maskREF] <- 1 - sco[!maskREF]
+    }
   }
 
   ans[[popname]] <- sco
@@ -511,6 +542,12 @@ setMethod("gscores", c("GScores", "character"),
   if (anyMissing && caching)
     assign(object@data_pkgname, gscopops, envir=object@.data_cache)
   rm(gscopops)
+
+  if (!is.null(ans2)) {
+    ans <- cbind(ans, ans2)
+    rm(ans2)
+  }
+
   if (scores.only)
     return(ans)
 
