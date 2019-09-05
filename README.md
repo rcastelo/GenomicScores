@@ -1,16 +1,18 @@
 # GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor
 
-[![Bioconductor Time](http://bioconductor.org/shields/years-in-bioc/GenomicScores.svg)](http://bioconductor.org/packages/release/bioc/html/GenomicScores.html "How long has been GenomicScores in a release of Bioconductor")
-[![Bioconductor Downloads](http://bioconductor.org/shields/downloads/GenomicScores.svg)](http://bioconductor.org/packages/stats/bioc/GenomicScores.html "Percentile (top 5/20/50% or 'available') of downloads over the last 6 full months")
-[![Bioconductor Commits](http://bioconductor.org/shields/commits/bioc/GenomicScores.svg)](http://bioconductor.org/packages/devel/bioc/html/GenomicScores.html#svn_source "Average SVN commits (to the devel branch) per month over the last 6 months")
-[![Support posts](http://bioconductor.org/shields/posts/GenomicScores.svg)](https://support.bioconductor.org/t/GenomicScores/ "Bioconductor support site activity on GenomicScores, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
+[![Bioconductor Time](https://bioconductor.org/shields/years-in-bioc/GenomicScores.svg)](https://bioconductor.org/packages/release/bioc/html/GenomicScores.html "How long has been GenomicScores in a release of Bioconductor")
+[![Bioconductor Downloads](https://bioconductor.org/shields/downloads/GenomicScores.svg)](https://bioconductor.org/packages/stats/bioc/GenomicScores.html "Ranking by number of downloads. A lower number means the package is downloaded more frequently. Determined within a package type (software, experiment, annotation, workflow) and uses the number of distinct IPs for the last 12 months")
+[![Bioconductor Commits](https://bioconductor.org/shields/lastcommit/release/bioc/GenomicScores.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/GenomicScores "Time since last commit, possible values: today, < 1 week, < 1 month, < 3 months, since release, before release")
+[![Support posts](https://bioconductor.org/shields/posts/GenomicScores.svg)](https://support.bioconductor.org/t/GenomicScores/ "Support site activity on GenomicScores, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
 <img align="right" src="https://raw.githubusercontent.com/Bioconductor/BiocStickers/master/GenomicScores/GenomicScores.png" height="200"/>
 
 **Current build status**
-- `release` [![Bioconductor Availability](http://bioconductor.org/shields/availability/release/GenomicScores.svg)](http://bioconductor.org/packages/release/bioc/html/GenomicScores.html#archives "Whether GenomicScores release is available on all platforms") 
-[![Bioconductor Release Build](http://bioconductor.org/shields/build/release/bioc/GenomicScores.svg)](http://bioconductor.org/checkResults/release/bioc-LATEST/GenomicScores/ "Bioconductor release build")
-- `development` [![Bioconductor Availability](http://bioconductor.org/shields/availability/devel/GenomicScores.svg)](http://bioconductor.org/packages/devel/bioc/html/GenomicScores.html#archives "Whether GenomicScores devel is available on all platforms") 
-[![Bioconductor Devel Build](http://bioconductor.org/shields/build/devel/bioc/GenomicScores.svg)](http://bioconductor.org/checkResults/devel/bioc-LATEST/GenomicScores/ "Bioconductor devel build")
+- `release` [![Bioconductor Availability](https://bioconductor.org/shields/availability/release/GenomicScores.svg)](https://bioconductor.org/packages/release/bioc/html/GenomicScores.html#archives "Whether GenomicScores release is available on all platforms") 
+[![Bioconductor Release Build](https://bioconductor.org/shields/build/release/bioc/GenomicScores.svg)](https://bioconductor.org/checkResults/release/bioc-LATEST/GenomicScores/ "Bioconductor release build")
+[![Bioconductor Dependencies](https://bioconductor.org/shields/dependencies/release/GenomicScores.svg)](https://bioconductor.org/packages/release/bioc/html/GenomicScores.html#since "Number of recursive dependencies needed to install package")
+- `development` [![Bioconductor Availability](https://bioconductor.org/shields/availability/devel/GenomicScores.svg)](https://bioconductor.org/packages/devel/bioc/html/GenomicScores.html#archives "Whether GenomicScores devel is available on all platforms") 
+[![Bioconductor Devel Build](https://bioconductor.org/shields/build/devel/bioc/GenomicScores.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/GenomicScores/ "Bioconductor devel build")
+[![Bioconductor Dependencies](https://bioconductor.org/shields/dependencies/devel/GenomicScores.svg)](https://bioconductor.org/packages/devel/bioc/html/GenomicScores.html#since "Number of recursive dependencies needed to install package")
 
 The `GenomicScores` package facilitates an efficient storage and seamless access of genomic scores, and their integration into genome analysis workflows on top of R and Bioconductor. Users using these genomic scores should cite their original source included in the metadata of the scores and accessible through the function `citation()`. For citing `GenomicScores` as a software package, please use the following reference:
 
