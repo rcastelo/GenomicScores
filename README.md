@@ -20,10 +20,10 @@ The `GenomicScores` package facilitates an efficient storage and seamless access
 
 ## Installation
 
-This is the __development__ version of the R/Bioconductor package GenomicScores. This version is unstable and should be used only to test new features. If you are looking for the __release__ version of this package please go to its package release landing page at [http://bioconductor.org/packages/GenomicScores](http://bioconductor.org/packages/GenomicScores) and follow the instructions there to install it.
+This is the __development__ version of the R/Bioconductor package GenomicScores. This version is unstable and should be used only to test new features. If you are looking for the __release__ version of this package please go to its package release landing page at [https://bioconductor.org/packages/GenomicScores](https://bioconductor.org/packages/GenomicScores) and follow the instructions there to install it.
 
 If you were really looking for this development version, then to install it you
-need first to install the development version of R that you can find at [http://cran.r-project.org](http://cran.r-project.org) and then type the following instructions from the R shell:
+need first to install the development version of R that you can find at [https://cran.r-project.org](https://cran.r-project.org) and then type the following instructions from the R shell:
 
 ```r
 install.packages("BiocManager")
@@ -41,7 +41,7 @@ install_github("rcastelo/GenomicScores")
 ## Questions, bug reports and issues
 
 For questions and bug reports regarding the __release__ version of **GenomicScores**
-please use the [Bioconductor support site](http://support.bioconductor.org "Bioconductor support site").
+please use the [Bioconductor support site](https://support.bioconductor.org "Bioconductor support site").
 For bug reports and issues regarding this __development__ version of **GenomicScores**
 please use the GitHub issues link at the top-right of this page
 ([https://github.com/rcastelo/GenomicScores/issues](https://github.com/rcastelo/GenomicScores/issues)).
