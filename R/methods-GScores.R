@@ -625,6 +625,8 @@ setMethod("gscores", c("GScores", "character"),
         i <- i + length(gscononsnrs)
       }
       mcols(tmp)[[popname]] <- scovalues
+      ## add maskREF metadata to each population, if available
+      metadata(mcols(tmp)[[popname]])$maskREF <- md$maskREF
     }
     gscononsnrs <- split(tmp, seqnames(tmp), drop=TRUE)
     metadata(gscononsnrs) <- md
@@ -660,39 +662,40 @@ setMethod("gscores", c("GScores", "character"),
 
   missingSeqMask <- !snames %in% names(gscononsnrs)
   anyMissing <- any(missingSeqMask)
-  popnames <- character(0)
+  allpopnames <- character(0)
   if (length(gscononsnrs) > 0)
-    popnames <- colnames(mcols(gscononsnrs[[1]]))
-  missingPopMask <- !pop %in% popnames
+    allpopnames <- colnames(mcols(gscononsnrs[[1]]))
+  missingPopMask <- !pop %in% allpopnames
   anyMissing <- anyMissing || any(missingPopMask)
 
   if (any(missingSeqMask) || any(missingPopMask)) ## if genomic scores belong to queried sequences that are not cached, load them
     gscononsnrs <- .fetch_scores_nonsnrs(object, objectname, gscononsnrs,
                                          pop[missingPopMask], snames[missingSeqMask])
 
-  ans <- NULL
+  ans <- ans2 <- NULL
   if (quantized)
     ans <- DataFrame(as.data.frame(matrix(raw(0), nrow=length(ranges), ncol=length(pop),
                                         dimnames=list(NULL, pop))))
   else
     ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges), ncol=length(pop),
                                         dimnames=list(NULL, pop))))
-  ans2 <- NULL
 
   ## the default value of 'minoverlap=1L' assumes that the sought nonsnrs are
   ## stored as in VCF files, using the nucleotide composition of the reference sequence
   ov <- findOverlaps(ranges, unlist(gscononsnrs), minoverlap=minoverlap)
+  qHits <- queryHits(ov)
+  sHits <- subjectHits(ov)
   if (length(ov) > 0) {
-    q <- mcols(unlist(gscononsnrs))[subjectHits(ov), pop, drop=FALSE]
+    q <- mcols(unlist(gscononsnrs))[sHits, pop, drop=FALSE]
     if (quantized)
-      ans[queryHits(ov), pop] <- DataFrame(lapply(q, decode))
+      ans[qHits, pop] <- DataFrame(lapply(q, decode))
     else {
       .dequantizer <- metadata(gscononsnrs)$dqfun
       dqargs <- metadata(gscononsnrs)$dqfun_args
       lappargs <- c(list(X=q, FUN=.dequantizer), dqargs)
-      ans[queryHits(ov), pop] <- DataFrame(do.call("lapply", lappargs))
+      ans[qHits, pop] <- DataFrame(do.call("lapply", lappargs))
     }
-    if (any(duplicated(queryHits(ov))))
+    if (any(duplicated(qHits)))
       message("gscores: more than one genomic score overlapping queried positions, reporting only the first hit.")
 
     if (length(ref) > 0 && length(alt) > 0) {
@@ -702,12 +705,13 @@ setMethod("gscores", c("GScores", "character"),
         colnames(ans) <- paste0(colnames(ans), "_REF")
         colnames(ans2) <- paste0(colnames(ans2), "_ALT")
       }
-      ### HERE ONE SHOULD ITERATE THROUGH POPULATIONS
-      ## popnameALT <- paste0(popname, "_ALT")
-      ## popname <- paste0(popname, "_REF")
-      ## ans2[[popnameALT]] <- ans[[popname]]
-      ## ans2[[popnameALT]][maskREF] <- 1 - sco[maskREF]
-      ## ans[[popname]][!maskREF] <- 1 - ans[[popname]][!maskREF]
+      for (popname in pop) {
+        popnameALT <- paste0(popname, "_ALT")
+        popnameREF <- paste0(popname, "_REF")
+        ans2[qHits, popnameALT] <- ans[qHits, popname]
+        ans2[qHits, popnameALT][maskREF] <- 1 - ans[qHits, popnameREF][maskREF]
+        ans[qHits, popnameREF][!maskREF] <- 1 - ans[qHits, popnameREF][!maskREF]
+      }
     }
   }
 
