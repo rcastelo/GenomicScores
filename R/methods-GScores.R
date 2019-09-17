@@ -444,16 +444,24 @@ setMethod("gscores", c("GScores", "character"),
     if (!class(ref) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
       stop("'ref' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
     } else if (class(ref) == "DNAStringSetList") {
-      if (max(elementNROWS(ref)) > 1)
-        stop("'ref' argument must contain only a single nucleotide per position.")
+      mask <- elementNROWS(ref) > 1
+      if (any(mask)) {
+        ## stop("'ref' argument must contain only a single nucleotide per position.")
+        ref <- unstrsplit(CharacterList(ref), sep=",")
+        ref[mask] <- NA_character_
+      }
       ref <- unlist(ref)
     }
 
     if (!class(alt) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
       stop("'alt' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
     } else if (class(alt) == "DNAStringSetList") {
-      if (max(elementNROWS(alt)) > 1)
-        stop("'alt' argument must contain only a single nucleotide per position.")
+      mask <- elementNROWS(alt) > 1
+      if (any(mask)) {
+        ## stop("'alt' argument must contain only a single nucleotide per position.")
+        alt <- unstrsplit(CharacterList(alt), sep=",")
+        alt[mask] <- NA_character_
+      }
       alt <- unlist(alt)
     }
   }
@@ -515,6 +523,8 @@ setMethod("gscores", c("GScores", "character"),
 
   if (length(ref) > 0 && length(alt) > 0) {
     if (is.matrix(sco)) { ## if it's a matrix, then we have multiple scores per position
+      if (any(is.na(ref)) || any(is.na(alt)))
+        warning("'ref' or 'alt' arguments contain more than one allele per position, NAs introduced.")
       mt.r <- match(ref, DNA_BASES)
       mt.a <- match(alt, DNA_BASES)
       mask <- mt.r < mt.a
@@ -635,9 +645,9 @@ setMethod("gscores", c("GScores", "character"),
   alt <- ra$alt
   rm(ra)
 
-  ## by now, only multiple SNR alleles considered
-  if (length(ref) > 0 && length(alt) > 0)
-    message("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
+  ## ## by now, only multiple SNR alleles considered
+  ## if (length(ref) > 0 && length(alt) > 0)
+  ##   message("arguments 'ref' and 'alt' are given but there is only one score per genomic position.")
 
   if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
     seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
@@ -667,6 +677,7 @@ setMethod("gscores", c("GScores", "character"),
   else
     ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges), ncol=length(pop),
                                         dimnames=list(NULL, pop))))
+  ans2 <- NULL
 
   ## the default value of 'minoverlap=1L' assumes that the sought nonsnrs are
   ## stored as in VCF files, using the nucleotide composition of the reference sequence
@@ -681,14 +692,34 @@ setMethod("gscores", c("GScores", "character"),
       lappargs <- c(list(X=q, FUN=.dequantizer), dqargs)
       ans[queryHits(ov), pop] <- DataFrame(do.call("lapply", lappargs))
     }
-
     if (any(duplicated(queryHits(ov))))
       message("gscores: more than one genomic score overlapping queried positions, reporting only the first hit.")
+
+    if (length(ref) > 0 && length(alt) > 0) {
+      maskREF <- as.logical(metadata(q)$maskREF)
+      if (is.null(ans2) && length(maskREF) > 0) {
+        ans2 <- ans
+        colnames(ans) <- paste0(colnames(ans), "_REF")
+        colnames(ans2) <- paste0(colnames(ans2), "_ALT")
+      }
+      ### HERE ONE SHOULD ITERATE THROUGH POPULATIONS
+      ## popnameALT <- paste0(popname, "_ALT")
+      ## popname <- paste0(popname, "_REF")
+      ## ans2[[popnameALT]] <- ans[[popname]]
+      ## ans2[[popnameALT]][maskREF] <- 1 - sco[maskREF]
+      ## ans[[popname]][!maskREF] <- 1 - ans[[popname]][!maskREF]
+    }
   }
 
   if (anyMissing && caching)
     assign(sprintf("%s.nonsnvs", name(object)), gscononsnrs, envir=object@.data_cache)
   rm(gscononsnrs)
+
+  if (!is.null(ans2)) {
+    ans <- cbind(ans, ans2)
+    rm(ans2)
+  }
+
   if (scores.only)
     return(ans)
 
