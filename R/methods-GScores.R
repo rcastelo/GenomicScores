@@ -699,16 +699,16 @@ setMethod("gscores", c("GScores", "character"),
       message("gscores: more than one genomic score overlapping queried positions, reporting only the first hit.")
 
     if (length(ref) > 0 && length(alt) > 0) {
-      maskREF <- as.logical(metadata(q)$maskREF)
-      if (is.null(ans2) && length(maskREF) > 0) {
-        ans2 <- ans
-        colnames(ans) <- paste0(colnames(ans), "_REF")
-        colnames(ans2) <- paste0(colnames(ans2), "_ALT")
-      }
       for (popname in pop) {
+        maskREF <- as.logical(metadata(mcols(unlist(gscononsnrs))[[popname]])$maskREF[sHits])
+        if (is.null(ans2) && length(maskREF) > 0) {
+          ans2 <- ans
+          colnames(ans) <- paste0(colnames(ans), "_REF")
+          colnames(ans2) <- paste0(colnames(ans2), "_ALT")
+        }
         popnameALT <- paste0(popname, "_ALT")
         popnameREF <- paste0(popname, "_REF")
-        ans2[qHits, popnameALT] <- ans[qHits, popname]
+        ans2[qHits, popnameALT] <- ans[qHits, popnameREF]
         ans2[qHits, popnameALT][maskREF] <- 1 - ans[qHits, popnameREF][maskREF]
         ans[qHits, popnameREF][!maskREF] <- 1 - ans[qHits, popnameREF][!maskREF]
       }
