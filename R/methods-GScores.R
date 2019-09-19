@@ -682,7 +682,8 @@ setMethod("gscores", c("GScores", "character"),
 
   ## the default value of 'minoverlap=1L' assumes that the sought nonsnrs are
   ## stored as in VCF files, using the nucleotide composition of the reference sequence
-  ov <- findOverlaps(ranges, unlist(gscononsnrs), minoverlap=minoverlap)
+  ov <- findOverlaps(ranges, unlist(gscononsnrs),
+                     minoverlap=minoverlap, type="equal")
   qHits <- queryHits(ov)
   sHits <- subjectHits(ov)
   if (length(ov) > 0) {
