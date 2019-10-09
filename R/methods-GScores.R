@@ -381,10 +381,11 @@ setMethod("gscores", c("GScores", "character"),
                 assign("rsIDgp", rsIDgp, envir=x@.data_cache)
               }
               rsIDgp <- get("rsIDgp", envir=x@.data_cache)
-              issnvmask <- rsIDgp$isSNV
-              rsIDgp <- updateObject(rsIDgp, verbose=FALSE) ## temporary solution until GPos objects are updated
-              rsIDgp$isSNV <- issnvmask
-              rm(issnvmask)
+              ## if all GPos objects have been updated, this is not necessary anymore
+              ## issnvmask <- rsIDgp$isSNV
+              ## rsIDgp <- updateObject(rsIDgp, verbose=FALSE) ## temporary solution until GPos objects are updated
+              ## rsIDgp$isSNV <- issnvmask
+              ## rm(issnvmask)
               rng <- rsIDgp[mt[!is.na(mt)]]
               mask <- logical(length(mt))
               mask[!is.na(mt)] <- rng$isSNV
@@ -402,7 +403,7 @@ setMethod("gscores", c("GScores", "character"),
                                           minoverlap=minoverlap, caching=caching)
               ranges <- as(rng, "GRanges")
               names(ranges) <- rownames(ans)[!is.na(mt)]
-              mcols(ranges) <- ans[!is.na(mt), ]
+              mcols(ranges) <- ans[!is.na(mt), , drop=FALSE]
             }
 
             if (scores.only)
