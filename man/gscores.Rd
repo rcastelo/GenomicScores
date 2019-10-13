@@ -99,8 +99,8 @@ The method \code{score()} returns a numeric vector with the genomic scores.
 }
 \author{R. Castelo}
 \seealso{
-  \code{\link{phastCons100way.UCSC.hg19}}
-  \code{\link{MafDb.1Kgenomes.phase1.hs37d5}}
+  \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
+  \code{\link[MafDb.1Kgenomes.phase1.hs37d5]{MafDb.1Kgenomes.phase1.hs37d5}}
 }
 \examples{
 ## one genomic range of width 5

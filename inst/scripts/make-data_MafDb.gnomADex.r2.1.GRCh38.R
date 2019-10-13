@@ -2,9 +2,10 @@
 ## annotation package the gnomAD exome allele frequencies. If you use
 ## these data please cite the following publication:
 
-## Lek et al. Analysis of protein-coding genetic variation in 60,706 humans.
-## Nature, 536:285-291, 2016.
-## doi: http://dx.doi.org/10.1038/nature19057
+## Karczewski et al. Variation across 141,456 human exomes and genomes
+## reveals the spectrum of loss-of-function intolerance across human
+## protein-coding genes. bioRxiv, 531210, 2019.
+## doi: http://dx.doi.org/10.1101/531210
 
 ## See http://gnomad.broadinstitute.org/terms for further information
 ## on using this data for your own research
@@ -30,54 +31,14 @@ library(doParallel)
 
 downloadURL <- "ftp://ftp.ensembl.org/pub/data_files/homo_sapiens/GRCh38/variation_genotype/gnomad/r2.1"
 citationdata <- bibentry(bibtype="Article",
-                         author=c(person("Monkol Lek"), person("Konrad J. Karczewski"),
-                                  person("Eric V. Minikel"), person("Kaitlin E. Samocha"),
-                                  person("Eric Banks"), person("Timothy Fennell"),
-                                  person("Anne H. O'Donnell-Luria"), person("James S. Ware"),
-                                  person("Andrew J. Hill"), person("Beryl B. Cummings"),
-                                  person("Taru Tukiainen"), person("Daniel P. Birnbaum"),
-                                  person("Jack A. Kosmicki"), person("Laramie E. Duncan"),
-                                  person("Karol Estrada"), person("Fengmei Zhao"),
-                                  person("James Zou"), person("Emma Pierce-Hoffman"),
-                                  person("Joanne Berghout"), person("David N. Cooper"),
-                                  person("Nicole Deflaux"), person("Mark DePristo"),
-                                  person("Ron Do"), person("Jason Flannick"),
-                                  person("Menachem Fromer"), person("Laura Gauthier"),
-                                  person("Jackie Goldstein"), person("Namrata Gupta"),
-                                  person("Daniel Howrigan"), person("Adam Kiezun"),
-                                  person("Mitja L. Kurki"), person("Ami Levy Moonshine"),
-                                  person("Pradeep Natarajan"), person("Lorena Orozco"),
-                                  person("Gina M. Peloso"), person("Ryan Poplin"),
-                                  person("Manuel A. Rivas"), person("Valentin Ruano-Rubio"),
-                                  person("Samuel A. Rose"), person("Douglas M. Ruderfer"),
-                                  person("Khalid Shakir"), person("Peter D. Stenson"),
-                                  person("Christine Stevens"), person("Brett P. Thomas"),
-                                  person("Grace Tiao"), person("Maria T. Tusie-Luna"),
-                                  person("Ben Weisburd"), person("Hong-Hee Won"),
-                                  person("Dongmei Yu"), person("David M. Altshuler"),
-                                  person("Diego Ardissino"), person("Michael Boehnke"),
-                                  person("John Danesh"), person("Stacey Donnelly"),
-                                  person("Roberto Elosua"), person("Jose C. Florez"),
-                                  person("Stacey B. Gabriel"), person("Gad Getz"),
-                                  person("Stephen J. Glatt"), person("Christina M. Hultman"),
-                                  person("Sekar Kathiresan"), person("Markku Laakso"),
-                                  person("Steven McCarroll"), person("Mark L. McCarthy"),
-                                  person("Dermot McGovern"), person("Ruth McPherson"),
-                                  person("Benjamein M. Neale"), person("Aarno Palotie"),
-                                  person("Shaun M. Purcell"), person("Danish Saleheen"),
-                                  person("Jeremiah M. Scharf"), person("Pamela Sklar"),
-                                  person("Patrick F. Sullivan"), person("Jaakko Tuomilehto"),
-                                  person("Ming T. Tsuang"), person("Hugh C. Watkins"),
-                                  person("James G. Wilson"), person("Mark J. Daly"),
-                                  person("Daniel G. MacArthur"), person("Exome Aggregation Consortium")),
-                         title="Analysis of protein-coding genetic variation in 60,706 humans",
-                         journal="Nature",
-                         volume="536",
-                         pages="285-291",
-                         year="2016",
-                         doi="10.1038/nature19057")
+                         author=c(person("Konrad J Karczewski"), person("et al.")),
+                         title="Variation across 141,456 human exomes and genomes reveals the spectrum of loss-of-function intolerance across human protein-coding genes",
+                         journal="bioRxiv",
+                         pages="531210",
+                         year="2019",
+                         doi="10.1101/531210")
 
-registerDoParallel(cores=8)
+registerDoParallel(cores=4) ## up to 30 Gb per process
 
 ## quantizer function. it maps input real-valued [0, 1] allele frequencies
 ## to positive integers [1, 255] so that each of them can be later
@@ -137,11 +98,6 @@ vcfHeader <- scanVcfHeader(file.path(path2vcfs, vcfFilename))
 namesstdchr <- standardChromosomes(Hsapiens)
 stopifnot(all(seqlengths(vcfHeader)[namesstdchr] == seqlengths(Hsapiens)[namesstdchr])) ## QC
 
-## fill up SeqInfo data
-si <- keepStandardChromosomes(seqinfo(vcfHeader))
-isCircular(si) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-genome(si) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
-
 ## save the GenomeDescription object
 refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
                                  common_name=commonName(Hsapiens),
@@ -149,13 +105,13 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
                                  provider_version=providerVersion(Hsapiens),
                                  release_date=releaseDate(Hsapiens),
                                  release_name=releaseName(Hsapiens),
-                                 seqinfo=si)
+                                 seqinfo=seqinfo(Hsapiens))
 saveRDS(refgenomeGD, file=file.path(pkgname, "refgenomeGD.rds"))
 
 ## read INFO column data
 infoCols <- rownames(info(vcfHeader))
 AFcols <- infoCols[grep("^AF", infoCols)]
-exclude <- grep("raw|POPMAX|popmax", AFcols)
+exclude <- grep("raw|male", AFcols)
 if (length(exclude) > 0)
     AFcols <- AFcols[-exclude] ## remove columns such as those for maximum allele frequency among populations
 
@@ -163,7 +119,7 @@ message("Starting to process variants")
 
 ## restrict VCF INFO columns to AF values
 vcfPar <- ScanVcfParam(geno=NA,
-                       fixed="ALT",
+                       fixed=c("ALT", "FILTER"),
                        info=AFcols)
 
 foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
@@ -174,8 +130,12 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
   vcf <- readVcf(file.path(path2vcfs, sprintf("gnomad.exomes.r2.1.sites.grch38.chr%s_noVEP.vcf.gz", chr)),
                  genome=genomeversion, param=vcfPar)
 
+  ## discard variants not passing all FILTERS
+  mask <- fixed(vcf)$FILTER == "PASS"
+  vcf <- vcf[mask, ]
+  gc()
+
   vcf <- keepStandardChromosomes(vcf)
-  seqinfo(vcf) <- si
 
   ## mask variants where all alternate alleles are SNVs
   evcf <- expand(vcf)
@@ -200,7 +160,7 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
   gc()
 
   ## fill up missing SeqInfo data
-  isCircular(rr) <- isCircular(si)
+  si <- seqinfo(vcf)
   seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
@@ -213,6 +173,12 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
   ## in such a case we take the maximum MAF by looking at repeated positions
   rrbypos <- split(rr, start(rr))
   rr <- rr[!duplicated(rr)]
+  ## put back the genomic order
+  mt <- match(as.character(start(rr)), names(rrbypos))
+  stopifnot(all(!is.na(mt))) ## QC
+  rrbypos <- rrbypos[mt]
+  rm(mt)
+  gc()
 
   ## fetch allele frequency data
   afValues <- info(vcfsnvs)
@@ -235,15 +201,20 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
       stop(sprintf("Uknown class for holding AF values (%s)", clsValues[afCol]))
     }
 
-    ## allele frequencies from gnomAD are calculated from alternative alleles,
-    ## so some of them we need to turn them into minor allele frequencies (MAF)
-    mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-    if (any(mask))
-      mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+    ## allele frequencies from gnomAD exomes are calculated from alternative alleles,
+    ## so for some of them we need to turn them into minor allele frequencies (MAF)
+    ## for biallelic variants, in those cases the MAF comes from the REF allele
+    maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+    if (any(maskREF))
+      mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
 
     mafValuesCol <- relist(mafValuesCol, rrbypos)
+    maskREF <- relist(maskREF, rrbypos)
     mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
-                                              ## take the maximum allele frequenc
+                                              ## take the maximum allele frequency
+    maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                    ## alternate alleles has AF > 0.5, then we
+                                    ## set to TRUE maskREF as if the MAF is in REF
 
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
@@ -255,6 +226,10 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
 
     ## build an integer-RleList object using the 'coverage()' function
     obj <- coverage(rr, weight=q)[[chr]]
+    ## build an integer-Rle object of maskREF using the 'coverage()' function
+    maskREFobj <- coverage(rr, weight=maskREF+0L)[[chr]]
+
+    ## build ECDF of MAF values
     if (length(unique(mafValuesCol)) <= 10000) {
       Fn <- ecdf(mafValuesCol)
     } else {
@@ -264,6 +239,7 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
     ## coerce to raw-Rle, add metadata and save
     if (any(runValue(obj) != 0)) {
       runValue(obj) <- as.raw(runValue(obj))
+      runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
                             provider="BroadInstitute",
                             provider_version="r2.1",
@@ -275,7 +251,8 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn,
-                            max_abs_error=max.abs.error)
+                            max_abs_error=max.abs.error,
+                            maskREF=maskREFobj)
       saveRDS(obj, file=file.path(pkgname, sprintf("%s.%s.%s.rds", pkgname, afCol, chr)))
     } else {
       warning(sprintf("No MAF values for SNVs in chromosome %s", chr))
@@ -312,14 +289,12 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
   ## fetch allele frequency data
   afValues <- info(vcfnonsnvs)
   clsValues <- sapply(afValues, class)
-
   rm(vcf)
   rm(vcfnonsnvs)
   gc()
 
   ## re-order by chromosomal coordinates
   afValues <- afValues[ord, ]
-  rm(ord)
 
   ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
   ## "It is permitted to have multiple records with the same POS"
@@ -327,9 +302,20 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
   ## "all multi-allelic sites have been split. This means that
   ## multiple lines now have the same chromosome and position."
   ## in such a case we take the maximum MAF by looking at repeated positions
-  rrbypos <- split(rr, paste(start(rr), end(rr), sep="-"))
+  posids <- paste(start(rr), end(rr), sep="-")
+  rrbypos <- split(rr, posids)
   rr <- rr[!duplicated(rr)]
+  ## put back the genomic order
+  posids <- paste(start(rr), end(rr), sep="-")
+  mt <- match(posids, names(rrbypos))
+  stopifnot(all(!is.na(mt))) ## QC
+  rrbypos <- rrbypos[mt]
   saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
+
+  rm(ord)
+  rm(posids)
+  rm(mt)
+  gc()
 
   for (j in seq_along(AFcols)) {
     afCol <- AFcols[j]
@@ -348,15 +334,20 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
       stop(sprintf("Uknown class for holding AF values (%s)", clsValues[afCol]))
     }
 
-    ## allele frequencies from gnomAD are calculated from alternative alleles,
-    ## so some of them we need to turn them into minor allele frequencies (MAF)
-    mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-    if (any(mask))
-      mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+    ## allele frequencies from gnomAD exomes are calculated from alternative alleles,
+    ## so for some of them we need to turn them into minor allele frequencies (MAF)
+    ## for biallelic variants, in those cases the MAF comes from the REF allele
+    maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+    if (any(maskREF))
+      mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
 
     mafValuesCol <- relist(mafValuesCol, rrbypos)
+    maskREF <- relist(maskREF, rrbypos)
     mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
                                               ## take the maximum allele frequency
+    maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                    ## alternate alleles has AF > 0.5, then we
+                                    ## set to TRUE maskREF as if the MAF is in REF
 
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
@@ -366,6 +357,7 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
     err <- abs(mafValuesCol-x)
     max.abs.error <- tapply(err, f, mean, na.rm=TRUE)
 
+    ## build ECDF of MAF values
     if (length(unique(mafValuesCol)) <= 10000) {
       Fn <- ecdf(mafValuesCol)
     } else {
@@ -374,10 +366,13 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
 
     ## coerce the quantized value vector to an integer-Rle object
     obj <- Rle(q)
+    ## coerce the maskREF vector to an integer-Rle object
+    maskREFobj <- Rle(maskREF+0L)
 
     ## coerce to raw-Rle, add metadata and save
     if (any(runValue(obj) != 0)) {
       runValue(obj) <- as.raw(runValue(obj))
+      runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
                             provider="BroadInstitute",
                             provider_version="r2.1",
@@ -389,7 +384,8 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn,
-                            max_abs_error=max.abs.error)
+                            max_abs_error=max.abs.error,
+                            maskREF=maskREFobj)
       saveRDS(obj, file=file.path(pkgname, sprintf("%s.RLEnonsnv.%s.%s.rds", pkgname, afCol, chr)))
     } else {
       warning(sprintf("No MAF values for nonSNVs in chromosome %s", chr))
@@ -400,7 +396,7 @@ foreach (chr=setdiff(namesstdchr, "MT")) %dopar% { ## no VCF file for MT
 ## save rsIDs assignments from gnomAD
 ## iterating through every chromosome VCF file
 vcfPar <- ScanVcfParam(geno=NA,
-                       fixed="ALT",
+                       fixed=c("ALT", "FILTER"),
                        info=NA)
 
 message("Starting to process variant identifiers")
@@ -413,13 +409,16 @@ nTotalVar <- 0
 for (chr in setdiff(namesstdchr, "MT")) { ## no VCF file for MT
   vcf <- readVcf(file.path(path2vcfs, sprintf("gnomad.exomes.r2.1.sites.grch38.chr%s_noVEP.vcf.gz", chr)),
                  genome=genomeversion, param=vcfPar)
+
+  ## discard variants not passing all FILTERS
+  mask <- fixed(vcf)$FILTER == "PASS"
+  vcf <- vcf[mask, ]
+  gc()
+
   nVar <- nrow(vcf)
   nTotalVar <- nTotalVar + nVar
   rr <- rowRanges(vcf)
   mcols(rr) <- NULL
-  gc()
-  ord <- order(rr)
-  rr <- rr[ord]
   whrsIDs <- grep("^rs", names(rr))
   evcf <- expand(vcf)
   maskSNVs <- c(maskSNVs, sapply(relist(isSNV(evcf), alt(vcf)), all)[whrsIDs])
