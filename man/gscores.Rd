@@ -50,13 +50,13 @@ getGScores(x)
                \item{ref}{Vector of reference alleles in the form of either
                           a character vector, a \code{DNAStringSet} object
                           or a \code{DNAStringSetList} object. This argument
-                          is used only when there are multiple scores per
-                          position.}
+                          is used only when either there are multiple scores per
+                          position or \code{x} is a \code{MafDb.*} package.}
                \item{alt}{Vector of alternative alleles in the form of either
                           a character vector, a \code{DNAStringSet} object or
                           a \code{DNAStringSetList} object. This argument is
-                          used only when there are multiple scores per
-                          position.}
+                          used only when either there are multiple scores per
+                          position or \code{x} is a \code{MafDb.*} package.}
                \item{minoverlap}{Integer value passed internally to the
                                  function \code{findOverlaps()} from the
                                  \code{IRanges} package, when querying
@@ -88,6 +88,16 @@ The method \code{gscores()} takes as first argument a \code{GScores-class}
 object that can be loaded from an annotation package or from an
 \code{AnnotationHub} resource. These two possibilities are illustrated in the
 examples below.
+
+The arguments \code{ref} and \code{alt} serve two purposes. One, when there
+are multiple scores per position, such as with CADD or M-CAP, and we want to
+select a score matching a specific combination of reference and alternate
+alleles. The other purpose is when the \code{GScores} object \code{x} is a
+\code{MafDb.*} package, then by providing \code{ref} and \code{alt} alelles
+we will get separte frequencies for reference and alternate alleles. The
+current lossy compression of this values yields a correct assignment for
+biallelic variants in the corresponding \code{MafDb.*} package and an
+approximation for multiallelic ones.
 }
 \value{
 The function \code{availableGScores()} returns a character vector with the
