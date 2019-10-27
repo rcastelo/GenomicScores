@@ -1,3 +1,20 @@
+CHANGES IN VERSION 1.10.0
+------------------------
+
+USER VISIBLE CHANGES
+
+    o Added support to latest release 3.0 of gnomAD MAF data, stored in the package MafDb.gnomAD.r3.0.GRCh38.
+
+    o Individual allele frequencies can be now retrieved from MafDb.* packages when 'ref' and 'alt' arguments are given to the functions 'gscores()' and 'score()'. See manual pages and vignette for further details.
+
+    o NonSNRs are now searched giving the argument type="equal" to findOverlaps(). This means that only scores from exact matches to nonSNRs are returned.
+
+BUG FIXES
+
+    o Bugfix on the 'getGScores(') function that precluded accessing the files downloaded by the AnnotationHub
+
+    o Bugfix in accessing MAF values from nonSNVs when multiallelic variants are stored in different records from the VCF file.
+
 CHANGES IN VERSION 1.8.0
 ------------------------
 

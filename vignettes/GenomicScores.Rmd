@@ -586,7 +586,7 @@ loc$MAF[!maskSNVs] <- gscores(mafdb, loc[!maskSNVs], type="nonsnrs")$AF
 loc[1:3]
 ```
 
-Finally, we show that by providing reference and alternate alleles through
+We also show that by providing reference and alternate alleles through
 the arguments `ref` and `alt`, we can obtain their individual allele
 frequencies. The current lossy compression of these values yields their
 correct asignment in the case of biallelic variants and an aproximation
