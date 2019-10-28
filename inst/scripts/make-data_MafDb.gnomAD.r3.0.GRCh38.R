@@ -1,33 +1,26 @@
 ## This README file explains the steps to download and freeze in this
-## annotation package the allele frequencies of the Phase 1 of the
-## 1000 Genomes Project. If you use these data please cite the following publication:
+## annotation package the gnomAD genome allele frequencies. If you use
+## these data please cite the following publication:
 
-## The 1000 Genomes Project Consortium. An integrated map of genetic variation
-## from 1,092 human genomes. Nature, 491:56-65, 2012.
-## doi: http://dx.doi.org/10.1038/nature11632
+## Karczewski et al. Variation across 141,456 human exomes and genomes
+## reveals the spectrum of loss-of-function intolerance across human
+## protein-coding genes. bioRxiv, 531210, 2019.
+## doi: http://dx.doi.org/10.1101/531210
 
-## The data were downloaded from the FTP server of the 1000 Genomes Project as follows:
+## See http://gnomad.broadinstitute.org/terms for further information
+## on using this data for your own research
+
+## The data were downloaded from as follows:
 ##
-## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/integrated_call_sets/ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz
-## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/integrated_call_sets/ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz.tbi
-
-## The data were first splitted into tabix VCF files per chromosome as follows:
-##
-## mkdir -p phase1_by_chr
-## allchr=`tabix -l ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz`
+## allchr=`seq 1 22`" X"
 ## for chr in $allchr ; do {
-##   echo chr$chr
-##   tabix -h ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz $chr | bgzip -c > phase1_by_chr/chr$chr.vcf.gz
-##
-##   if [ -s phase1_by_chr/chr$chr.vcf.gz ] ; then
-##     tabix -p vcf phase1_by_chr/chr$chr.vcf.gz
-##   else
-##     rm phase1_by_chr/chr$chr.vcf.gz
-##   fi
+##   gsutil -m cp -r gs://gnomad-public/release/3.0/vcf/genomes/gnomad.genomes.r3.0.sites.chr$chr.vcf.bgz.tbi .
+##   gsutil -m cp -r gs://gnomad-public/release/3.0/vcf/genomes/gnomad.genomes.r3.0.sites.chr$chr.vcf.bgz .
 ## } done
 
-## The following R script processes the downloaded and splitted data
-## to transform the allele frequencies into minor allele frequencies
+
+## The following R script processes the downloaded and splitted data to
+## transform the allele frequencies into minor allele frequencies
 ## and store them using only one significant digit for values < 0.1,
 ## and two significant digits for values > 0.1, to reduce the memory
 ## footprint through RleList objects
@@ -36,20 +29,19 @@ library(Rsamtools)
 library(GenomicRanges)
 library(GenomeInfoDb)
 library(VariantAnnotation)
-library(BSgenome.Hsapiens.1000genomes.hs37d5)
+library(BSgenome.Hsapiens.UCSC.hg38)
 library(doParallel)
 
-downloadURL <- "http://www.internationalgenome.org/data"
+downloadURL <- "http://gnomad.broadinstitute.org/downloads"
 citationdata <- bibentry(bibtype="Article",
-                         author=person("The 1000 Genomes Project Consortium"),
-                         title="An integrated map of genetic variation from 1,092 human genomes",
-                         journal="Nature",
-                         volume="491",
-                         pages="56-65",
-                         year="2012",
-                         doi="10.1038/nature11632")
+                         author=c(person("Konrad J Karczewski"), person("et al.")),
+                         title="Variation across 141,456 human exomes and genomes reveals the spectrum of loss-of-function intolerance across human protein-coding genes",
+                         journal="bioRxiv",
+                         pages="531210",
+                         year="2019",
+                         doi="10.1101/531210")
 
-registerDoParallel(cores=8)
+registerDoParallel(cores=4) ## up to 30 Gb per process
 
 ## quantizer function. it maps input real-valued [0, 1] allele frequencies
 ## to positive integers [1, 255] so that each of them can be later
@@ -97,18 +89,22 @@ attr(.quantizer, "description") <- "quantize [0.1-1] with 2 significant digits a
 }
 attr(.dequantizer, "description") <- "dequantize [0-100] dividing by 100, [101-255] subtract 100, take modulus 10 and divide by the corresponding power in base 10"
 
-vcfFilename <- "ALL.wgs.integrated_phase1_v3.20101123.snps_indels_sv.sites.vcf.gz"
-genomeversion <- "hs37d5"
-pkgname <- sprintf("MafDb.1Kgenomes.phase1.%s", genomeversion)
+vcfFilename <- "gnomad.genomes.r3.0.sites.chr21.vcf.bgz" ## just pick one file
+genomeversion <- "GRCh38"
+pkgname <- sprintf("MafDb.gnomAD.r3.0.%s", genomeversion)
 dir.create(pkgname)
 
-path2vcfs <- "/projects_fg/GenomicScores/1000G/Phase1"
+path2vcfs <- "/projects_fg/GenomicScores/gnomad/GRCh38/r3.0/genomes"
 
 vcfHeader <- scanVcfHeader(file.path(path2vcfs, vcfFilename))
 
-Hsapiens <- hs37d5
-## no seqinfo and genome reference information in the VCF header
-## stopifnot(all(seqlengths(vcfHeader)[1:25] == seqlengths(Hsapiens)[1:25])) ## QC
+namesstdchr <- standardChromosomes(Hsapiens)
+stopifnot(all(seqlengths(vcfHeader)[namesstdchr] == seqlengths(Hsapiens)[namesstdchr])) ## QC
+
+## fill up SeqInfo data
+si <- keepStandardChromosomes(seqinfo(vcfHeader))
+isCircular(si) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
+genome(si) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
 
 ## save the GenomeDescription object
 refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
@@ -117,12 +113,15 @@ refgenomeGD <- GenomeDescription(organism=organism(Hsapiens),
                                  provider_version=providerVersion(Hsapiens),
                                  release_date=releaseDate(Hsapiens),
                                  release_name=releaseName(Hsapiens),
-                                 seqinfo=seqinfo(Hsapiens))
+                                 seqinfo=si)
 saveRDS(refgenomeGD, file=file.path(pkgname, "refgenomeGD.rds"))
 
 ## read INFO column data
 infoCols <- rownames(info(vcfHeader))
-AFcols <- infoCols[c(which(infoCols == "AF"), grep("_AF", infoCols))]
+AFcols <- infoCols[grep("^AF", infoCols)]
+exclude <- grep("raw|male", AFcols)
+if (length(exclude) > 0)
+  AFcols <- AFcols[-exclude] ## remove columns such as those for maximum allele frequency among populations
 
 message("Starting to process variants")
 
@@ -131,23 +130,20 @@ vcfPar <- ScanVcfParam(geno=NA,
                        fixed=c("ALT", "FILTER"),
                        info=AFcols)
 
-tbx <- open(TabixFile(file.path(path2vcfs, vcfFilename)))
-tbxchr <- sortSeqlevels(seqnamesTabix(tbx))
-close(tbx)
+foreach (chr=setdiff(namesstdchr, "chrM")) %dopar% { ## no VCF file for chrM
 
-foreach (chr=tbxchr) %dopar% {
+  message(sprintf("Reading VCF from chromosome %s", chr))
 
-  ## read the whole VCF for the chromosome into main memory
-  vcf <- readVcf(sprintf("%s/phase1_by_chr/chr%s.vcf.gz", path2vcfs, chr),
+  ## read the whole VCF into main memory (up to 32Gb of RAM for chromosome 1)
+  vcf <- readVcf(file.path(path2vcfs, sprintf("gnomad.genomes.r3.0.sites.%s.vcf.bgz", chr)),
                  genome=genomeversion, param=vcfPar)
+
+  vcf <- keepStandardChromosomes(vcf)
+  seqinfo(vcf) <- si
 
   ## discard variants not passing all FILTERS
   mask <- fixed(vcf)$FILTER == "PASS"
-  if (any(mask)) {
-    vcf <- vcf[mask, ]
-  } else {
-    stop("No variants with FILTER=PASS")
-  }
+  vcf <- vcf[mask, ]
   gc()
 
   ## mask variants where all alternate alleles are SNVs
@@ -172,18 +168,14 @@ foreach (chr=tbxchr) %dopar% {
   names(rr) <- NULL
   gc()
 
-  ## fill up SeqInfo data
-  si <- seqinfo(vcf)
+  ## fill up missing SeqInfo data
+  isCircular(rr) <- isCircular(si)
   seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   genome(rr) <- genome(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
 
   ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
   ## "It is permitted to have multiple records with the same POS"
-  ## and according to the release notes of gnomAD v2.1
-  ## "all multi-allelic sites have been split. This means that
-  ## multiple lines now have the same chromosome and position."
-  ## in such a case we take the maximum MAF by looking at repeated positions
   rrbypos <- split(rr, start(rr))
   rr <- rr[!duplicated(rr)]
   ## put back the genomic order
@@ -200,17 +192,21 @@ foreach (chr=tbxchr) %dopar% {
   for (j in seq_along(AFcols)) {
     afCol <- AFcols[j]
 
-    message(sprintf("Processing %s SNVs from chromosome %s", afCol, chr))
+    message(sprintf("Processing %s SNVs allele frequencies from chromosome %s", afCol, chr))
     mafValuesCol <- afValues[[afCol]]
     if (clsValues[afCol] == "numeric" || clsValues[afCol] == "Numeric") {
       mafValuesCol <- as.numeric(mafValuesCol)
+    } else if (clsValues[afCol] == "character") {
+      mafValuesCol <- as.numeric(sub(pattern="\\.", replacement="0", mafValuesCol))
     } else if (clsValues[afCol] == "CompressedNumericList") { ## in multiallelic variants take
       mafValuesCol <- sapply(mafValuesCol, max)               ## the maximum allele frequency
+    } else if (clsValues[afCol] == "CompressedCharacterList") {
+      mafValuesCol <- sapply(NumericList(lapply(mafValuesCol, sub, pattern="\\.", replacement="0")), max)
     } else {
       stop(sprintf("Uknown class for holding AF values (%s)", clsValues[afCol]))
     }
 
-    ## allele frequencies from 1000 genomes are calculated from alternative alleles,
+    ## allele frequencies from gnomAD are calculated from alternative alleles,
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
     ## for biallelic variants, in those cases the MAF comes from the REF allele
     maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
@@ -220,7 +216,7 @@ foreach (chr=tbxchr) %dopar% {
     mafValuesCol <- relist(mafValuesCol, rrbypos)
     maskREF <- relist(maskREF, rrbypos)
     mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
-                                              ## take the maximum allele frequency
+                                              ## take the maximum allele frequenc
     maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
                                     ## alternate alleles has AF > 0.5, then we
                                     ## set to TRUE maskREF as if the MAF is in REF
@@ -250,8 +246,8 @@ foreach (chr=tbxchr) %dopar% {
       runValue(obj) <- as.raw(runValue(obj))
       runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
-                            provider="IGSR",
-                            provider_version="Phase1",
+                            provider="BroadInstitute",
+                            provider_version="r3.0",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -278,7 +274,7 @@ foreach (chr=tbxchr) %dopar% {
   ## fetch nonSNVs coordinates
   rr <- rowRanges(vcfnonsnvs)
 
-  ## fill up SeqInfo data
+  ## fill up missing SeqInfo data
   si <- seqinfo(vcf)
   seqlengths(rr) <- seqlengths(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
   isCircular(rr) <- isCircular(seqinfo(Hsapiens))[match(seqnames(si), seqnames(seqinfo(Hsapiens)))]
@@ -302,6 +298,7 @@ foreach (chr=tbxchr) %dopar% {
 
   ## re-order by chromosomal coordinates
   afValues <- afValues[ord, ]
+  rm(ord)
 
   ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
   ## "It is permitted to have multiple records with the same POS"
@@ -315,7 +312,6 @@ foreach (chr=tbxchr) %dopar% {
   rrbypos <- rrbypos[mt]
   saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
 
-  rm(ord)
   rm(posids)
   rm(mt)
   gc()
@@ -323,19 +319,22 @@ foreach (chr=tbxchr) %dopar% {
   for (j in seq_along(AFcols)) {
     afCol <- AFcols[j]
 
-    message(sprintf("Processing %s nonSNVs from chromosome %s", afCol, chr))
+    message(sprintf("Processing %s nonSNVs allele frequencies from chromosome %s", afCol, chr))
     mafValuesCol <- afValues[[afCol]]
     if (clsValues[afCol] == "numeric" || clsValues[afCol] == "Numeric") {
       mafValuesCol <- as.numeric(mafValuesCol)
+    } else if (clsValues[afCol] == "character") {
+      mafValuesCol <- as.numeric(sub(pattern="\\.", replacement="0", mafValuesCol))
     } else if (clsValues[afCol] == "CompressedNumericList") { ## in multiallelic variants take
       mafValuesCol <- sapply(mafValuesCol, max)               ## the maximum allele frequency
+    } else if (clsValues[afCol] == "CompressedCharacterList") {
+      mafValuesCol <- sapply(NumericList(lapply(mafValuesCol, sub, pattern="\\.", replacement="0")), max)
     } else {
       stop(sprintf("Uknown class for holding AF values (%s)", clsValues[afCol]))
     }
 
-    ## allele frequencies from 1000 genomes are calculated from alternative alleles,
+    ## allele frequencies from gnomAD genomes are calculated from alternative alleles,
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
-    ## for biallelic variants, in those cases the MAF comes from the REF allele
     maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
     if (any(maskREF))
       mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
@@ -373,8 +372,8 @@ foreach (chr=tbxchr) %dopar% {
       runValue(obj) <- as.raw(runValue(obj))
       runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
-                            provider="IGSR",
-                            provider_version="Phase1",
+                            provider="BroadInstitute",
+                            provider_version="r3.0",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -392,35 +391,32 @@ foreach (chr=tbxchr) %dopar% {
   }
 }
 
-## save rsIDs assignments from the 1000 genomes project
-## streaming through the whole file
+## save rsIDs assignments from gnomAD
+## iterating through every chromosome VCF file
 vcfPar <- ScanVcfParam(geno=NA,
                        fixed=c("ALT", "FILTER"),
                        info=NA)
 
-tbx <- TabixFile(file.path(path2vcfs, vcfFilename), yieldSize=1000000)
-open(tbx)
-
 message("Starting to process variant identifiers")
 
-rsIDs <- character(0)  ## to store rsIDs annotated by the 1000 genomes project
+rsIDs <- character(0)  ## to store rsIDs annotated by the gnomAD project
 rsIDgp <- GPos()       ## to store positions of rsIDs
 maskSNVs <- logical(0) ## to store a mask whether the variant is an SNV or not
 
-nVar <- 0
-while (nrow(vcf <- readVcf(tbx, genome=genomeversion, param=vcfPar))) {
+nTotalVar <- 0
+for (chr in setdiff(namesstdchr, "chrM")) { ## no VCF file for chrM
+  vcf <- readVcf(file.path(path2vcfs, sprintf("gnomad.genomes.r3.0.sites.%s.vcf.bgz", chr)),
+                 genome=genomeversion, param=vcfPar)
 
   ## discard variants not passing all FILTERS
   mask <- fixed(vcf)$FILTER == "PASS"
-  if (any(mask)) {
-    vcf <- vcf[mask, ]
-  } else {
-    stop("No variants with FILTER=PASS")
-  }
+  vcf <- vcf[mask, ]
   gc()
 
-  nVar <- nVar + nrow(vcf)
+  nVar <- nrow(vcf)
+  nTotalVar <- nTotalVar + nVar
   rr <- rowRanges(vcf)
+  mcols(rr) <- NULL
   whrsIDs <- grep("^rs", names(rr))
   evcf <- expand(vcf)
   maskSNVs <- c(maskSNVs, sapply(relist(isSNV(evcf), alt(vcf)), all)[whrsIDs])
@@ -433,6 +429,11 @@ while (nrow(vcf <- readVcf(tbx, genome=genomeversion, param=vcfPar))) {
   names(rrTmp) <- NULL
   gpTmp <- as(rrTmp, "GPos")
 
+  ## just in case there are multiple rsID assignments separated by
+  ## semicolons like it happens with ExAC, just assign the first one
+  idTmp <- strsplit(idTmp, ";")
+  idTmp <- sapply(idTmp, "[", 1)
+
   rsIDs <- c(rsIDs, idTmp)
   rsIDgp <- c(rsIDgp, gpTmp)
   rm(rrTmp)
@@ -440,12 +441,12 @@ while (nrow(vcf <- readVcf(tbx, genome=genomeversion, param=vcfPar))) {
   rm(idTmp)
   gc()
 
-  message(sprintf("%d variant identifiers processed", nVar))
+  message(sprintf("%d variant identifiers processed from chromosome %s", nVar, chr))
 }
-close(tbx)
+message(sprintf("%d variants processed in total", nTotalVar))
 
-## save total number of variants
-saveRDS(nVar, file=file.path(pkgname, "nsites.rds"))
+## save the total number of variants
+saveRDS(nTotalVar, file=file.path(pkgname, "nsites.rds"))
 
 ## store mask flagging SNVs
 rsIDgp$isSNV <- Rle(maskSNVs)
@@ -455,14 +456,15 @@ stopifnot(identical(grep("^rs", rsIDs), 1:length(rsIDs))) ## QC
 
 ## chop the 'rs' prefix and convert the character ids into integer values
 rsIDs <- as.integer(sub(pattern="^rs", replacement="", x=rsIDs))
+gc()
 
 ## calculate the indices that lead to an increasing values of the (integer) ids
 rsIDidx <- order(rsIDs)
 
-## order increasingly the integer values of rs IDs
+## order increasingly the integer values of rsIDs
 rsIDs <- rsIDs[rsIDidx]
 
-## save the objects that enable the search for rs ID
+## save the objects that enable the search for rsID
 saveRDS(rsIDs, file=file.path(pkgname, "rsIDs.rds"))
 saveRDS(rsIDidx, file=file.path(pkgname, "rsIDidx.rds"))
 saveRDS(rsIDgp, file=file.path(pkgname, "rsIDgp.rds"))

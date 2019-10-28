@@ -25,8 +25,9 @@ getGScores(x)
            \code{gscores()} and \code{score()}, a \code{GScores} object.}
   \item{ranges}{A \code{GenomicRanges} object with positions from where to
                 retrieve genomic scores, or a character string vector with
-                identifiers associated by the data producer to the genomic
-                scores, e.g., dbSNP 'rs' identifiers.}
+                identifiers associated by the data producer with the genomic
+                scores, e.g., dbSNP 'rs' identifiers in the case of
+                \code{MafDb.*} packages.}
   \item{...}{In the call to the \code{gscores}() method one can additionally
              set the following arguments:
              \itemize{
@@ -94,8 +95,8 @@ are multiple scores per position, such as with CADD or M-CAP, and we want to
 select a score matching a specific combination of reference and alternate
 alleles. The other purpose is when the \code{GScores} object \code{x} is a
 \code{MafDb.*} package, then by providing \code{ref} and \code{alt} alelles
-we will get separte frequencies for reference and alternate alleles. The
-current lossy compression of this values yields a correct assignment for
+we will get separate frequencies for reference and alternate alleles. The
+current lossy compression of these values yields a correct assignment for
 biallelic variants in the corresponding \code{MafDb.*} package and an
 approximation for multiallelic ones.
 }

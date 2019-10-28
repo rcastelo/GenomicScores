@@ -339,7 +339,7 @@ setMethod("gscores", c("GScores", "character"),
                 rsIDs <- readRDS(file.path(x@data_dirpath, "rsIDs.rds"))
                 assign("rsIDs", rsIDs, envir=x@.data_cache)
               } else {
-                message("The data provider did not produce annotations of rs identifiers to variants.")
+                message("The data provider did not produce annotations of identifiers to genomic positions.")
                 return(ans)
               }
             }
@@ -381,11 +381,6 @@ setMethod("gscores", c("GScores", "character"),
                 assign("rsIDgp", rsIDgp, envir=x@.data_cache)
               }
               rsIDgp <- get("rsIDgp", envir=x@.data_cache)
-              ## if all GPos objects have been updated, this is not necessary anymore
-              ## issnvmask <- rsIDgp$isSNV
-              ## rsIDgp <- updateObject(rsIDgp, verbose=FALSE) ## temporary solution until GPos objects are updated
-              ## rsIDgp$isSNV <- issnvmask
-              ## rm(issnvmask)
               rng <- rsIDgp[mt[!is.na(mt)]]
               mask <- logical(length(mt))
               mask[!is.na(mt)] <- rng$isSNV

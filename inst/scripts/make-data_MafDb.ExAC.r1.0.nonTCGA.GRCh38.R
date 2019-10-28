@@ -163,11 +163,20 @@ message("Starting to process variants")
 
 ## restrict VCF INFO columns to AC and AN values
 vcfPar <- ScanVcfParam(geno=NA,
-                       fixed="ALT",
+                       fixed=c("ALT", "FILTER"),
                        info=c(ACcols, ANcols))
 
 ## read the whole VCF file into main memory. the resulting object 'vcf' takes 2.5Gb of RAM
 vcf <- readVcf(vcfFilename, genome="hs37d5", param=vcfPar)
+
+## discard variants not passing all FILTERS
+mask <- fixed(vcf)$FILTER == "PASS"
+if (any(mask)) {
+    vcf <- vcf[mask, ]
+} else {
+    stop("No variants with FILTER=PASS")
+}
+gc()
 
 ## mask variants where all alternate alleles are SNVs
 evcf <- expand(vcf)
@@ -199,16 +208,30 @@ stopifnot(any(lomask)) ## QC
 rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
 seqlevelsStyle(rr) <- "NCBI"
 
-## store number of SNVs
-nsites <- length(rr)
-
 ## clean up the ranges
 mcols(rr) <- NULL
 names(rr) <- NULL
 gc()
 
+## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+## "It is permitted to have multiple records with the same POS"
+posids <- paste(seqnames(rr), start(rr), sep="-")
+rrbypos <- split(rr, posids)
+rr <- rr[!duplicated(rr)]
+## put back the genomic order
+posids <- paste(seqnames(rr), start(rr), sep="-")
+mt <- match(posids, names(rrbypos))
+stopifnot(all(!is.na(mt))) ## QC
+rrbypos <- rrbypos[mt]
+rm(posids)
+rm(mt)
+gc()
+
 ## fill up SeqInfo data
 seqinfo(rr, new2old=match(seqnames(seqinfo(Hsapiens)), seqnames(seqinfo(rr)))) <- seqinfo(Hsapiens)
+
+## store number of SNVs
+nsites <- length(rr)
 
 ## fetch allele frequency data
 acanValues <- info(vcfsnvs)[lomask, ]
@@ -218,7 +241,8 @@ for (j in seq_along(ACcols)) {
   acCol <- ACcols[j]
   anCol <- ANcols[j]
   afCol <- AFcols[j]
-  message(sprintf("Processing %s allele frequencies", afCol))
+
+  message(sprintf("Processing %s SNVs", afCol))
   acValuesCol <- acanValues[[acCol]]
   anValuesCol <- acanValues[[anCol]]
   if (clsValues[acCol] == "numeric" || clsValues[acCol] == "Numeric" ||
@@ -240,9 +264,18 @@ for (j in seq_along(ACcols)) {
 
   ## allele frequencies from ExAC are calculated from allele counts from alternative alleles,
   ## so some of them we need to turn them into minor allele frequencies (MAF)
-  mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-  if (any(mask))
-    mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+  ## for biallelic variants, in those cases the MAF comes from the REF allele
+  maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+  if (any(maskREF))
+    mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
+
+  mafValuesCol <- relist(mafValuesCol, rrbypos)
+  maskREF <- relist(maskREF, rrbypos)
+  mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                            ## take the maximum allele frequency
+  maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                  ## alternate alleles has AF > 0.5, then we
+                                  ## set to TRUE maskREF as if the MAF is in REF
 
   q <- .quantizer(mafValuesCol)
   x <- .dequantizer(q)
@@ -253,12 +286,16 @@ for (j in seq_along(ACcols)) {
 
   ## build an integer-RleList object using the 'coverage()' function
   rlelst <- coverage(rr, weight=q)
+  # build an integer-Rle object of maskREF using the 'coverage()' function
+  maskREFobj <- coverage(rr, weight=maskREF+0L)
 
   seqs <- names(rlelst)
   idxbychr <- split(seq_len(length(mafValuesCol)), decode(seqnames(rr)))
   max.abs.error <- lapply(idxbychr,
                           function(i, err, f) tapply(err[i], f[i], mean, na.rm=TRUE),
                           err, f)
+
+  ## build ECDF of MAF values
   Fn <- lapply(idxbychr,
                function(i, x) {
                  fn <- NA
@@ -276,7 +313,9 @@ for (j in seq_along(ACcols)) {
   for (k in seq_along(seqs)) {
     if (any(runValue(rlelst[[seqs[k]]]) != 0)) {
       obj <- rlelst[[seqs[k]]]
+      objref <- maskREFobj[[seqs[k]]]
       runValue(obj) <- as.raw(runValue(obj))
+      runValue(objref) <- as.raw(runValue(objref))
       metadata(obj) <- list(seqname=seqs[k],
                             provider="BroadInstitute",
                             provider_version="r1.0",
@@ -288,11 +327,15 @@ for (j in seq_along(ACcols)) {
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn[[seqs[k]]],
-                            max_abs_error=max.abs.error[[seqs[k]]])
+                            max_abs_error=max.abs.error[[seqs[k]]],
+                            maskREF=objref)
       saveRDS(obj, file=file.path(pkgname, sprintf("%s.%s.%s.rds", pkgname, afCol, seqs[k])))
     }
   }
 }
+
+rm(vcfsnvs)
+gc()
 
 ##
 ## nonSNVs
@@ -314,9 +357,6 @@ stopifnot(any(lomask)) ## QC
 rr <- dropSeqlevels(unlist(rr2[lomask]), setdiff(seqlevels(rr2), seqlevels(rr)))
 seqlevelsStyle(rr) <- "NCBI"
 
-## store number of SNVs
-nsites <- nsites + length(rr)
-
 ## clean up the ranges
 mcols(rr) <- NULL
 names(rr) <- NULL
@@ -325,14 +365,38 @@ gc()
 ## fill up SeqInfo data
 seqinfo(rr, new2old=match(seqnames(seqinfo(Hsapiens)), seqnames(seqinfo(rr)))) <- seqinfo(Hsapiens)
 
+## fetch allele frequency data
+acanValues <- info(vcfnonsnvs)[lomask, ]
+clsValues <- sapply(acanValues, class)
+
+## re-order by chromosomal coordinates to deal with wrongly-ordered nonSNVs over multiple VCF lines
+ord <- order(rr)
+rr <- rr[ord]
+acanValues <- acanValues[ord, ]
+
+## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+## "It is permitted to have multiple records with the same POS"
+posids <- paste(seqnames(rr), start(rr), end(rr), sep="-")
+rrbypos <- split(rr, posids)
+rr <- rr[!duplicated(rr)]
+## put back the genomic order
+posids <- paste(seqnames(rr), start(rr), end(rr), sep="-")
+mt <- match(posids, names(rrbypos))
+stopifnot(all(!is.na(mt))) ## QC
+rrbypos <- rrbypos[mt]
+
+rm(ord)
+rm(posids)
+rm(mt)
+gc()
+
+## store number of SNVs
+nsites <- nsites + length(rr)
+
 ## split it by chromosome
 stopifnot(identical(order(seqnames(rr)), 1:length(rr))) ## QC
 rrbychr <- split(rr, seqnames(rr))
 stopifnot(identical(unlist(rrbychr, use.names=FALSE), rr)) ## QC
-
-## fetch allele frequency data
-acanValues <- info(vcfnonsnvs)[lomask, ]
-clsValues <- sapply(acanValues, class)
 
 seqs <- names(rrbychr)
 for (j in seq_along(seqs))
@@ -344,7 +408,8 @@ for (j in seq_along(ACcols)) {
   acCol <- ACcols[j]
   anCol <- ANcols[j]
   afCol <- AFcols[j]
-  message(sprintf("Processing %s allele frequencies", afCol))
+
+  message(sprintf("Processing %s nonSNVs", afCol))
   acValuesCol <- acanValues[[acCol]]
   anValuesCol <- acanValues[[anCol]]
   if (clsValues[acCol] == "numeric" || clsValues[acCol] == "Numeric" ||
@@ -357,6 +422,8 @@ for (j in seq_along(ACcols)) {
     acValuesCol <- as.numeric(sapply(acValuesCol, max))
   } else if (clsValues[acCol] == "CompressedCharacterList") {
     acValuesCol <- sapply(NumericList(lapply(acValuesCol, sub, pattern="\\.", replacement="0")), max)
+  } else {
+    stop(sprintf("Uknown class for holding AF values (%s)", clsValues[acCol]))
   }
 
   if (clsValues[anCol] == "character")
@@ -366,9 +433,17 @@ for (j in seq_along(ACcols)) {
 
   ## allele frequencies from ExAC are calculated from allele counts from alternative alleles,
   ## so some of them we need to turn them into minor allele frequencies (MAF)
-  mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-  if (any(mask))
-    mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+  maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+  if (any(maskREF))
+    mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
+
+  mafValuesCol <- relist(mafValuesCol, rrbypos)
+  maskREF <- relist(maskREF, rrbypos)
+  mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                            ## take the maximum allele frequency
+  maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                  ## alternate alleles has AF > 0.5, then we
+                                  ## set to TRUE maskREF as if the MAF is in REF
 
   q <- .quantizer(mafValuesCol)
   x <- .dequantizer(q)
@@ -381,6 +456,8 @@ for (j in seq_along(ACcols)) {
   max.abs.error <- lapply(idxbychr,
                           function(i, err, f) tapply(err[i], f[i], mean, na.rm=TRUE),
                           err, f)
+
+  ## build ECDF of MAF values
   Fn <- lapply(idxbychr,
                function(i, x) {
                  fn <- NA
@@ -395,12 +472,16 @@ for (j in seq_along(ACcols)) {
                }, mafValuesCol)
   qbychr <- relist(q, rrbychr)
   stopifnot(identical(sapply(rrbychr, length), sapply(qbychr, length))) ## QC
+  refbychr <- relist(maskREF, rrbychr)
+  stopifnot(identical(sapply(rrbychr, length), sapply(refbychr, length))) ## QC
 
   ## coerce to raw-Rle, add metadata and save
   for (k in seq_along(seqs)) {
     if (length(rrbychr[[seqs[k]]]) > 0) {
       obj <- Rle(qbychr[[seqs[k]]])
+      objref <- Rle(refbychr[[seqs[k]]])
       runValue(obj) <- as.raw(runValue(obj))
+      runValue(objref) <- as.raw(runValue(objref))
       metadata(obj) <- list(seqname=seqs[k],
                             provider="BroadInstitute",
                             provider_version="r1.0",
@@ -412,7 +493,8 @@ for (j in seq_along(ACcols)) {
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn[[seqs[k]]],
-                            max_abs_error=max.abs.error[[seqs[k]]])
+                            max_abs_error=max.abs.error[[seqs[k]]],
+                            maskREF=objref)
       saveRDS(obj, file=file.path(pkgname, sprintf("%s.RLEnonsnv.%s.%s.rds", pkgname, afCol, seqs[k])))
     }
   }

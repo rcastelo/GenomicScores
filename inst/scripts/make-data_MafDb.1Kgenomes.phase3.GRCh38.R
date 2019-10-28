@@ -95,7 +95,9 @@ genomeversion <- "GRCh38"
 pkgname <- sprintf("MafDb.1Kgenomes.phase3.%s", genomeversion)
 dir.create(pkgname)
 
-vcfHeader <- scanVcfHeader(vcfFilename)
+path2vcfs <- "/projects_fg/GenomicScores/1000G/Phase3"
+
+vcfHeader <- scanVcfHeader(file.path(path2vcfs, vcfFilename))
 
 ## no genome reference information in the VCF header
 ## stopifnot(all(seqlengths(vcfHeader)[1:25] == seqlengths(Hsapiens)[1:25])) ## QC
@@ -118,11 +120,13 @@ message("Starting to process variants")
 
 ## restrict VCF INFO columns to AC and AN values
 vcfPar <- ScanVcfParam(geno=NA,
-                       fixed="ALT",
+                       fixed=c("ALT", "FILTER"),
                        info=AFcols)
 
-fnames <- list.files(path="supporting", pattern="ALL.chr[0-9XY]+_GRCh38_sites.20170504.vcf.gz$",
+fnames <- list.files(path=file.path(path2vcfs, "supporting"),
+                     pattern="ALL.chr[0-9XY]+_GRCh38_sites.20170504.vcf.gz$",
                      full.name=TRUE)
+
 tbxchr <- character(0)
 for (fname in fnames) {
   tbx <- open(TabixFile(fname))
@@ -135,8 +139,17 @@ tbxchr <- sortSeqlevels(tbxchr)
 foreach (chr=tbxchr) %dopar% {
 
   ## read the whole VCF for the chromosome into main memory
-  vcf <- readVcf(sprintf("supporting/ALL.chr%s_GRCh38_sites.20170504.vcf.gz", chr),
+  vcf <- readVcf(sprintf("%s/supporting/ALL.chr%s_GRCh38_sites.20170504.vcf.gz", path2vcfs, chr),
                  genome="hs37d5", param=vcfPar)
+
+  ## discard variants not passing all FILTERS
+  mask <- fixed(vcf)$FILTER == "PASS"
+  if (any(mask)) {
+    vcf <- vcf[mask, ]
+  } else {
+    stop("No variants with FILTER=PASS")
+  }
+  gc()
 
   ## mask variants where all alternate alleles are SNVs
   evcf <- expand(vcf)
@@ -166,6 +179,18 @@ foreach (chr=tbxchr) %dopar% {
   rr <- keepStandardChromosomes(rr)
   seqinfo(rr, new2old=match(seqlevels(Hsapiens), seqlevels(rr))) <- seqinfo(Hsapiens)
 
+  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+  ## "It is permitted to have multiple records with the same POS"
+  ## in such a case we take the maximum MAF by looking at repeated positions
+  rrbypos <- split(rr, start(rr))
+  rr <- rr[!duplicated(rr)]
+  ## put back the genomic order
+  mt <- match(as.character(start(rr)), names(rrbypos))
+  stopifnot(all(!is.na(mt))) ## QC
+  rrbypos <- rrbypos[mt]
+  rm(mt)
+  gc()
+
   ## fetch allele frequency data
   afValues <- info(vcfsnvs)
   clsValues <- sapply(afValues, class)
@@ -173,7 +198,7 @@ foreach (chr=tbxchr) %dopar% {
   for (j in seq_along(AFcols)) {
     afCol <- AFcols[j]
 
-    message(sprintf("Processing %s SNVs allele frequencies from chromosome %s", afCol, chr))
+    message(sprintf("Processing %s SNVs from chromosome %s", afCol, chr))
     mafValuesCol <- afValues[[afCol]]
     if (clsValues[afCol] == "numeric" || clsValues[afCol] == "Numeric") {
       mafValuesCol <- as.numeric(mafValuesCol)
@@ -185,9 +210,17 @@ foreach (chr=tbxchr) %dopar% {
 
     ## allele frequencies from 1000 genomes are calculated from alternative alleles,
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
-    mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-    if (any(mask))
-      mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+    maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+    if (any(maskREF))
+      mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
+
+    mafValuesCol <- relist(mafValuesCol, rrbypos)
+    maskREF <- relist(maskREF, rrbypos)
+    mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                              ## take the maximum allele frequency
+    maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                    ## alternate alleles has AF > 0.5, then we
+                                    ## set to TRUE maskREF as if the MAF is in REF
 
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
@@ -199,6 +232,10 @@ foreach (chr=tbxchr) %dopar% {
 
     ## build an integer-Rle object using the 'coverage()' function
     obj <- coverage(rr, weight=q)[[chr]]
+    ## build an integer-Rle object of maskREF using the 'coverage()' function
+    maskREFobj <- coverage(rr, weight=maskREF+0L)[[chr]]
+
+    ## build ECDF of MAF values`
     if (length(unique(mafValuesCol)) <= 10000) {
       Fn <- ecdf(mafValuesCol)
     } else {
@@ -208,6 +245,7 @@ foreach (chr=tbxchr) %dopar% {
     ## coerce to raw-Rle, add metadata and save
     if (any(runValue(obj) != 0)) {
       runValue(obj) <- as.raw(runValue(obj))
+      runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
                             provider="IGSR",
                             provider_version="Phase3",
@@ -219,12 +257,16 @@ foreach (chr=tbxchr) %dopar% {
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn,
-                            max_abs_error=max.abs.error)
+                            max_abs_error=max.abs.error,
+                            maskREF=maskREFobj)
       saveRDS(obj, file=file.path(pkgname, sprintf("%s.%s.%s.rds", pkgname, afCol, chr)))
     } else {
       warning(sprintf("No MAF values for SNVs in chromosome %s", chr))
     }
   }
+
+  rm(vcfsnvs)
+  gc()
 
   ##
   ## nonSNVs
@@ -242,11 +284,38 @@ foreach (chr=tbxchr) %dopar% {
   ## clean up the GRanges and save it
   mcols(rr) <- NULL
   names(rr) <- NULL
-  saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
+  gc()
+
+  ## re-order by chromosomal coordinates to deal with wrongly-ordered nonSNVs over multiple VCF lines
+  ord <- order(rr)
+  rr <- rr[ord]
 
   ## fetch allele frequency data
   afValues <- info(vcfnonsnvs)
   clsValues <- sapply(afValues, class)
+  rm(vcf)
+  rm(vcfnonsnvs)
+  gc()
+
+  ## re-order by chromosomal coordinates
+  afValues <- afValues[ord, ]
+
+  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+  ## "It is permitted to have multiple records with the same POS"
+  posids <- paste(start(rr), end(rr), sep="-")
+  rrbypos <- split(rr, posids)
+  rr <- rr[!duplicated(rr)]
+  ## put back the genomic order
+  posids <- paste(start(rr), end(rr), sep="-")
+  mt <- match(posids, names(rrbypos))
+  stopifnot(all(!is.na(mt))) ## QC
+  rrbypos <- rrbypos[mt]
+  saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
+
+  rm(ord)
+  rm(posids)
+  rm(mt)
+  gc()
 
   for (j in seq_along(AFcols)) {
     afCol <- AFcols[j]
@@ -263,9 +332,18 @@ foreach (chr=tbxchr) %dopar% {
 
     ## allele frequencies from 1000 genomes are calculated from alternative alleles,
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
-    mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-    if (any(mask))
-       mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+    ## for biallelic variants, in those cases the MAF comes from the REF allele
+    maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+    if (any(maskREF))
+       mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
+
+    mafValuesCol <- relist(mafValuesCol, rrbypos)
+    maskREF <- relist(maskREF, rrbypos)
+    mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
+                                              ## take the maximum allele frequency
+    maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                    ## alternate alleles has AF > 0.5, then we
+                                    ## set to TRUE maskREF as if the MAF is in REF
 
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
@@ -275,6 +353,7 @@ foreach (chr=tbxchr) %dopar% {
     err <- abs(mafValuesCol-x)
     max.abs.error <- tapply(err, f, mean, na.rm=TRUE)
 
+    ## build ECDF of MAF values
     if (length(unique(mafValuesCol)) <= 10000) {
       Fn <- ecdf(mafValuesCol)
     } else {
@@ -283,10 +362,13 @@ foreach (chr=tbxchr) %dopar% {
 
     ## coerce the quantized value vector to an integer-Rle object
     obj <- Rle(q)
+    ## coerce the maskREF vector to an integer-Rle object
+    maskREFobj <- Rle(maskREF+0L)
 
     ## coerce to raw-Rle, add metadata and save
     if (any(runValue(obj) != 0)) {
       runValue(obj) <- as.raw(runValue(obj))
+      runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
                             provider="IGSR",
                             provider_version="Phase3",
@@ -298,7 +380,8 @@ foreach (chr=tbxchr) %dopar% {
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn,
-                            max_abs_error=max.abs.error)
+                            max_abs_error=max.abs.error,
+                            maskREF=maskREFobj)
       saveRDS(obj, file=file.path(pkgname, sprintf("%s.RLEnonsnv.%s.%s.rds", pkgname, afCol, chr)))
     } else {
       warning(sprintf("No MAF values for nonSNVs in chromosome %s", chr))
@@ -309,7 +392,7 @@ foreach (chr=tbxchr) %dopar% {
 ## save rsIDs assignments from the 1000 genomes project
 ## streaming through the whole file
 vcfPar <- ScanVcfParam(geno=NA,
-                       fixed="ALT",
+                       fixed=c("ALT", "FILTER"),
                        info=NA)
 
 message("Starting to process variant identifiers")
@@ -321,6 +404,16 @@ maskSNVs <- logical(0) ## to store a mask whether the variant is an SNV or not
 nVar <- 0
 for (fname in fnames) {
   vcf <- readVcf(fname, genome="hs37d5", param=vcfPar)
+
+  ## discard variants not passing all FILTERS
+  mask <- fixed(vcf)$FILTER == "PASS"
+  if (any(mask)) {
+    vcf <- vcf[mask, ]
+  } else {
+    stop("No variants with FILTER=PASS")
+  }
+  gc()
+
   nVar <- nVar + nrow(vcf)
   rr <- rowRanges(vcf)
 

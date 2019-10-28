@@ -199,6 +199,12 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
   ## in such a case we take the maximum MAF by looking at repeated positions
   rrbypos <- split(rr, start(rr))
   rr <- rr[!duplicated(rr)]
+  ## put back the genomic order
+  mt <- match(as.character(start(rr)), names(rrbypos))
+  stopifnot(all(!is.na(mt))) ## QC
+  rrbypos <- rrbypos[mt]
+  rm(mt)
+  gc()
 
   ## fetch allele frequency data
   acanValues <- info(vcfsnvs)[lomask, ]
@@ -218,13 +224,17 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
 
     ## allele frequencies from TOPMED are calculated from alternative alleles,
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
-    mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-    if (any(mask))
-      mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+    maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+    if (any(maskREF))
+      mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
 
     mafValuesCol <- relist(mafValuesCol, rrbypos)
+    maskREF <- relist(maskREF, rrbypos)
     mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
                                               ## take the maximum allele frequency
+    maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                    ## alternate alleles has AF > 0.5, then we
+                                    ## set to TRUE maskREF as if the MAF is in REF
 
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
@@ -236,6 +246,10 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
 
     ## build an integer-Rle object using the 'coverage()' function
     obj <- coverage(rr, weight=q)[[chr]]
+    ## build an integer-Rle object of maskREF using the 'coverage()' function
+    maskREFobj <- coverage(rr, weight=maskREF+0L)[[chr]]
+
+    ## build ECDF of MAF values
     if (length(unique(mafValuesCol)) <= 10000) {
       Fn <- ecdf(mafValuesCol)
     } else {
@@ -245,6 +259,7 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
     ## coerce to raw-Rle, add metadata and save
      if (any(runValue(obj) != 0)) {
        runValue(obj) <- as.raw(runValue(obj))
+       runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
        metadata(obj) <- list(seqname=chr,
                              provider="NHLBI",
                              provider_version="Freeze5",
@@ -256,12 +271,16 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
                              qfun=.quantizer,
                              dqfun=.dequantizer,
                              ecdf=Fn,
-                             max_abs_error=max.abs.error)
+                             max_abs_error=max.abs.error,
+                             maskREF=maskREFobj)
        saveRDS(obj, file=file.path(pkgname, sprintf("%s.AF.%s.rds", pkgname, chr)))
      } else {
        warning(sprintf("No MAF values for SNVs in chromosome %s", chr))
      }
   }
+
+  rm(vcfsnvs)
+  gc()
 
   ##
   ## nonSNVs
@@ -285,22 +304,38 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
   mcols(rr) <- NULL
   names(rr) <- NULL
 
-  nsites <- nsites + as.numeric(sum(lomask))
+  ## re-order by chromosomal coordinates to deal with wrongly-ordered nonSNVs over multiple VCF lines
+  ord <- order(rr)
+  rr <- rr[ord]
 
-  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
-  ## "It is permitted to have multiple records with the same POS"
-  ## in such a case we take the maximum MAF by looking at repeated position
-  rrbypos <- split(rr, paste(start(rr), end(rr), sep="-"))
-  rr <- rr[!duplicated(rr)]
-  saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
+  nsites <- nsites + as.numeric(sum(lomask))
 
   ## fetch allele frequency data
   acanValues <- info(vcfnonsnvs)[lomask, ]
   clsValues <- sapply(acanValues, class)
-
   rm(vcf)
-  rm(vcfsnvs)
   rm(vcfnonsnvs)
+  gc()
+
+  # re-order by chromosomal coordinates
+  afValues <- afValues[ord, ]
+  rm(ord)
+
+  ## according to https://samtools.github.io/hts-specs/VCFv4.3.pdf
+  ## "It is permitted to have multiple records with the same POS"
+  ## in such a case we take the maximum MAF by looking at repeated position
+  posids <- paste(start(rr), end(rr), sep="-")
+  rrbypos <- split(rr, posids)
+  rr <- rr[!duplicated(rr)]
+  ## put back the genomic order
+  posids <- paste(start(rr), end(rr), sep="-")
+  mt <- match(posids, names(rrbypos))
+  stopifnot(all(!is.na(mt))) ## QC
+  rrbypos <- rrbypos[mt]
+  saveRDS(rr, file=file.path(pkgname, sprintf("%s.GRnonsnv.%s.rds", pkgname, chr)))
+
+  rm(posids)
+  rm(mt)
   gc()
 
   for (j in seq_along(ACcols)) {
@@ -317,13 +352,18 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
 
     ## allele frequencies from TOPMED are calculated from alternative alleles,
     ## so for some of them we need to turn them into minor allele frequencies (MAF)
-    mask <- !is.na(mafValuesCol) & mafValuesCol > 0.5
-    if (any(mask))
-      mafValuesCol[mask] <- 1 - mafValuesCol[mask]
+    maskREF <- !is.na(mafValuesCol) & mafValuesCol > 0.5
+    if (any(maskREF))
+      mafValuesCol[maskREF] <- 1 - mafValuesCol[maskREF]
 
     mafValuesCol <- relist(mafValuesCol, rrbypos)
+    maskREF <- relist(maskREF, rrbypos)
     mafValuesCol <- sapply(mafValuesCol, max) ## in multiallelic variants
                                               ## take the maximum allele frequency
+    maskREF <- sapply(maskREF, any) ## in multiallelic variants, when any of the
+                                    ## alternate alleles has AF > 0.5, then we
+                                    ## set to TRUE maskREF as if the MAF is in REF
+
     q <- .quantizer(mafValuesCol)
     x <- .dequantizer(q)
     f <- cut(x, breaks=c(0, 10^c(seq(floor(min(log10(x[x!=0]), na.rm=TRUE)),
@@ -332,6 +372,7 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
     err <- abs(mafValuesCol-x)
     max.abs.error <- tapply(err, f, mean, na.rm=TRUE)
 
+    ## build ECDF of MAF values
     if (length(unique(mafValuesCol)) <= 10000) {
       Fn <- ecdf(mafValuesCol)
     } else {
@@ -340,10 +381,13 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
 
     ## coerce the quantized value vector to an integer-Rle object
     obj <- Rle(q)
+    ## coerce the maskREF vector to an integer-Rle objec
+    maskREFobj <- Rle(maskREF+0L)
 
     ## coerce to raw-Rle, add metadata and save
     if (any(runValue(obj) != 0)) {
       runValue(obj) <- as.raw(runValue(obj))
+      runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
                             provider="NHLBI",
                             provider_version="Freeze5",
@@ -355,7 +399,8 @@ nsites <- foreach (chr=tbxchr, .combine='c') %dopar% {
                             qfun=.quantizer,
                             dqfun=.dequantizer,
                             ecdf=Fn,
-                            max_abs_error=max.abs.error)
+                            max_abs_error=max.abs.error,
+                            maskREF=maskREFobj)
       saveRDS(obj, file=file.path(pkgname, sprintf("%s.RLEnonsnv.AF.%s.rds", pkgname, chr)))
     } else {
       warning(sprintf("No MAF values for nonSNVs in chromosome %s", chr))
