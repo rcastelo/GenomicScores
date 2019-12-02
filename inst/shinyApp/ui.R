@@ -1,12 +1,15 @@
 ui <- fluidPage(
     theme = shinytheme("spacelab"),
     useShinyjs(),
+    tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+    ),
     titlePanel(h2("SHINY GSCORE", align="center"), windowTitle = "SHINY GSCORE"),
     
     sidebarLayout(
         
         sidebarPanel(
-            selectInput("selectAnn", "Select an Annotation Package",
+            selectInput("annotPackage", "Select an Annotation Package",
                         choices = c("Choose an installed annotation package" = "", 
                                     avAnnotations())),
             uiOutput("pop"),
@@ -29,13 +32,12 @@ ui <- fluidPage(
                                                  verbatimTextOutput("citation")
                                           )
                                  ),
-                                 
                                  withLoader(DT::dataTableOutput("printGsWeb")),
-                                 downloadButton("downGscoreWeb", "Download BED"),
-                                 downloadButton("downGscoreWebCsv", "Download CSV"),
+                                 downloadButton("dwn_web_bed", "Download BED"),
+                                 downloadButton("dwn_web_csv", "Download CSV"),
                                  withLoader(DT::dataTableOutput("printGsBed")),
-                                 downloadButton("downGscoreBed", "Download BED"),
-                                 downloadButton("downGscoreBedCsv", "Download CSV")
+                                 downloadButton("dwn_bed_bed", "Download BED"),
+                                 downloadButton("dwn_bed_csv", "Download CSV")
                                  ),
                         tabPanel("About",
                                  includeMarkdown("about.md")),
