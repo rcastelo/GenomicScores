@@ -1,6 +1,6 @@
-ui <- fluidPage(
-    theme = shinytheme("spacelab"),
-    useShinyjs(),
+ui <- shiny::fluidPage(
+    theme = shinythemes::shinytheme("spacelab"),
+    shinyjs::useShinyjs(),
     tags$head(
         tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
     ),
@@ -26,16 +26,16 @@ ui <- fluidPage(
                         tabPanel("GScore",
                                  fluidRow(id="info",
                                           column(6,
-                                                 verbatimTextOutput("phastInfo")
+                                                 verbatimTextOutput("annotPackageInfo")
                                           ),
                                           column(6,
                                                  verbatimTextOutput("citation")
                                           )
                                  ),
-                                 withLoader(DT::dataTableOutput("printGsWeb")),
+                                 shinycustomloader::withLoader(DT::dataTableOutput("printGsWeb")),
                                  downloadButton("dwn_web_bed", "Download BED"),
                                  downloadButton("dwn_web_csv", "Download CSV"),
-                                 withLoader(DT::dataTableOutput("printGsBed")),
+                                 shinycustomloader::withLoader(DT::dataTableOutput("printGsBed")),
                                  downloadButton("dwn_bed_bed", "Download BED"),
                                  downloadButton("dwn_bed_csv", "Download CSV")
                                  ),

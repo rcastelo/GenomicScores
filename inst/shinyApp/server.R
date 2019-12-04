@@ -2,12 +2,10 @@ server <- function(input, output, session) {
   
   ################## INPUT VALUES ########################
   
-  annotPackage <- reactive(input$annotPackage)
-  
   chromo <- reactive({
-    req(input$chromo, phast())
+    req(input$chromo, annotPackage())
     validate(
-      need(input$chromo %in% seqnames(phast()), 
+      need(input$chromo %in% seqnames(annotPackage()), 
            "ERROR: Chromosome name is not present in this annotation package")
     )
     input$chromo
@@ -32,9 +30,9 @@ server <- function(input, output, session) {
   ################# REACTIVE CORE VALUES #######################
   
   ###### Annotation package object #####
-  phast <- reactive({
-    if(annotPackage()=="")return()
-    get(annotPackage())
+  annotPackage <- reactive({
+    if(input$annotPackage=="")return()
+    .loadAnnotationPackageObject(input$annotPackage, "GScores")
   })
   
   ##### Uploaded Bed file #####
@@ -47,14 +45,14 @@ server <- function(input, output, session) {
   gsObject <- reactive({
     req(input$annotPackage, input$indOrRange)
     validate(is_smaller(rStart(), rEnd()))
-    validate(is_within_range(chromo(), rStart(), rEnd()))
+    validate(is_within_range(chromo(), rStart(), rEnd(), annotPackage()))
 
     switch(input$indOrRange,
-           individual = gscores(phast(), 
+           individual = gscores(annotPackage(), 
                                 GRanges(seqnames=chromo(),
                                         IRanges(rStart():rEnd(), width=1)),
                                 pop = input$populations),
-           range = gscores(phast(), 
+           range = gscores(annotPackage(), 
                            GRanges(fullRange()),
                            pop = input$populations)
     )
@@ -63,7 +61,7 @@ server <- function(input, output, session) {
   
   #### GRange from bed file with gscores #####
   gsUpload <- reactive({
-    gscores(phast(), uploadedBed(), pop = input$populations)
+    gscores(annotPackage(), uploadedBed(), pop = input$populations)
   })
 
   
@@ -71,23 +69,23 @@ server <- function(input, output, session) {
   
   observe({
     if(input$webOrBed == 'web'){
-      shinyjs::show("webOptions")
-      shinyjs::hide("upload")
-      shinyjs::show("printGsWeb")
-      shinyjs::hide("printGsBed")
-      shinyjs::show("dwn_web_bed")
-      shinyjs::show("dwn_web_csv")
-      shinyjs::hide("dwn_bed_bed")
-      shinyjs::hide("dwn_bed_csv")
+      shinyjs::showElement("webOptions")
+      shinyjs::hideElement("upload")
+      shinyjs::showElement("printGsWeb")
+      shinyjs::hideElement("printGsBed")
+      shinyjs::showElement("dwn_web_bed")
+      shinyjs::showElement("dwn_web_csv")
+      shinyjs::hideElement("dwn_bed_bed")
+      shinyjs::hideElement("dwn_bed_csv")
     } else {
-      shinyjs::hide("webOptions")
-      shinyjs::show("upload")
-      shinyjs::hide("printGsWeb")
-      shinyjs::show("printGsBed")
-      shinyjs::hide("dwn_web_bed")
-      shinyjs::hide("dwn_web_csv")
-      shinyjs::show("dwn_bed_bed")
-      shinyjs::show("dwn_bed_csv")
+      shinyjs::hideElement("webOptions")
+      shinyjs::showElement("upload")
+      shinyjs::hideElement("printGsWeb")
+      shinyjs::showElement("printGsBed")
+      shinyjs::hideElement("dwn_web_bed")
+      shinyjs::hideElement("dwn_web_csv")
+      shinyjs::showElement("dwn_bed_bed")
+      shinyjs::showElement("dwn_bed_csv")
     }
   })
   
@@ -117,35 +115,35 @@ server <- function(input, output, session) {
   output$pop <- renderUI({
     req(input$annotPackage)
     selectInput("populations", "Select an available population", multiple = TRUE,
-                choices = populations(phast()))
+                choices = populations(annotPackage()))
   })
   
   
   ################## OUTPUT TEXT AND TABLES ############################## 
 
   ### Annotation Package
-  output$phastInfo <- renderPrint({
+  output$annotPackageInfo <- renderPrint({
     req(input$annotPackage)
-    phast()
+    annotPackage()
   })
   
   ### Citation
   output$citation <- renderPrint({
     req(input$annotPackage)
-    citation(phast())
+    citation(annotPackage())
   })
   
   ### Web Datatable
   output$printGsWeb <- DT::renderDataTable({
     if(input$webOrBed != "web" || input$annotPackage == "") return ()
-    as.data.table(gsObject())
+    data.table::as.data.table(gsObject())
   })
   
   ### Bed Datatable
   output$printGsBed <- DT::renderDataTable({
     req(input$upload)
     if(input$webOrBed != "bed" ) return ()
-    as.data.table(gsUpload())
+    data.table::as.data.table(gsUpload())
   })
   
   ### Session Info

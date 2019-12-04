@@ -11,7 +11,8 @@ License: Artistic-2.0
 Depends: R (>= 3.5), S4Vectors (>= 0.7.21), GenomicRanges, methods,
         BiocGenerics (>= 0.13.8)
 Imports: utils, XML, Biobase, IRanges (>= 2.3.23), Biostrings,
-        BSgenome, GenomeInfoDb, AnnotationHub
+        BSgenome, GenomeInfoDb, AnnotationHub, shiny, shinyjs,
+	DT, shinycustomloader, rtracklayer, data.table, shinythemes
 Suggests: BiocStyle, knitr, rmarkdown, BSgenome.Hsapiens.UCSC.hg19,
         phastCons100way.UCSC.hg19, MafDb.1Kgenomes.phase1.hs37d5,
         SNPlocs.Hsapiens.dbSNP144.GRCh37, VariantAnnotation,

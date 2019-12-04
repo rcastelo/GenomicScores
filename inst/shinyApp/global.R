@@ -1,12 +1,9 @@
-source("library.R")
-
-# shiny options, make DT::rendertable print NA values as 'NA'
+# Global options, make DT::rendertable print NA values as 'NA'
 options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
 ##### General functions #######
 
-#' Checks GScore packages installed in user's machine
-#' @return installed gscore packages
+# Returns GScore packages installed in user's machine
 avAnnotations <- function(){
   avgs <- readRDS(system.file("extdata", "avgs.rds", package="GenomicScores"))
   ip <- installed.packages()
@@ -15,9 +12,7 @@ avAnnotations <- function(){
 
 
 
-#' Creates a dataframe from a GScore object
-#' @param gs A GScore object
-#' @return a data.frame
+# Returns a dataframe from a GScore object
 createBed <- function(gs) {
   df <- data.frame(
     seqnames=seqnames(gs),
@@ -31,9 +26,8 @@ createBed <- function(gs) {
 
 
 
-#' Creates a Shiny download button
-#' @param dt a GScore object
-#' @param type a string containing the type of document the dwnbtn will generate ('bed' or 'csv')
+# Creates a Shiny download button using a GScore object and a 
+# string containing the type of document the dwnbtn will generate ('bed' or 'csv')
 downloadFile <- function(dt, type){
   downloadHandler(
     filename = function(){
@@ -50,8 +44,7 @@ downloadFile <- function(dt, type){
 
 
 
-#' Validates if a Shiny input is in fact an integer number
-#' @param input A string from a Shiny input
+# Validates if a Shiny input is in fact an integer number
 not_empty_or_char <- function(input){
   if(is.na(suppressWarnings(as.numeric(input)))){
     "ERROR: Genomic ranges must be numeric and cannot be null"
@@ -60,28 +53,70 @@ not_empty_or_char <- function(input){
 
 
 
-#' Validates if Shiny inputs for genomic ranges are integer numbers
-#' @param rStart A string from a Shiny input, starting range
-#' @param rEnd A string from a Shiny input, ending range
+# Validates if Shiny inputs for genomic ranges are integer numbers
 is_smaller <- function(rStart, rEnd){
   if(as.numeric(rEnd) < as.numeric(rStart)){
     "ERROR: Ending position must be bigger or equal than Starting position"
-  }  else { NULL }
+  } else { NULL }
 }
 
 
 
-#' Validates if a GRange object created with Shiny inputs is in 
-#' range within the annotation package
-#' @param name A string from a Shiny input, chromosome
-#' @param rStart A string from a Shiny input, starting range
-#' @param rEnd A string from a Shiny input, ending range
-is_within_range <- function(name, rStart, rEnd){
+# Validates if a GRange object created with Shiny inputs (name, rStart and rEnd)
+# is in range within the annotation package (phast)
+is_within_range <- function(name, rStart, rEnd, phast){
   grgsco <- GRanges(seqnames=seqnames(seqinfo(phast)), 
                     IRanges(rep(1,length(seqnames(phast))), seqlengths(seqinfo(phast))))
   gr <- GRanges(seqnames = name, IRanges(start = as.numeric(rStart), end = as.numeric(rEnd)))
   seqlevelsStyle(gr) <- seqlevelsStyle(phast)
   if(!identical(gr,subsetByOverlaps(gr, grgsco, type="within"))){
     "ERROR: The query genomic ranges are outside the boundaries of the genomic scores object"
-  }else { NULL }
+  } else { NULL }
+}
+
+
+# Checks with a name string if a package is loaded or attached
+.isPkgLoaded <- function(name) {
+  (paste("package:", name, sep="") %in% search()) ||
+    (name %in% loadedNamespaces())
+}
+
+
+# Loads a library into the package namespace, mainly used to load annotation
+# packages previously installed in user's machine. Uses as parameters the
+# package name and its type (GScore is hardcoded in server.R)
+.loadAnnotationPackageObject <- function(pkgName, pkgType, verbose=TRUE) {
+  
+  callobj <- match.call()
+  annotObj <- NULL
+  
+  if (is.character(pkgName)) {
+    if (!pkgName %in% installed.packages(noCache=TRUE)[, "Package"])
+      stop(sprintf("please install the Bioconductor package %s.", pkgName))
+    if (!.isPkgLoaded(pkgName)) {
+      if (verbose)
+        message("Loading ", pkgType, " annotation package ", pkgName)
+      if (!suppressPackageStartupMessages(require(pkgName,
+                                                  character.only=TRUE)))
+        stop(sprintf("package %s could not be loaded.", pkgName))
+    }
+    tryCatch({
+      annotObj <- get(pkgName)
+    }, error=function(err) {
+      stop(sprintf("The annotation package %s should automatically load
+an %s object with the same name as the package.", pkgName, pkgType))
+    })
+  } else if (class(pkgName) != pkgType)
+    stop(sprintf("'%s' is not the name of an '%s' annotation package or
+an '%s' annotation object itself.",
+                 pkgName, pkgType, pkgType))
+  else
+    annotObj <- pkgName
+  
+  if (!is(annotObj, pkgType))
+    stop(sprintf("The object loaded with name %s is not an '%s' object.",
+                 ifelse(is.character(pkgName), pkgName,
+                        gettext(callobj)[2])), pkgType)
+  
+  annotObj
 }

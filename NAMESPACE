@@ -2,6 +2,8 @@ import(methods)
 import(BiocGenerics)
 import(S4Vectors)
 import(GenomicRanges)
+import(shiny)
+
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
 
@@ -71,6 +73,18 @@ importFrom(Biostrings, DNA_BASES)
 importFrom(AnnotationHub, AnnotationHub,
                           getAnnotationHubOption)
 
+importFrom(shinyjs, useShinyjs, showElement, hideElement)
+
+importFrom(shinythemes, shinytheme)
+
+importFrom(data.table, as.data.table)
+
+importFrom(rtracklayer, import, export)
+
+importFrom(shinycustomloader, withLoader)
+
+importFrom(DT, dataTableOutput, renderDataTable)
+
 S3method(citation, GScores)
 
 exportClasses(GScores)
@@ -105,4 +119,6 @@ exportMethods(citation,
 export(GScores,
        availableGScores,
        getGScores,
-       makeGScoresPackage)
+makeGScoresPackage)
+
+export(igscore)
