@@ -2,7 +2,8 @@ import(methods)
 import(BiocGenerics)
 import(S4Vectors)
 import(GenomicRanges)
-import(shiny)
+import(shiny, except=c(renderDataTable, dataTableOutput)) ## 'except' to avoid
+                                                          ## namespace clash with 'DT'
 
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
@@ -121,4 +122,4 @@ export(GScores,
        getGScores,
 makeGScoresPackage)
 
-export(igscore)
+export(igscores)

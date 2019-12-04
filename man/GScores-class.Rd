@@ -234,6 +234,11 @@
   }
 }
 
+\references{
+Puigdevall, P. and Castelo, R. GenomicScores: seamless access to genomewide
+position-specific scores from R and Bioconductor.
+\emph{Bioinformatics}, 18:3208-3210, 2018.
+}
 \author{R. Castelo}
 \seealso{
   \code{\link{gscores}()}

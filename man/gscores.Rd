@@ -108,6 +108,11 @@ available sets of genomic scores. The function \code{getGScores()} return a
 object with the genomic scores in a metadata column called \code{score}.
 The method \code{score()} returns a numeric vector with the genomic scores.
 }
+\references{
+Puigdevall, P. and Castelo, R. GenomicScores: seamless access to genomewide
+position-specific scores from R and Bioconductor.
+\emph{Bioinformatics}, 18:3208-3210, 2018.
+}
 \author{R. Castelo}
 \seealso{
   \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}

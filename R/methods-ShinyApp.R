@@ -1,8 +1,8 @@
 # Calls the Shiny app function
-igscore <- function() {
+igscores <- function() {
   appDir <- system.file("shinyApp", package="GenomicScores")
   if (appDir == "")
-    stop("The GenomicScores Shiny app cannot be found within the package.")
+    stop("The GenomicScores shiny app cannot be found within the package.")
   
   shiny::runApp(appDir)
 }
