@@ -4,7 +4,7 @@ Description: @PKGDESCRIPTION@
 Version: @PKGVERSION@
 Author: @AUTHOR@
 Maintainer: @MAINTAINER@
-Depends: R (>= 3.0.0), GenomicScores (>= @GSVERSION@)
+Depends: R (>= 3.5.0), GenomicScores (>= @GSVERSION@)
 Imports: utils, S4Vectors, IRanges, GenomicRanges, BSgenome
 License: @LIC@
 organism: @ORGANISM@

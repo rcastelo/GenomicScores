@@ -5,9 +5,12 @@ options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
 # Returns GScore packages installed in user's machine
 avAnnotations <- function(){
-  avgs <- readRDS(system.file("extdata", "avgs.rds", package="GenomicScores"))
+  pp <- system.file("scripts", package="GenomicScores")
+  mkdatafnames <- list.files(pp, pattern="make-data_*")
+  gspkgnames <- sub("make-data_", "", mkdatafnames, fixed=TRUE)
+  gspkgnames <- sub(".R", "", gspkgnames, fixed=TRUE)
   ip <- installed.packages()
-  avgs[avgs %in% ip]
+  gspkgnames[gspkgnames %in% ip]
 }
 
 

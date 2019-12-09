@@ -4,11 +4,13 @@ server <- function(input, output, session) {
   
   chromo <- reactive({
     req(input$chromo, annotPackage())
+    chromo <- input$chromo
+    seqlevelsStyle(chromo) <- seqlevelsStyle(annotPackage())[1]
     validate(
-      need(input$chromo %in% seqnames(annotPackage()), 
-           "ERROR: Chromosome name is not present in this annotation package")
+      need(chromo %in% seqnames(annotPackage()), 
+           "ERROR: Chromosome name is not present in the GScores object")
     )
-    input$chromo
+    chromo
   })
   
   rStart <- reactive({
@@ -106,8 +108,8 @@ server <- function(input, output, session) {
                       textInput("rEnd", "End", value = "50967025")
                )
       ),
-      radioButtons("indOrRange", "Choose between range or individual scores",
-                   choices = list("Range" = "range", "Individual" = "individual"))
+      radioButtons("indOrRange", "Output type",
+                   choices = list("Genomic range" = "range", "Individual positions" = "individual"))
     )
   })
   

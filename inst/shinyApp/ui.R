@@ -4,17 +4,19 @@ ui <- shiny::fluidPage(
     tags$head(
         tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
     ),
-    titlePanel(h2("SHINY GSCORE", align="center"), windowTitle = "SHINY GSCORE"),
+    titlePanel(div(h2("GenomicScores WebApp", align="left"),
+               tags$img(src="GenomicScores.png", align="right", height=75, width=75)),
+               windowTitle = "GenomicScores"),
     
     sidebarLayout(
         
         sidebarPanel(
-            selectInput("annotPackage", "Select an Annotation Package",
+            selectInput("annotPackage", "Select a GScores object",
                         choices = c("Choose an installed annotation package" = "", 
                                     avAnnotations())),
             uiOutput("pop"),
-            radioButtons("webOrBed", "Web parameters or BED file?",
-                         choices = list("Web" = "web", "BED file" = "bed")),
+            radioButtons("webOrBed", "Input genomic coordinates",
+                         choices = list("Manually" = "web", "Uploading BED file" = "bed")),
             uiOutput("webOptions"),
             fileInput("upload", "Upload your Bed format file"),
             width = 3
