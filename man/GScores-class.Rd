@@ -47,7 +47,6 @@
 \alias{nsites,GScores-method}
 \alias{nsites}
 \alias{show,GScores-method}
-\alias{makeGScoresPackage}
 
 \title{GScores objects}
 
