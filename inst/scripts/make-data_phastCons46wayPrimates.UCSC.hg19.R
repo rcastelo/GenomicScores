@@ -69,8 +69,7 @@ saveRDS(refgenomeGD, file=file.path(pkgname, "refgenomeGD.rds"))
 ## 1-decimal digit raw-encoded values to reduce memory requirements
 ## in principle deciles of phastCons probabilities should give the
 ## necessary resolution for the purpose of filtering genetic variants
-## on conservation. We also include a version of the scores with
-## 2-decimal digits.
+## on conservation.
 
 ## quantizer function for 1-decimal place. it maps input real-valued [0, 1]
 ## phastCons scores to non-negative integers [0, 255] so that
