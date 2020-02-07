@@ -53,19 +53,19 @@ setMethod("provider", "GScores", function(x) x@provider)
 
 setMethod("providerVersion", "GScores", function(x) x@provider_version)
 
-setMethod("referenceGenome", "GScores", function(x) x@reference_genome)
+setMethod("genomeDescription", "GScores", function(x) x@reference_genome)
 
 setMethod("organism", "GScores",
-          function(object) organism(referenceGenome(object)))
+          function(object) organism(genomeDescription(object)))
 
-setMethod("seqinfo", "GScores", function(x) seqinfo(referenceGenome(x)))
+setMethod("seqinfo", "GScores", function(x) seqinfo(genomeDescription(x)))
 
-setMethod("seqnames", "GScores", function(x) seqnames(referenceGenome(x)))
+setMethod("seqnames", "GScores", function(x) seqnames(genomeDescription(x)))
 
-setMethod("seqlengths", "GScores", function(x) seqlengths(referenceGenome(x)))
+setMethod("seqlengths", "GScores", function(x) seqlengths(genomeDescription(x)))
 
 setMethod("seqlevelsStyle", "GScores",
-          function(x) seqlevelsStyle(referenceGenome(x)))
+          function(x) seqlevelsStyle(genomeDescription(x)))
 
 setMethod("gscoresNonSNRs", "GScores",
           function(x) x@data_nonsnrs)
@@ -482,7 +482,7 @@ setMethod("gscores", c("GScores", "character"),
   if (any(!snames %in% seqnames(object)))
     stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
                  paste(snames[!snames %in% seqnames(object)], collapse=", "),
-                 providerVersion(referenceGenome(object))))
+                 providerVersion(genomeDescription(object))))
 
   gscopops <- get(object@data_pkgname, envir=object@.data_cache)
   if (all(names(gscopops) %in% seqlevels(object))) { ## temporary fix will working w/ outdated annotations
@@ -654,7 +654,7 @@ setMethod("gscores", c("GScores", "character"),
   if (any(!snames %in% seqnames(object)))
     stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
                  paste(snames[!snames %in% seqnames(object)], collapse=", "),
-                 providerVersion(referenceGenome(object))))
+                 providerVersion(genomeDescription(object))))
 
   missingSeqMask <- !snames %in% names(gscononsnrs)
   anyMissing <- any(missingSeqMask)
@@ -815,8 +815,8 @@ setMethod("show", "GScores",
               ## max.abs.error <- max(unlist(sapply(snrobj, function(x) sapply(lapply(x, metadata), "[[", "max_abs_error")), use.names=FALSE))
 
             cat(class(object), " object \n",
-                "# organism: ", organism(object), " (", provider(referenceGenome(object)), ", ",
-                                providerVersion(referenceGenome(object)), ")\n",
+                "# organism: ", organism(object), " (", provider(genomeDescription(object)), ", ",
+                                providerVersion(genomeDescription(object)), ")\n",
                 "# provider: ", provider(object), "\n",
                 "# provider version: ", providerVersion(object), "\n",
                 "# download date: ", object@download_date, "\n", sep="")

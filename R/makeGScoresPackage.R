@@ -57,7 +57,7 @@ makeGScoresPackage <- function(gsco, version, maintainer, author,
   template_path <- system.file("gscores-template", package="GenomicScores")
 
   symvals <- list(PKGTITLE=sprintf("%s genomic scores for %s (%s)", type(gsco),
-                                   organism(gsco), providerVersion(referenceGenome(gsco))),
+                                   organism(gsco), providerVersion(genomeDescription(gsco))),
                   PKGDESCRIPTION=sprintf("Store %s genomic scores.", type(gsco)),
                   PKGVERSION=version,
                   AUTHOR=paste(authors, collapse=", "),
@@ -66,7 +66,7 @@ makeGScoresPackage <- function(gsco, version, maintainer, author,
                   LIC=license,
                   ORGANISM=organism(gsco),
                   SPECIES=organism(gsco),
-                  GENOMEVERSION=providerVersion(referenceGenome(gsco)),
+                  GENOMEVERSION=providerVersion(genomeDescription(gsco)),
                   PROVIDER=provider(gsco),
                   PROVIDERVERSION=providerVersion(gsco),
                   ORGANISMBIOCVIEW=gsub(" ", "_", organism(gsco))

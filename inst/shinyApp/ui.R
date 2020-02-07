@@ -1,4 +1,4 @@
-ui <- shiny::fluidPage(
+ui <- fluidPage(
     theme = shinythemes::shinytheme("spacelab"),
     shinyjs::useShinyjs(),
     tags$head(

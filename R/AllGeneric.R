@@ -14,3 +14,4 @@ setGeneric("gscoresGroup<-", function(x, value) standardGeneric("gscoresGroup<-"
 setGeneric("gscoresTag", function(x) standardGeneric("gscoresTag"))
 setGeneric("gscoresTag<-", function(x, value) standardGeneric("gscoresTag<-"))
 setGeneric("nsites", function(x) standardGeneric("nsites"))
+setGeneric("genomeDescription", function(x) standardGeneric("genomeDescription"))

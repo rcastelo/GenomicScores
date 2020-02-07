@@ -2,17 +2,10 @@ import(methods)
 import(BiocGenerics)
 import(S4Vectors)
 import(GenomicRanges)
-import(shiny, except=c(renderDataTable, dataTableOutput)) ## 'except' to avoid
-                                                          ## namespace clash with 'DT'
-
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
 
 importMethodsFrom(Biostrings, match)
-importMethodsFrom(BSgenome, snpcount,
-                            snplocs,
-                            snpsByOverlaps,
-                            referenceGenome)
 importMethodsFrom(GenomeInfoDb, "seqinfo<-",
                                 seqlevels,
                                 "seqlevels<-",
@@ -42,7 +35,8 @@ importMethodsFrom(IRanges, start,
 importMethodsFrom(AnnotationHub, query,
                                  cache)
 
-importFrom(utils, data,
+importFrom(utils, installed.packages,
+                  data,
                   packageDescription,
                   capture.output,
                   as.person,
@@ -74,18 +68,6 @@ importFrom(Biostrings, DNA_BASES)
 importFrom(AnnotationHub, AnnotationHub,
                           getAnnotationHubOption)
 
-importFrom(shinyjs, useShinyjs, showElement, hideElement)
-
-importFrom(shinythemes, shinytheme)
-
-importFrom(data.table, as.data.table)
-
-importFrom(rtracklayer, import, export)
-
-importFrom(shinycustomloader, withLoader)
-
-importFrom(DT, dataTableOutput, renderDataTable)
-
 S3method(citation, GScores)
 
 exportClasses(GScores)
@@ -96,7 +78,6 @@ exportMethods(citation,
               organism,
               provider,
               providerVersion,
-              referenceGenome,
               score,
               scores,
               gscores,

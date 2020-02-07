@@ -40,7 +40,7 @@ server <- function(input, output, session) {
   ##### Uploaded Bed file #####
   uploadedBed<- reactive({
     req(input$annotPackage, input$upload)
-    rtracklayer::import(input$upload$datapath, format="bed")
+    readBed(input$upload$datapath)
   })
   
   #### GRange from web with gscores ####

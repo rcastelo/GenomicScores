@@ -14,8 +14,35 @@ avAnnotations <- function(){
 }
 
 
+## imports BED files uploaded by the user through
+## the shiny app. it only reads the first three
+## columns: chromosome, start(0-based), end(1-based)
+## it skips comments and track line
+readBed <- function(filename) {
 
-# Returns a dataframe from a GScore object
+  if (!file.exists(filename))
+    stop(sprintf("%s does not exist."))
+
+  con <- file(filename, "r")
+  l <- readLines(con, 1, warn=FALSE)
+  i <- 0
+  while (length(grep("^ *#", l)) > 0 || length(grep("^track", l)) > 0) {
+    l <- readLines(con=con, n=1, warn=FALSE)
+    i <- i + 1L
+  }
+  if (length(grep("^ *#", l)) == 0 && length(grep("^track", l)) == 0)
+    pushBack(l, con)
+
+  bed <- read.table(con, sep="\t", colClasses=c("character", "integer", "integer"),
+                    stringsAsFactors=FALSE)
+  close(con)
+
+  GRanges(seqnames=bed[[1]],
+          IRanges(bed[[2]]+1L, bed[[3]]))
+}
+
+## Returns a dataframe from a GScore object
+## ready to be exported as a BED file
 createBed <- function(gs) {
   df <- data.frame(
     seqnames=seqnames(gs),
@@ -71,7 +98,7 @@ is_within_range <- function(name, rStart, rEnd, phast){
   grgsco <- GRanges(seqnames=seqnames(seqinfo(phast)), 
                     IRanges(rep(1,length(seqnames(phast))), seqlengths(seqinfo(phast))))
   gr <- GRanges(seqnames = name, IRanges(start = as.numeric(rStart), end = as.numeric(rEnd)))
-  seqlevelsStyle(gr) <- seqlevelsStyle(phast)
+  seqlevelsStyle(gr) <- seqlevelsStyle(phast)[1]
   if(!identical(gr,subsetByOverlaps(gr, grgsco, type="within"))){
     "ERROR: The query genomic ranges are outside the boundaries of the genomic scores object"
   } else { NULL }
