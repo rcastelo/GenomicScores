@@ -6,10 +6,6 @@ import(GenomicRanges)
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
 
 importMethodsFrom(Biostrings, match)
-importMethodsFrom(BSgenome, snpcount,
-                            snplocs,
-                            snpsByOverlaps,
-                            referenceGenome)
 importMethodsFrom(GenomeInfoDb, "seqinfo<-",
                                 seqlevels,
                                 "seqlevels<-",
@@ -39,7 +35,8 @@ importMethodsFrom(IRanges, start,
 importMethodsFrom(AnnotationHub, query,
                                  cache)
 
-importFrom(utils, data,
+importFrom(utils, installed.packages,
+                  data,
                   packageDescription,
                   capture.output,
                   as.person,
@@ -81,7 +78,6 @@ exportMethods(citation,
               organism,
               provider,
               providerVersion,
-              referenceGenome,
               score,
               scores,
               gscores,
@@ -105,4 +101,6 @@ exportMethods(citation,
 export(GScores,
        availableGScores,
        getGScores,
-       makeGScoresPackage)
+makeGScoresPackage)
+
+export(igscores)

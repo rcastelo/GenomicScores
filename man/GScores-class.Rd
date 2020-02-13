@@ -15,7 +15,6 @@
 \alias{organism,GScores-method}
 \alias{provider,GScores-method}
 \alias{providerVersion,GScores-method}
-\alias{referenceGenome,GScores-method}
 \alias{seqinfo,GScores-method}
 \alias{seqlengths,GScores-method}
 \alias{seqnames,GScores-method}
@@ -47,7 +46,6 @@
 \alias{nsites,GScores-method}
 \alias{nsites}
 \alias{show,GScores-method}
-\alias{makeGScoresPackage}
 
 \title{GScores objects}
 
@@ -184,10 +182,6 @@
       \code{organism(x)}: get the organism associated with the genomic scores.
     }
     \item{}{
-      \code{referenceGenome(x)}: get the \code{GenomeDescription} object
-      associated with the genome on which the genomic scores are defined.
-    }
-    \item{}{
       \code{seqlevelsStyle(x)}: get the genome sequence style.
     }
     \item{}{
@@ -234,6 +228,11 @@
   }
 }
 
+\references{
+Puigdevall, P. and Castelo, R. GenomicScores: seamless access to genomewide
+position-specific scores from R and Bioconductor.
+\emph{Bioinformatics}, 18:3208-3210, 2018.
+}
 \author{R. Castelo}
 \seealso{
   \code{\link{gscores}()}
@@ -276,7 +275,6 @@ type(gsco)
 provider(gsco)
 providerVersion(gsco)
 organism(gsco)
-referenceGenome(gsco)
 seqlevelsStyle(gsco)
 seqinfo(gsco)
 head(seqnames(gsco))

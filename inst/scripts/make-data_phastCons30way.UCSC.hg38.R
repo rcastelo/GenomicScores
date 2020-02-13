@@ -12,18 +12,18 @@
 ## command as follows
 ##
 ## $ rsync -avz --progress \
-##     rsync://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/placentalMammals/ \
-##     ./phastCons46wayPlacental
+##     rsync://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons30way/hg38.30way.phastCons/ \
+##     ./phastCons30way
 
 ## The following R script processes the downloaded data to
 ## store the phastCons scores in raw-Rle objects
 
-library(BSgenome.Hsapiens.UCSC.hg19)
+library(BSgenome.Hsapiens.UCSC.hg38)
 library(rtracklayer)
 library(doParallel)
 library(S4Vectors)
 
-downloadURL <- "http://hgdownload.soe.ucsc.edu/goldenPath/hg19/phastCons46way/placentalMammals"
+downloadURL <- "http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons30way/hg38.30way.phastCons"
 citationdata <- bibentry(bibtype="Article",
                          author=c(person("Adam Siepel"), person("Gill Berejano"), person("Jakob S. Pedersen"),
                                   person("Angie S. Hinrichs"), person("Minmei Hou"), person("Kate Rosenbloom"),
@@ -44,10 +44,10 @@ registerDoParallel(cores=4) ## each process may need up to 20Gb of RAM
 si <- Seqinfo(seqnames=seqnames(Hsapiens), seqlengths=seqlengths(Hsapiens))
 foreach (chr=seqnames(Hsapiens)) %dopar% {
   cat(chr, "\n")
-  wigToBigWig(file.path("phastCons46wayPlacental", sprintf("%s.phastCons46way.placental.wigFix.gz", chr)), seqinfo=si)
+  wigToBigWig(file.path("phastCons30way", sprintf("%s.phastCons30way.wigFix.gz", chr)), seqinfo=si)
 }
 
-pkgname <- "phastCons46wayPlacental.UCSC.hg19"
+pkgname <- "phastCons30way.UCSC.hg38"
 dir.create(pkgname)
 
 ## freeze the GenomeDescription data for Hsapiens
@@ -98,8 +98,8 @@ attr(.dequantizer, "description") <- "subtract one integer unit, divide by 10"
 nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
   cat(chr, "\n")
   tryCatch({
-    rawscores <- import.bw(BigWigFile(file.path("phastCons46wayPlacental",
-                                                sprintf("%s.phastCons46way.placental.bw", chr))))
+    rawscores <- import.bw(BigWigFile(file.path("phastCons30way",
+                                                sprintf("%s.phastCons30way.bw", chr))))
     qscores <- .quantizer(rawscores$score)
     max.abs.error <- max(abs(rawscores$score - .dequantizer(qscores)))
     obj <- coverage(rawscores, weight=qscores)[[chr]]
@@ -116,7 +116,7 @@ nsites <- foreach (chr=seqnames(Hsapiens), .combine='c') %dopar% {
       }
       metadata(obj) <- list(seqname=chr,
                             provider="UCSC",
-                            provider_version="10Nov2009",
+                            provider_version="03Nov2017",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
