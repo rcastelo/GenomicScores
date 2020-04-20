@@ -407,14 +407,6 @@ eyersids <- unique(subsetByTraits(ebicat37, tr="Eye color")$SNPS)
 eyersids
 ```
 
-<!--
-While we could directly interrogate a `MafDb` object with these identifiers and the function
-`mafById()`, that query relies on a specific dbSNP annotation used by the MAF data producer to
-annotate variants, which may not be the most up date nor may assign identifiers to every
-variant. From this perspective, it is safer to first query the genomic position of the variant
-identifiers with a recent release of dbSNP, as follows.
--->
-
 We query the genomic position of the variant identifier through the
 `r Biocpkg("SNPlocs.Hsapiens.dbSNP144.GRCh37")` package, which stores the
 build 144 of the dbSNP database.
