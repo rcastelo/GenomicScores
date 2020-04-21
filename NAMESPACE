@@ -36,6 +36,10 @@ importMethodsFrom(AnnotationHub, query,
                                  cache)
 importMethodsFrom(DelayedArray, seed)
 
+importFrom(stats, setNames)
+
+importFrom(rhdf5, h5ls)
+
 importFrom(HDF5Array, HDF5Array)
 
 importFrom(utils, installed.packages,
@@ -84,6 +88,7 @@ exportMethods(citation,
               score,
               scores,
               gscores,
+              rgscores,
               qfun,
               dqfun,
               seqinfo,

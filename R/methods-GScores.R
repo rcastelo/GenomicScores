@@ -425,27 +425,49 @@ setMethod("gscores", c("GScores", "character"),
 ## and add them to the 'gsco1pop'data structure, which is then returned back
 .fetch_scores_snrs <- function(object, objectname, gsco1pop, pop, snames) {
   slengths <- seqlengths(object)
+  avh5snames <- h5fpath <- character(0)
+
+  if (hdf5Backend(object)) {
+    fname <- sprintf("%s.%s.h5", object@data_pkgname, pop)
+    h5fpath <- file.path(object@data_dirpath, fname)
+    h5str <- h5ls(h5fpath)
+    avh5snames <- h5str$name[which(h5str$group == "/")]
+  }
+
   for (sname in snames) {
-    if (pop == "default")
-      fname <- sprintf("%s.%s.rds", object@data_pkgname, sname)
-    else
-      fname <- sprintf("%s.%s.%s.rds", object@data_pkgname, pop, sname)
-    if (hdf5Backend(object))
-      fname <- sprintf("%s.%s.h5", object@data_pkgname, pop)
-    if (length(object@data_serialized_objnames) > 0 &&
-        fname %in% names(object@data_serialized_objnames))
-      fname <- object@data_serialized_objnames[fname]
-    fpath <- file.path(object@data_dirpath, fname)
-    if (file.exists(fpath)) {
-      if (hdf5Backend(object))
-        gsco1pop[[sname]] <- HDF5Array(fpath, paste0(sname, "/scores"))
+
+    snameExists <- FALSE
+
+    if (hdf5Backend(object)) { ## HDF5 backend
+
+      if (sname %in% avh5snames) {
+        snameExists <- TRUE
+        gsco1pop[[sname]] <- HDF5Array(h5fpath, paste0(sname, "/scores"))
+      }
+
+    } else {                   ## RDS-serialized Rle backend
+
+      if (pop == "default")
+        fname <- sprintf("%s.%s.rds", object@data_pkgname, sname)
       else
+        fname <- sprintf("%s.%s.%s.rds", object@data_pkgname, pop, sname)
+      if (length(object@data_serialized_objnames) > 0 &&
+          fname %in% names(object@data_serialized_objnames))
+        fname <- object@data_serialized_objnames[fname]
+      fpath <- file.path(object@data_dirpath, fname)
+      if (file.exists(fpath)) {
+        snameExists <- TRUE
         gsco1pop[[sname]] <- readRDS(fpath)
-    } else {
+      }
+
+    }
+
+    if (!snameExists) {
       message(sprintf("no %s scores for population %s in sequence %s from %s object %s (%s).",
                        type(object), pop, sname, class(object), objectname, name(object)))
       gsco1pop[[sname]] <- Rle(lengths=slengths[sname], values=as.raw(0L))
     }
+
   }
 
   gsco1pop
@@ -504,7 +526,7 @@ setMethod("gscores", c("GScores", "character"),
                  providerVersion(genomeDescription(object))))
 
   gscopops <- get(object@data_pkgname, envir=object@.data_cache)
-  if (all(names(gscopops) %in% seqlevels(object))) { ## temporary fix will working w/ outdated annotations
+  if (all(names(gscopops) %in% seqlevels(object))) { ## temporary fix for annotations w/o populations
     tmp <- gscopops
     gscopops <- list()
     gscopops[[defaultPopulation(object)]] <- List() ## RleList(tmp, compress=FALSE)
@@ -758,7 +780,12 @@ setMethod("qfun", "GScores",
             if (!pop %in% populations(object))
               stop(sprintf("There is no score population %s in this GScores object. Use populations() to find out what score populations are available.", pop))
             obj <- get(object@data_pkgname, envir=object@.data_cache)
-            metadata(obj[[pop]][[1]])$qfun
+            fun <- NA
+            if (hdf5Backend(object))
+              fun <- metadata(obj[[pop]])$qfun
+            else
+              fun <- metadata(obj[[pop]][[1]])$qfun
+            fun
           })
 
 setMethod("dqfun", "GScores",
@@ -766,7 +793,11 @@ setMethod("dqfun", "GScores",
             if (!pop %in% populations(object))
               stop(sprintf("There is no score population %s in this GScores object. Use populations() to find out what score populations are available.", pop))
             obj <- get(object@data_pkgname, envir=object@.data_cache)
-            metadata(obj[[pop]][[1]])$dqfun
+            fun <- NA
+            if (hdf5Backend(object))
+              fun <- metadata(obj[[pop]])$dqfun
+            else
+              fun <- metadata(obj[[pop]][[1]])$dqfun
           })
 
 citation <- function(package, ...) UseMethod("citation")
@@ -779,8 +810,7 @@ setMethod("citation", signature="character", citation.character)
 citation.GScores <- function(package, ...) {
   obj <- get(package@data_pkgname, envir=package@.data_cache)
   cit <- bibentry()
-  if ("Rle" %in% class(obj[[1]]) || length(obj[[1]]) == 0 ||
-      "HDF5Array" %in% class(obj[[1]][[1]]))
+  if ("Rle" %in% class(obj[[1]]) || length(obj[[1]]) == 0 || hdf5Backend(package))
     cit <- metadata(obj[[1]])$citation
   else
     cit <- metadata(obj[[1]][[1]])$citation
@@ -880,4 +910,128 @@ setMethod("show", "GScores",
             }
             if (length(citation(object)) > 0)
               cat("# use 'citation()' to cite these data in publications\n")
+          })
+
+.rgscoresRle <- function(object, gscopops, snames, n, pop) {
+  nscores <- sapply(gscopops[[pop]][snames], function(x) {
+                      mask <- runValue(x) != 0
+                      sum(runLength(x)[mask])
+                    })
+  f <- factor(sample(snames, size=n, replace=TRUE, prob=nscores/sum(nscores)),
+              levels=snames)
+  nxs <- table(f)
+  dqf <- dqfun(object)
+  pxs <- lapply(setNames(snames, snames), function(s, l, n) {
+                  gr <- GRanges(seqinfo=seqinfo(object))
+                  if (n[s] > 0) {
+                    mask <- runValue(l[[s]]) != 0
+                    whmask <- which(mask)
+                    rlcsum <- cumsum(runLength(l[[s]])[whmask])
+                    rndpos <- sample(rlcsum[length(rlcsum)], size=n[s], replace=FALSE)
+                    rndpos <- sapply(rndpos, function(x) sum(rlcsum <= x))
+                    rndpos <- sapply(whmask[rndpos], function(j) sum(runLength(l[[s]])[1:j]))
+                    rndsco <- l[[s]][rndpos]
+                    gr <- GRanges(seqnames=rep(s, n[s]),
+                              ranges=IRanges(start=rndpos, width=1),
+                              seqinfo=seqinfo(object))
+                    mcols(gr)[[pop]] <- dqf(rndsco)
+                  }
+                  gr
+                }, gscopops[[pop]], nxs)
+
+  unlist(do.call("GRangesList", pxs))
+}
+
+.rgscoresHDF5 <- function(object, gscopops, snames, n, pop) {
+  nscores <- sapply(gscopops[[pop]][snames], function(x) {
+                      mask <- x != 0
+                      sum(mask)
+                    })
+  f <- factor(sample(snames, size=n, replace=TRUE, prob=nscores/sum(nscores)),
+              levels=snames)
+  nxs <- table(f)
+  dqf <- dqfun(object)
+  pxs <- lapply(setNames(snames, snames), function(s, l, n) {
+                  gr <- GRanges(seqinfo=seqinfo(object))
+                  if (n[s] > 0) {
+                    mask <- l[[s]] != 0
+                    whmask <- which(mask)
+                    rndpos <- sample(whmask, size=n[s], replace=FALSE)
+                    rndsco <- l[[s]][rndpos]
+                    gr <- GRanges(seqnames=rep(s, n[s]),
+                              ranges=IRanges(start=rndpos, width=1),
+                              seqinfo=seqinfo(object))
+                    mcols(gr)[[pop]] <- dqf(rndsco)
+                  }
+                  gr
+                }, gscopops[[pop]], nxs)
+
+  unlist(do.call("GRangesList", pxs))
+}
+
+setMethod("rgscores", signature(n="GScores", object="missing"),
+          function(n, object, ...) {
+            rgscores(n=1L, object=n, ...)
+          })
+
+setMethod("rgscores", signature(n="missing", object="GScores"),
+          function(n, object, ...) {
+            rgscores(n=1L, object, ...)
+          })
+
+setMethod("rgscores", signature(n="numeric", object="GScores"),
+          function(n=1, object, ...) {
+            rgscores(n=as.integer(n), object, ...)
+          })
+
+setMethod("rgscores", signature(n="integer", object="GScores"),
+          function(n=1L, object, ...) {
+            ## default non-generic arguments
+            paramNames <- c("pop", "ranges")
+            pop <- defaultPopulation(object)
+            ranges <- GRanges(seqinfo=seqinfo(object))
+
+            ## get arguments
+            arglist <- list(...)
+            mask <- nchar(names(arglist)) == 0
+            if (any(mask))
+              names(arglist)[mask] <- paste0("X", 1:sum(mask))
+
+            mask <- names(arglist) %in% paramNames
+            if (any(!mask))
+                stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
+            list2env(arglist, envir=sys.frame(sys.nframe()))
+
+            objectname <- deparse(substitute(object))
+            stopifnot(length(pop) == 1) ## QC
+            gscopops <- get(object@data_pkgname, envir=object@.data_cache)
+
+            snames <- seqlevels(seqinfo(object))
+            if (length(ranges) > 0) {
+              snames <- unique(as.character(runValue(seqnames(ranges))))
+              if (any(!snames %in% seqnames(object)))
+                stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
+                             paste(snames[!snames %in% seqnames(object)], collapse=", "),
+                             providerVersion(genomeDescription(object))))
+            }
+
+            if (!pop %in% populations(object))
+              stop(sprintf("Population %s is not in 'GScores' object %s. Use 'populations()' to find out the available ones.",
+                           pop, objectname))
+
+            if (!pop %in% names(gscopops))
+              gscopops[[pop]] <- List() ## RleList(compress=FALSE)
+
+            missingMask <- !snames %in% names(gscopops[[pop]])
+            if (any(missingMask))
+              gscopops[[pop]] <- .fetch_scores_snrs(object, objectname, gscopops[[pop]],
+                                                    pop, snames[missingMask])
+
+            gsco <- GRanges(seqinfo=seqinfo(object))
+            if (hdf5Backend(object))
+              gsco <- .rgscoresHDF5(object, gscopops, snames, n, pop)
+            else
+              gsco <- .rgscoresRle(object, gscopops, snames, n, pop)
+
+            gsco
           })
