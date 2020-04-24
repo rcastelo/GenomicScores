@@ -912,7 +912,7 @@ setMethod("show", "GScores",
               cat("# use 'citation()' to cite these data in publications\n")
           })
 
-.rgscoresRle <- function(object, gscopops, snames, n, pop) {
+.rgscoresRle <- function(object, gscopops, snames, n, pop, ranges) {
   nscores <- sapply(gscopops[[pop]][snames], function(x) {
                       mask <- runValue(x) != 0
                       sum(runLength(x)[mask])
@@ -932,8 +932,8 @@ setMethod("show", "GScores",
                     rndpos <- sapply(whmask[rndpos], function(j) sum(runLength(l[[s]])[1:j]))
                     rndsco <- l[[s]][rndpos]
                     gr <- GRanges(seqnames=rep(s, n[s]),
-                              ranges=IRanges(start=rndpos, width=1),
-                              seqinfo=seqinfo(object))
+                                  ranges=IRanges(start=rndpos, width=1),
+                                  seqinfo=seqinfo(object))
                     mcols(gr)[[pop]] <- dqf(rndsco)
                   }
                   gr
@@ -942,7 +942,7 @@ setMethod("show", "GScores",
   unlist(do.call("GRangesList", pxs))
 }
 
-.rgscoresHDF5 <- function(object, gscopops, snames, n, pop) {
+.rgscoresHDF5 <- function(object, gscopops, snames, n, pop, ranges) {
   nscores <- sapply(gscopops[[pop]][snames], function(x) {
                       mask <- x != 0
                       sum(mask)
@@ -959,8 +959,8 @@ setMethod("show", "GScores",
                     rndpos <- sample(whmask, size=n[s], replace=FALSE)
                     rndsco <- l[[s]][rndpos]
                     gr <- GRanges(seqnames=rep(s, n[s]),
-                              ranges=IRanges(start=rndpos, width=1),
-                              seqinfo=seqinfo(object))
+                                  ranges=IRanges(start=rndpos, width=1),
+                                  seqinfo=seqinfo(object))
                     mcols(gr)[[pop]] <- dqf(rndsco)
                   }
                   gr
@@ -987,9 +987,10 @@ setMethod("rgscores", signature(n="numeric", object="GScores"),
 setMethod("rgscores", signature(n="integer", object="GScores"),
           function(n=1L, object, ...) {
             ## default non-generic arguments
-            paramNames <- c("pop", "ranges")
+            paramNames <- c("pop", "ranges", "scores.only")
             pop <- defaultPopulation(object)
-            ranges <- GRanges(seqinfo=seqinfo(object))
+            ranges <- keepStandardChromosomes(GRanges(seqinfo=seqinfo(object)))
+            scores.only <- FALSE
 
             ## get arguments
             arglist <- list(...)
@@ -1006,7 +1007,21 @@ setMethod("rgscores", signature(n="integer", object="GScores"),
             stopifnot(length(pop) == 1) ## QC
             gscopops <- get(object@data_pkgname, envir=object@.data_cache)
 
-            snames <- seqlevels(seqinfo(object))
+            if (!is.logical(scores.only) || length(scores.only) > 1)
+              stop("'scores.only' must be one logical value (TRUE or FALSE).")
+
+            if (!is(ranges, "GRanges") && !is.character(ranges))
+              stop("'ranges' must be either a 'GRanges' object or a character vector of sequence names.")
+            if (is.character(ranges)) {
+              mask <- !ranges %in% seqlevels(object)
+              if (any(mask))
+                stop(sprintf("Sequence names %s not in %s.",
+                             paste(ranges[mask], collapse=", "), objectname))
+              slen <- seqlengths(object)[ranges]
+              ranges <- GRanges(seqnames=ranges, IRanges(rep(1, length(ranges)), slen))
+            }
+
+            snames <- seqlevels(keepStandardChromosomes(seqinfo(object)))
             if (length(ranges) > 0) {
               snames <- unique(as.character(runValue(seqnames(ranges))))
               if (any(!snames %in% seqnames(object)))
@@ -1023,15 +1038,19 @@ setMethod("rgscores", signature(n="integer", object="GScores"),
               gscopops[[pop]] <- List() ## RleList(compress=FALSE)
 
             missingMask <- !snames %in% names(gscopops[[pop]])
-            if (any(missingMask))
+            if (any(missingMask)) {
               gscopops[[pop]] <- .fetch_scores_snrs(object, objectname, gscopops[[pop]],
                                                     pop, snames[missingMask])
+            }
 
             gsco <- GRanges(seqinfo=seqinfo(object))
             if (hdf5Backend(object))
-              gsco <- .rgscoresHDF5(object, gscopops, snames, n, pop)
+              gsco <- .rgscoresHDF5(object, gscopops, snames, n, pop, ranges)
             else
-              gsco <- .rgscoresRle(object, gscopops, snames, n, pop)
+              gsco <- .rgscoresRle(object, gscopops, snames, n, pop, ranges)
+
+            if (scores.only)
+              gsco <- mcols(gsco)[[pop]]
 
             gsco
           })

@@ -33,6 +33,7 @@ getGScores(x)
              \itemize{
                \item{pop}{Character string vector specifying the scores
                           populations to query, when there is more than one.
+                          By default, its value is 'defaultPopulation(x)'.
                           Use \code{\link{populations}()} to find out the
                           available scores populations.}
                \item{type}{Character string specifying the type of genomic
@@ -41,6 +42,10 @@ getGScores(x)
                            \code{nonsnr} spanning multiple nucleotides. The
                            latter is the case of indel variants in minor
                            allele frequency data.}
+               \item{scores.only}{Flag setting whether only the scores should
+                                  be returned as a numeric vector (\code{TRUE}),
+                                  instead of returning them as a metadata column
+                                  in a \code{GRanges} object (\code{FALSE}, default).}
                \item{summaryFun}{Function to summarize genomic scores when
                                  more than one position is retrieved. By
                                  default, this is set to the arithmetic mean,
