@@ -400,10 +400,17 @@ Consider the following example in which we are interested in MAF values for vari
 with _eye color_. We can start by fetching the corresponding variant identifers from the GWAS
 catalog using the `r Biocpkg("gwascat")` package, as follows.
 
-```{r, message=FALSE}
+```{r, eval=FALSE, message=FALSE}
 library(gwascat)
-data(ebicat37)
-eyersids <- unique(subsetByTraits(ebicat37, tr="Eye color")$SNPS)
+
+gwascat <- makeCurrentGwascat()
+eyersids <- unique(subsetByTraits(gwascat, tr="Eye color")$SNPS)
+```
+```{r, echo=FALSE}
+eyersids <- readRDS(file.path(system.file("extdata", package="GenomicScores"),
+                              "eyersids.rds"))
+```
+```{r}
 eyersids
 ```
 
@@ -420,7 +427,7 @@ rng
 
 Finally, fetch the MAF values on those positions.
 
-```{r}
+```{r, message=FALSE}
 eyecolormafs <- gscores(mafdb, rng, pop=c("AF", "EUR_AF", "AFR_AF"))
 eyecolormafs
 ```
@@ -429,7 +436,7 @@ Sometimes, data producers may annotate identifiers to genomic scores,
 such as dbSNP rs identifiers to MAF values. In such a case, we can directly
 attempt to fetch genomic scores using those identifiers as follows.
 
-```{r}
+```{r, message=FALSE}
 gscores(mafdb, eyersids, pop=c("AF", "EUR_AF", "AFR_AF"))
 ```
 
