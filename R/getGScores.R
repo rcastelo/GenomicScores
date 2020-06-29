@@ -38,39 +38,6 @@
 }
 
 
-availableGScores <- function() {
-  baseUrl <- "http://functionalgenomics.upf.edu/annotationhub"
-  avgs <- character(0)
-
-  if (!.testConnection(baseUrl)) {
-    warning(sprintf("No internet connection to %s", baseUrl))
-    ## in the absence of internet connectivity, assume all possibly downloaded
-    ## GScores resources are the ones cached in inst/extdata/avgs.rds
-    avgs <- readRDS(system.file("extdata", "avgs.rds", package="GenomicScores"))
-  } else {
-    mainDirs <- .getSubDirs(baseUrl)
-    mainDirs <- sub("/", "", mainDirs)
-    mainDirs <- mainDirs[nchar(mainDirs) > 0]
-    if (length(mainDirs) < 1) {
-      warning(sprintf("No available genomic scores at %s", baseUrl))
-      return(avgs)
-    }
-
-    for (d in mainDirs) {
-      subDirs <- .getSubDirs(paste(baseUrl, d, sep="/"))
-      subDirs <- sub("/", "", subDirs[grep(d, subDirs)])
-      avgs <- c(avgs, subDirs)
-    }
-  }
-
-  ## report only those in the current AnnotationHub database
-  ah <- AnnotationHub()
-  ah <- query(ah, avgs, pattern.op=`|`)
-  mcah <- mcols(ah)
-
-  avgs[!is.na(charmatch(avgs, mcah$title))]
-}
-
 getGScores <- function(x) {
   if (!is.character(x) || length(x) > 1)
     stop("'x' should be a character vector of length 1.")

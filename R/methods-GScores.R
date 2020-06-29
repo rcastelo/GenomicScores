@@ -97,12 +97,12 @@ setReplaceMethod("gscoresTag", c("GScores", "character"),
                    x
                  })
 
-setMethod("gscoresGroup", "GScores", function(x) x@data_group)
+setMethod("gscoresCategory", "GScores", function(x) x@data_group)
 
-setReplaceMethod("gscoresGroup", c("GScores", "character"),
+setReplaceMethod("gscoresCategory", c("GScores", "character"),
                  function(x, value) {
                    if (length(value) > 1)
-                     message("more than one genomic scores group name supplied, using the 1st one only.")
+                     message("more than one genomic scores category name supplied, using the 1st one only.")
                    x@data_group <- value[1]
                    x
                  })

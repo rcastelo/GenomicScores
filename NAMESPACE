@@ -101,8 +101,8 @@ exportMethods(citation,
               "defaultPopulation<-",
               gscoresTag,
               "gscoresTag<-",
-              gscoresGroup,
-              "gscoresGroup<-",
+              gscoresCategory,
+              "gscoresCategory<-",
               nsites,
               show)
 
