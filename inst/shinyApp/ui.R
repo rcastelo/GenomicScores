@@ -11,14 +11,19 @@ ui <- fluidPage(
     sidebarLayout(
         
         sidebarPanel(
-            selectInput("annotPackage", "Select a GScores object",
-                        choices = c("Choose an installed annotation package" = "", 
-                                    avAnnotations())),
+            selectInput("organism", "Select an Organism",
+                        choices = c("All" = "All", unique(availableGScores(installed=TRUE)$Organism)),
+                        selected = "All"),
+            selectInput("category", "Select a Category",
+                        choices = c("All" = "All", unique(availableGScores(installed=TRUE)$Category)),
+                        selected = "All"),
+            uiOutput("apkg"), 
             uiOutput("pop"),
             radioButtons("webOrBed", "Input genomic coordinates",
                          choices = list("Manually" = "web", "Uploading BED file" = "bed")),
             uiOutput("webOptions"),
             fileInput("upload", "Upload your Bed format file"),
+            actionButton("run", "Run"),
             width = 3
             
         ),
@@ -34,12 +39,8 @@ ui <- fluidPage(
                                                  verbatimTextOutput("citation")
                                           )
                                  ),
-                                 shinycustomloader::withLoader(DT::dataTableOutput("printGsWeb")),
-                                 downloadButton("dwn_web_bed", "Download BED"),
-                                 downloadButton("dwn_web_csv", "Download CSV"),
-                                 shinycustomloader::withLoader(DT::dataTableOutput("printGsBed")),
-                                 downloadButton("dwn_bed_bed", "Download BED"),
-                                 downloadButton("dwn_bed_csv", "Download CSV")
+                                 shinycustomloader::withLoader(DT::dataTableOutput("printGs")),
+                                 uiOutput("down_btn")
                                  ),
                         tabPanel("About",
                                  includeMarkdown("about.md")),
