@@ -97,8 +97,7 @@ is_within_range <- function(name, rStart, rEnd, phast){
 
 # Checks with a name string if a package is loaded or attached
 .isPkgLoaded <- function(name) {
-  (paste("package:", name, sep="") %in% search()) ||
-    (name %in% loadedNamespaces())
+  paste("package:", name, sep="") %in% search()
 }
 
 
