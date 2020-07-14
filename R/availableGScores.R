@@ -58,11 +58,11 @@ availableGScores <- function(installed=FALSE, ah.only=FALSE) {
     orggrp <- sapply(res$Name[res$Installed],
                      function(pkg) {
                        obj <- getFromNamespace(pkg, pkg)
+                       unloadNamespace(pkg)
                        c(organism(obj), gscoresCategory(obj))
                      })
     res[res$Installed, c("Organism", "Category")] <- t(orggrp)
   }
-
 
   res
 }
