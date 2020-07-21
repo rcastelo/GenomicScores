@@ -3,16 +3,6 @@ options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
 ##### General functions #######
 
-# Returns GScore packages installed in user's machine
-avAnnotations <- function(){
-  pp <- system.file("scripts", package="GenomicScores")
-  mkdatafnames <- list.files(pp, pattern="make-data_*")
-  gspkgnames <- sub("make-data_", "", mkdatafnames, fixed=TRUE)
-  gspkgnames <- sub(".R", "", gspkgnames, fixed=TRUE)
-  ip <- installed.packages()
-  gspkgnames[gspkgnames %in% ip]
-}
-
 
 ## imports BED files uploaded by the user through
 ## the shiny app. it only reads the first three
@@ -107,8 +97,7 @@ is_within_range <- function(name, rStart, rEnd, phast){
 
 # Checks with a name string if a package is loaded or attached
 .isPkgLoaded <- function(name) {
-  (paste("package:", name, sep="") %in% search()) ||
-    (name %in% loadedNamespaces())
+  paste("package:", name, sep="") %in% search()
 }
 
 
@@ -133,12 +122,11 @@ is_within_range <- function(name, rStart, rEnd, phast){
     tryCatch({
       annotObj <- get(pkgName)
     }, error=function(err) {
-      stop(sprintf("The annotation package %s should automatically load
-an %s object with the same name as the package.", pkgName, pkgType))
+      stop(sprintf("The annotation package %s should automatically load an %s object with the same name as the package.",
+                   pkgName, pkgType))
     })
   } else if (class(pkgName) != pkgType)
-    stop(sprintf("'%s' is not the name of an '%s' annotation package or
-an '%s' annotation object itself.",
+    stop(sprintf("'%s' is not the name of an '%s' annotation package or an '%s' annotation object itself.",
                  pkgName, pkgType, pkgType))
   else
     annotObj <- pkgName

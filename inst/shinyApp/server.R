@@ -1,5 +1,5 @@
 server <- function(input, output, session) {
-  
+ 
   ################## INPUT VALUES ########################
   
   chromo <- reactive({
@@ -33,7 +33,9 @@ server <- function(input, output, session) {
   
   ###### Annotation package object #####
   annotPackage <- reactive({
-    if(input$annotPackage=="")return()
+    req(input$annotPackage)
+    if(input$annotPackage=="" || !input$annotPackage %in% availableGScores(installed = TRUE))
+      return()
     .loadAnnotationPackageObject(input$annotPackage, "GScores")
   })
   
@@ -44,28 +46,35 @@ server <- function(input, output, session) {
   })
   
   #### GRange from web with gscores ####
-  gsObject <- reactive({
-    req(input$annotPackage, input$indOrRange)
-    validate(is_smaller(rStart(), rEnd()))
-    validate(is_within_range(chromo(), rStart(), rEnd(), annotPackage()))
-
-    switch(input$indOrRange,
-           individual = gscores(annotPackage(), 
-                                GRanges(seqnames=chromo(),
-                                        IRanges(rStart():rEnd(), width=1)),
-                                pop = input$populations),
-           range = gscores(annotPackage(), 
-                           GRanges(fullRange()),
-                           pop = input$populations)
-    )
-    
+  gsObject <- eventReactive(input$run, {
+    req(input$annotPackage)
+    switch(input$webOrBed,
+           web ={
+             req(input$indOrRange)
+             validate(is_smaller(rStart(), rEnd()))
+             validate(is_within_range(chromo(), rStart(), rEnd(), annotPackage()))
+             
+             switch(input$indOrRange,
+                    individual = gscores(annotPackage(), 
+                                         GRanges(seqnames=chromo(),
+                                                 IRanges(rStart():rEnd(), width=1)),
+                                         pop = input$populations),
+                    range = gscores(annotPackage(), 
+                                    GRanges(fullRange()),
+                                    pop = input$populations)
+             )
+           },
+           bed = {
+             req(uploadedBed())
+             tryCatch({
+               gscores(annotPackage(), uploadedBed(), pop = input$populations)
+             }, error=function(err){
+               stop(print(paste("There seems to be a problem with the bed file", err, sep = "\n")))
+               }
+             )
+           })
   })
   
-  #### GRange from bed file with gscores #####
-  gsUpload <- reactive({
-    gscores(annotPackage(), uploadedBed(), pop = input$populations)
-  })
-
   
   ################## UI HIDE AND SHOW  ##################
   
@@ -73,25 +82,70 @@ server <- function(input, output, session) {
     if(input$webOrBed == 'web'){
       shinyjs::showElement("webOptions")
       shinyjs::hideElement("upload")
-      shinyjs::showElement("printGsWeb")
-      shinyjs::hideElement("printGsBed")
-      shinyjs::showElement("dwn_web_bed")
-      shinyjs::showElement("dwn_web_csv")
-      shinyjs::hideElement("dwn_bed_bed")
-      shinyjs::hideElement("dwn_bed_csv")
     } else {
       shinyjs::hideElement("webOptions")
       shinyjs::showElement("upload")
-      shinyjs::hideElement("printGsWeb")
-      shinyjs::showElement("printGsBed")
-      shinyjs::hideElement("dwn_web_bed")
-      shinyjs::hideElement("dwn_web_csv")
-      shinyjs::showElement("dwn_bed_bed")
-      shinyjs::showElement("dwn_bed_csv")
     }
   })
   
   ################## GENERATE INPUTS  ######################## 
+  
+  output$apkg <- renderUI({
+    options <- availableGScores()
+    organism <- input$organism
+    category <- input$category
+    options <- if(organism=="All") options else options[options$Organism==organism,]
+    options <- if(category=="All") options else options[options$Category==category,]
+    
+    selectInput("annotPackage", "Select an Annotation Package",
+                choices = list("Choose an installed annotation package" = "",
+                            "Installed" = as.list(options$Name[options$Installed==TRUE]),
+                            "Not installed" = as.list(options$Name[options$Installed==FALSE])))
+  })
+  
+  observeEvent(input$annotPackage, {
+    name <- input$annotPackage
+    options <- availableGScores(installed=TRUE)
+    if(!name=="" && !name %in% options$Name){
+      showModal(
+        modalDialog(
+          title = "Installed Annotation Packages",
+          "The annotation package you chose is not installed and cannot be used yet. 
+          Would you like to install it?",
+          div(p("\n")),
+          verbatimTextOutput("install.text"),
+          footer = tagList(
+            modalButton("Cancel"),
+            actionButton("install.apkgs", "OK")
+          )
+        )
+      )
+    }
+  })
+  
+  observeEvent(input$install.apkgs, {
+    if(input$annotPackage %in% installed.packages()) {
+      removeModal()
+      session$reload()
+    } else {
+      withCallingHandlers({
+        shinyjs::html(id = "install.text", html = paste("Installation of ", input$annotPackage, " in progress.\n"))
+        shinyjs::html(id = "install.text", html = "Please wait, this may take a while.\n", add = TRUE)
+        shinyjs::html(id = "install.text", html = "You can check the progress on your R console.\n\n", add = TRUE)
+        BiocManager::install(input$annotPackage, update=FALSE)
+        shinyjs::html(id = "install.text", html = "\n", add = TRUE)
+        shinyjs::html(id = "install.text", html = "Installation Finished", add = TRUE)
+        },
+        message = function(m) {
+          shinyjs::html(id = "install.text", html = m$message, add = TRUE)},
+        warning = function(m) {
+          shinyjs::html(id = "install.text", html = m$message, add = TRUE)},
+        error = function(m) {
+          shinyjs::html(id = "install.text", html = m$message, add = TRUE)})
+      }
+    })
+  
+
   
   #### render web parameters (chr name, start, end, choose between range or indv.)
   output$webOptions <- renderUI({
@@ -115,38 +169,44 @@ server <- function(input, output, session) {
   
   ### render selectinput with population options
   output$pop <- renderUI({
-    req(input$annotPackage)
+    req(annotPackage())
     selectInput("populations", "Select an available population", multiple = TRUE,
                 choices = populations(annotPackage()))
   })
+  
+  ### render download buttons
+  output$down_btn <- renderUI({
+    req(gsObject())
+    fluidRow(
+             downloadButton("dwn_bed", "Download BED"),
+             downloadButton("dwn_csv", "Download CSV")
+             )
+  })
+  
   
   
   ################## OUTPUT TEXT AND TABLES ############################## 
 
   ### Annotation Package
   output$annotPackageInfo <- renderPrint({
-    req(input$annotPackage)
+    req(annotPackage())
     annotPackage()
   })
   
   ### Citation
   output$citation <- renderPrint({
-    req(input$annotPackage)
+    req(annotPackage())
     citation(annotPackage())
   })
   
-  ### Web Datatable
-  output$printGsWeb <- DT::renderDataTable({
-    if(input$webOrBed != "web" || input$annotPackage == "") return ()
+  ### Datatable
+  output$printGs <- DT::renderDataTable({
+    req(gsObject())
+    if( input$annotPackage == "") return ()
     data.table::as.data.table(gsObject())
   })
   
-  ### Bed Datatable
-  output$printGsBed <- DT::renderDataTable({
-    req(input$upload)
-    if(input$webOrBed != "bed" ) return ()
-    data.table::as.data.table(gsUpload())
-  })
+
   
   ### Session Info
   output$sessionInfo <- renderPrint({
@@ -156,9 +216,7 @@ server <- function(input, output, session) {
   
   ################## DOWNLOAD BUTTONS #########################
 
-  output$dwn_web_bed <- downloadFile(gsObject(), "bed")
-  output$dwn_web_csv <- downloadFile(gsObject(), "csv")
-  output$dwn_bed_bed <- downloadFile(gsUpload(), "bed")
-  output$dwn_bed_csv <- downloadFile(gsUpload(), "csv")
+  output$dwn_bed <- downloadFile(gsObject(), "bed")
+  output$dwn_csv <- downloadFile(gsObject(), "csv")
 
 }
