@@ -12,10 +12,10 @@ ui <- fluidPage(
         
         sidebarPanel(
             selectInput("organism", "Select an Organism",
-                        choices = c("All" = "All", unique(availableGScores()$Organism)),
+                        choices = c("All" = "All", unique(availableGScores(installed=TRUE)$Organism)),
                         selected = "All"),
             selectInput("category", "Select a Category",
-                        choices = c("All" = "All", unique(availableGScores()$Category)),
+                        choices = c("All" = "All", unique(availableGScores(installed=TRUE)$Category)),
                         selected = "All"),
             uiOutput("apkg"), 
             uiOutput("pop"),
