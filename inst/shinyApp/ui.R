@@ -1,6 +1,14 @@
 ui <- fluidPage(
     theme = shinythemes::shinytheme("spacelab"),
     shinyjs::useShinyjs(),
+    lapply(availableGScores()$Name, function(x){
+        options <- availableGScores()
+        if(options[options$Name==x,]$Installed) {
+            inlineCSS(paste0("#cssref .selectize-dropdown-content > .option[data-value='", x, "'] { color: green; }"))
+        } else {
+            inlineCSS(paste0("#cssref .selectize-dropdown-content > .option[data-value='", x, "'] { color: red; }"))
+        }
+    }),
     tags$head(
         tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
     ),

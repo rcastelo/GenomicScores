@@ -96,11 +96,10 @@ server <- function(input, output, session) {
     category <- input$category
     options <- if(organism=="All") options else options[options$Organism==organism,]
     options <- if(category=="All") options else options[options$Category==category,]
-    
-    selectInput("annotPackage", "Select an Annotation Package",
-                choices = list("Choose an installed annotation package" = "",
-                            "Installed" = as.list(options$Name[options$Installed==TRUE]),
-                            "Not installed" = as.list(options$Name[options$Installed==FALSE])))
+
+    tags$div(id="cssref", 
+        selectInput("annotPackage", "Select an Annotation Package",
+                choices = c("Choose a package" = "", options$Name)))
   })
   
   observeEvent(input$annotPackage, {
