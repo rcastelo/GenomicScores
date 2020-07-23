@@ -1,16 +1,9 @@
 ui <- fluidPage(
     theme = shinythemes::shinytheme("spacelab"),
     shinyjs::useShinyjs(),
-    lapply(availableGScores()$Name, function(x){
-        options <- availableGScores()
-        if(options[options$Name==x,]$Installed) {
-            inlineCSS(paste0("#cssref .selectize-dropdown-content > .option[data-value='", x, "'] { color: green; }"))
-        } else {
-            inlineCSS(paste0("#cssref .selectize-dropdown-content > .option[data-value='", x, "'] { color: red; }"))
-        }
-    }),
     tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+        tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
+        uiOutput("css.apkgs")
     ),
     titlePanel(div(h2("GenomicScores WebApp", align="left"),
                tags$img(src="GenomicScores.png", align="right", height=75, width=75)),
@@ -31,7 +24,9 @@ ui <- fluidPage(
                          choices = list("Manually" = "web", "Uploading BED file" = "bed")),
             uiOutput("webOptions"),
             fileInput("upload", "Upload your Bed format file"),
-            actionButton("run", "Run"),
+            fluidRow(
+                actionButton("run", "Run"),
+                actionButton("quit", "Quit")),
             width = 3
             
         ),

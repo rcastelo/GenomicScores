@@ -90,8 +90,12 @@ server <- function(input, output, session) {
   
   ################## GENERATE INPUTS  ######################## 
   
+  # store in a session Object the available Apkgs that user has
+  session$userData$apkgs <- availableGScores()
+  
+  
   output$apkg <- renderUI({
-    options <- availableGScores()
+    options <- session$userData$apkgs
     organism <- input$organism
     category <- input$category
     options <- if(organism=="All") options else options[options$Organism==organism,]
@@ -100,6 +104,30 @@ server <- function(input, output, session) {
     tags$div(id="cssref", 
         selectInput("annotPackage", "Select an Annotation Package",
                 choices = c("Choose a package" = "", options$Name)))
+  })
+  
+  # this section generates the necessary css style in order to
+  # programmatically change the selectInput() choices' colors
+  
+  output$css.apkgs <- renderUI({
+    options <- session$userData$apkgs
+    names <- session$userData$apkgs$Name
+    tags$style(
+      HTML(unlist(
+        lapply(names, function(x){
+          if(options[options$Name==x,]$Installed) {
+            sprintf(
+              "#cssref .selectize-dropdown-content > .option[data-value='%s']
+              { color: green; font-weight: bold; }", x)
+          } else {
+            sprintf(
+            "#cssref .selectize-dropdown-content > .option[data-value='%s']
+            { color: red; font-weight: bold; }", x)
+          }
+        })
+      )
+      )
+    )
   })
   
   observeEvent(input$annotPackage, {
@@ -206,7 +234,6 @@ server <- function(input, output, session) {
   })
   
 
-  
   ### Session Info
   output$sessionInfo <- renderPrint({
     sessionInfo()
@@ -217,5 +244,13 @@ server <- function(input, output, session) {
 
   output$dwn_bed <- downloadFile(gsObject(), "bed")
   output$dwn_csv <- downloadFile(gsObject(), "csv")
+  
+  
+  
+  ################## QUIT BUTTON ############################## 
+  
+  observeEvent(input$quit, {
+    stopApp()
+  })
 
 }
