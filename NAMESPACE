@@ -5,6 +5,7 @@ import(GenomicRanges)
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
 
+importMethodsFrom(BiocFileCache, bfcinfo)
 importMethodsFrom(Biostrings, match)
 importMethodsFrom(GenomeInfoDb, "seqinfo<-",
                                 seqlevels,
@@ -33,7 +34,8 @@ importMethodsFrom(IRanges, start,
                            Views,
                            viewMeans)
 importMethodsFrom(AnnotationHub, query,
-                                 cache)
+                                 cache,
+                                 hubCache)
 importMethodsFrom(DelayedArray, seed)
 
 importFrom(stats, setNames)
@@ -53,6 +55,10 @@ importFrom(XML, xmlGetAttr,
                 htmlTreeParse)
 
 importFrom(Biobase, createPackage)
+
+importFrom(BiocManager, available)
+
+importFrom(BiocFileCache, BiocFileCache)
 
 importFrom(GenomeInfoDb, seqnames,
                          keepStandardChromosomes,

@@ -3,30 +3,24 @@
 \alias{availableGScores}
 \alias{getGScores}
 
-\title{Exploring genomic gscore resources}
+\title{Exploring genomic scores resources}
 
 \description{
-Functions to explore genomic gscore resources.
+Functions to explore genomic scores resources.
 }
 \usage{
-availableGScores(installed=FALSE, ah.only=FALSE)
+availableGScores(use.internet=FALSE)
 getGScores(x)
 }
 \arguments{
   \item{x}{A\code{character} vector of length 1
            specifiying the genomic scores resource to fetch.}
-  \item{installed}{A logical value specifying whether we want
-                   to see the installed packages only that contain
-                   genomic score resources. By default (\code{installed=FALSE})
-                   all available packages with genomic score resources are
-                   shown.}
-  \item{ah.only}{A logical value specifying whether we want to see
-                 the packages the are available as \code{AnnotationHub}
-                 resources. By default (\code{ah.only=FALSE}) all available
-                 packages with genomic score resources are shown. If
-                 \code{ah.only=TRUE} this function will attempt to check
-                 whether those genomic score resources are ready to be
-                 downloaded.}
+  \item{use.internet}{A logical value specifying whether we want
+                      to check through the internet whether the
+                      annotation packages and \code{AnnotationHub}
+                      resources are ready to be downloaded. By default,
+                      i.e. \code{use.internet=FALSE}, this is not
+                      checked to speed up the execution of this function.}
 }
 \details{
 The function \code{availableGScores()} shows genomic score sets available as
@@ -41,10 +35,17 @@ four columns:
                   resource.}
     \item{Organism: }{Organism on which the genomic scores are defined.}
     \item{Category: }{Category to which the genomic scores belong to.}
-    \item{Installed: }{Whether the resource is installed (\code{TRUE}) or
-                       not (\code{FALSE}).}
-    \item{AH: }{Whether the resource is available through the
-                \code{AnnotationHub} (\code{TRUE}) or not (\code{FALSE}).}
+    \item{Installed: }{Whether the resource is installed as a package (\code{TRUE})
+                       or not (\code{FALSE}).}
+    \item{Cached: }{Whether the resource is available within the local cache
+                    of the \code{AnnotationHub} (\code{TRUE}) or not (\code{FALSE}).}
+    \item{BiocManagerInstall: }{Whether the resource can be installed as an
+                                annotation package through \code{BiocManager::install()}
+                                (\code{TRUE}) or not (\code{FALSE}).}
+    \item{AnnotationHub: }{Whether the resource can be downloaded as a \code{GScores}
+                           object through the \code{AnnotationHub}, using the function
+                           \code{\link{getGScores}()} (\code{TRUE}), or not (\code{FALSE}).
+                           (\code{TRUE}) or not (\code{FALSE}).}
   }
 The function \code{getGScores()} returns a \code{GScores} object.
 }
@@ -55,6 +56,7 @@ position-specific scores from R and Bioconductor.
 }
 \author{R. Castelo}
 \seealso{
+  \code{\link{getGScores}()}
   \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
   \code{\link[MafDb.1Kgenomes.phase1.hs37d5]{MafDb.1Kgenomes.phase1.hs37d5}}
 }
