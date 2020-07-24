@@ -1,4 +1,7 @@
 server <- function(input, output, session) {
+  
+  # store in a session Object the available Apkgs that user has
+  session$userData$apkgs <- availableGScores()
  
   ################## INPUT VALUES ########################
   
@@ -34,10 +37,11 @@ server <- function(input, output, session) {
   ###### Annotation package object #####
   annotPackage <- reactive({
     req(input$annotPackage)
-    if(input$annotPackage=="" || !input$annotPackage %in% availableGScores(installed = TRUE))
+    if(input$annotPackage=="" || !input$annotPackage %in% installed.packages())
       return()
     .loadAnnotationPackageObject(input$annotPackage, "GScores")
   })
+
   
   ##### Uploaded Bed file #####
   uploadedBed<- reactive({
@@ -88,18 +92,39 @@ server <- function(input, output, session) {
     }
   })
   
+  ##### deactivates 'run' btn until there is a loaded Annotation package
+  observe({
+    shinyjs::toggleState(id="run",
+                         condition = input$annotPackage!="" &&
+                           class(annotPackage())=="GScores")
+  })
+  
   ################## GENERATE INPUTS  ######################## 
   
-  # store in a session Object the available Apkgs that user has
-  session$userData$apkgs <- availableGScores()
   
+  output$org.cat <- renderUI({
+    options <- session$userData$apkgs
+    a <- list()
+    a[["org"]] <- selectInput("organism", "Select an Organism",
+                              selected = "All",
+                              choices = c("All" = "All", 
+                                          unique(options[options$Installed,]$Organism)))
+    a[["cat"]] <-  selectInput("category", "Select a Category",
+                               selected = "All",
+                               choices = c("All" = "All", 
+                                       unique(options[options$Installed,]$Category)))
+    tagList(a)
+    
+  })
   
+
   output$apkg <- renderUI({
+    req(input$organism, input$category)
     options <- session$userData$apkgs
     organism <- input$organism
     category <- input$category
-    options <- if(organism=="All") options else options[options$Organism==organism,]
-    options <- if(category=="All") options else options[options$Category==category,]
+    options <- if(organism=="All") options else na.omit(options[options$Organism==organism,])
+    options <- if(category=="All") options else na.omit(options[options$Category==category,])
 
     tags$div(id="cssref", 
         selectInput("annotPackage", "Select an Annotation Package",
@@ -132,8 +157,8 @@ server <- function(input, output, session) {
   
   observeEvent(input$annotPackage, {
     name <- input$annotPackage
-    options <- availableGScores(installed=TRUE)
-    if(!name=="" && !name %in% options$Name){
+    options <- session$userData$apkgs
+    if(!name=="" && !name %in% options[options$Installed,]$Name){
       showModal(
         modalDialog(
           title = "Installed Annotation Packages",
@@ -178,7 +203,7 @@ server <- function(input, output, session) {
   output$webOptions <- renderUI({
     req(input$webOrBed=="web")
     tagList(
-      fluidRow(id="algo",
+      fluidRow(id="granges.inputs",
                column(4,
                       textInput("chromo", "Chr name", value = "chr22")
                ),
