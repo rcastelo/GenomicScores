@@ -60,21 +60,26 @@
     }
   }
 
-  ## report only those in the current AnnotationHub database
-  suppressMessages(ah <- AnnotationHub(localHub=!use.internet))
-  ah <- query(ah, avgs, pattern.op=`|`)
-  mcah <- mcols(ah)
-  avgs <- avgs[!is.na(charmatch(avgs, mcah$title))]
-  mt <- regexpr(paste(avgs, collapse="|"), mcah$title)
-  stopifnot(all(mt == 1)) ## QC
-  mcah$resname <- substr(mcah$title, 1, attr(mt, "match.length"))
-  ahidsbyresname <- split(rownames(mcah), mcah$resname)
+  ahresincache <- rep(FALSE, length(avgs))
+  if (file.exists(getAnnotationHubOption("CACHE")) || use.internet) {
 
-  ## fetch AH ids in the cache
-  bfc <- BiocFileCache(hubCache(ah))
-  cachedres <- bfcinfo(bfc)
-  cachedres <- sub(" : [0-9]+", "", cachedres$rname)
-  ahresincache <- sapply(ahidsbyresname, function(ahids, cachedids) all(ahids %in% cachedids), cachedres)
+    ## fetch information about cached GScore resources
+    suppressMessages(ah <- AnnotationHub(localHub=!use.internet))
+    ah <- query(ah, avgs, pattern.op=`|`)
+    mcah <- mcols(ah)
+    avgs <- avgs[!is.na(charmatch(avgs, mcah$title))]
+    mt <- regexpr(paste(avgs, collapse="|"), mcah$title)
+    stopifnot(all(mt == 1)) ## QC
+    mcah$resname <- substr(mcah$title, 1, attr(mt, "match.length"))
+    ahidsbyresname <- split(rownames(mcah), mcah$resname)
+
+    ## fetch AH ids in the cache
+    bfc <- BiocFileCache(hubCache(ah))
+    cachedres <- bfcinfo(bfc)
+    cachedres <- sub(" : [0-9]+", "", cachedres$rname)
+    ahresincache <- sapply(ahidsbyresname,
+                           function(ahids, cachedids) all(ahids %in% cachedids), cachedres)
+  }
 
   data.frame(Name=avgs, Cached=ahresincache[avgs], stringsAsFactors=FALSE)
 }
@@ -114,15 +119,23 @@ availableGScores <- function(use.internet=FALSE) {
                     row.names=gspkgnames,
                     stringsAsFactors=FALSE)
 
-  if (any(res$Installed)) {
-    orggrp <- sapply(rownames(res)[res$Installed],
-                     function(pkg) {
-                       obj <- getFromNamespace(pkg, pkg)
-                       unloadNamespace(pkg)
-                       c(organism(obj), gscoresCategory(obj))
-                     })
-    res[res$Installed, c("Organism", "Category")] <- t(orggrp)
-  }
+  ## read frozen GScores resources metadata
+  gsrm <- read.csv(gzfile(system.file("extdata", "GScoresResourcesMetadata.csv.gz",
+                               package="GenomicScores")), row.names=1)
+  stopifnot(all(colnames(gsrm) == c("Organism", "Category"))) ## QC
+  mt <- match(rownames(gsrm), rownames(res))
+  stopifnot(all(!is.na(mt))) ## QC
+  res$Organism[mt] <- gsrm$Organism
+  res$Category[mt] <- gsrm$Category
+  ## if (any(res$Installed)) {
+  ##   orggrp <- sapply(rownames(res)[res$Installed],
+  ##                    function(pkg) {
+  ##                      obj <- getFromNamespace(pkg, pkg)
+  ##                      unloadNamespace(pkg)
+  ##                      c(organism(obj), gscoresCategory(obj))
+  ##                    })
+  ##   res[res$Installed, c("Organism", "Category")] <- t(orggrp)
+  ## }
 
   res
 }
