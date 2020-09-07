@@ -5,8 +5,6 @@ options <- availableGScores()
 
 AnnotationHub::setAnnotationHubOption("MAX_DOWNLOADS", 100)
 
-isGScoreOk <- FALSE
-
 ##### General functions #######
 
 ## imports BED files uploaded by the user through
