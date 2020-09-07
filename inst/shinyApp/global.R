@@ -1,18 +1,13 @@
 # Global options, make DT::rendertable print NA values as 'NA'
 options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
+options <- availableGScores()
+
+AnnotationHub::setAnnotationHubOption("MAX_DOWNLOADS", 100)
+
+isGScoreOk <- FALSE
+
 ##### General functions #######
-
-# Returns GScore packages installed in user's machine
-avAnnotations <- function(){
-  pp <- system.file("scripts", package="GenomicScores")
-  mkdatafnames <- list.files(pp, pattern="make-data_*")
-  gspkgnames <- sub("make-data_", "", mkdatafnames, fixed=TRUE)
-  gspkgnames <- sub(".R", "", gspkgnames, fixed=TRUE)
-  ip <- installed.packages()
-  gspkgnames[gspkgnames %in% ip]
-}
-
 
 ## imports BED files uploaded by the user through
 ## the shiny app. it only reads the first three
@@ -94,12 +89,11 @@ is_smaller <- function(rStart, rEnd){
 
 # Validates if a GRange object created with Shiny inputs (name, rStart and rEnd)
 # is in range within the annotation package (phast)
-is_within_range <- function(name, rStart, rEnd, phast){
-  grgsco <- GRanges(seqnames=seqnames(seqinfo(phast)), 
+is_within_range <- function(granges, phast){
+  annot.pkg <- GRanges(seqnames=seqnames(phast), 
                     IRanges(rep(1,length(seqnames(phast))), seqlengths(seqinfo(phast))))
-  gr <- GRanges(seqnames = name, IRanges(start = as.numeric(rStart), end = as.numeric(rEnd)))
-  seqlevelsStyle(gr) <- seqlevelsStyle(phast)[1]
-  if(!identical(gr,subsetByOverlaps(gr, grgsco, type="within"))){
+  seqlevelsStyle(granges) <- seqlevelsStyle(phast)[1]
+  if(!identical(granges,subsetByOverlaps(granges, annot.pkg, type="within"))){
     "ERROR: The query genomic ranges are outside the boundaries of the genomic scores object"
   } else { NULL }
 }
@@ -107,46 +101,33 @@ is_within_range <- function(name, rStart, rEnd, phast){
 
 # Checks with a name string if a package is loaded or attached
 .isPkgLoaded <- function(name) {
-  (paste("package:", name, sep="") %in% search()) ||
-    (name %in% loadedNamespaces())
+  paste("package:", name, sep="") %in% search()
 }
 
 
 # Loads a library into the package namespace, mainly used to load annotation
 # packages previously installed in user's machine. Uses as parameters the
 # package name and its type (GScore is hardcoded in server.R)
-.loadAnnotationPackageObject <- function(pkgName, pkgType, verbose=TRUE) {
-  
-  callobj <- match.call()
+.loadAnnotationPackageObject <- function(pkgName) {
   annotObj <- NULL
   
-  if (is.character(pkgName)) {
-    if (!pkgName %in% installed.packages(noCache=TRUE)[, "Package"])
-      stop(sprintf("please install the Bioconductor package %s.", pkgName))
+  if(options[row.names(options)==pkgName,"Installed"]){
     if (!.isPkgLoaded(pkgName)) {
-      if (verbose)
-        message("Loading ", pkgType, " annotation package ", pkgName)
-      if (!suppressPackageStartupMessages(require(pkgName,
-                                                  character.only=TRUE)))
-        stop(sprintf("package %s could not be loaded.", pkgName))
+      suppressPackageStartupMessages(require(pkgName, character.only=TRUE))
     }
-    tryCatch({
-      annotObj <- get(pkgName)
-    }, error=function(err) {
-      stop(sprintf("The annotation package %s should automatically load
-an %s object with the same name as the package.", pkgName, pkgType))
-    })
-  } else if (class(pkgName) != pkgType)
-    stop(sprintf("'%s' is not the name of an '%s' annotation package or
-an '%s' annotation object itself.",
-                 pkgName, pkgType, pkgType))
-  else
-    annotObj <- pkgName
+    annotObj <- get(pkgName)
+  }
   
-  if (!is(annotObj, pkgType))
-    stop(sprintf("The object loaded with name %s is not an '%s' object.",
-                 ifelse(is.character(pkgName), pkgName,
-                        gettext(callobj)[2])), pkgType)
-  
+  if(options[row.names(options)==pkgName,"Cached"]){
+    annotObj <- getGScores(pkgName)
+  }
   annotObj
+}
+
+.installAnnotPkg <-  function(pkgName){
+  if(options[row.names(options)==pkgName,"BiocManagerInstall"]){
+    BiocManager::install(pkgName, update=FALSE)
+  } else {
+    getGScores(pkgName)
+  }
 }

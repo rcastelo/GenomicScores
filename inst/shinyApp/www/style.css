@@ -3,3 +3,9 @@
 	font-weight: bold;
 	color: green;
       }
+
+.shiny-output-error {
+	font-size: 16px;
+	font-weight: bold;
+	color: green;
+      }
