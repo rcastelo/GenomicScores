@@ -78,7 +78,8 @@ importFrom(IRanges, IRanges,
 importFrom(Biostrings, DNA_BASES)
 
 importFrom(AnnotationHub, AnnotationHub,
-                          getAnnotationHubOption)
+                          getAnnotationHubOption,
+                          setAnnotationHubOption)
 
 S3method(citation, GScores)
 
