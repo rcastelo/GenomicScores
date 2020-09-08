@@ -48,7 +48,8 @@ importFrom(utils, installed.packages,
                   packageDescription,
                   capture.output,
                   as.person,
-                  bibentry)
+                  bibentry,
+                  read.csv)
 
 importFrom(XML, xmlGetAttr,
                 htmlTreeParse)
