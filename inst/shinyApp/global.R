@@ -1,9 +1,9 @@
 # Global options, make DT::rendertable print NA values as 'NA'
 options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
-options <- availableGScores()
+options <- GenomicScores::availableGScores()
 
-AnnotationHub::setAnnotationHubOption("MAX_DOWNLOADS", 100)
+AnnotationHub::setAnnotationHubOption("MAX_DOWNLOADS", 600)
 
 ##### General functions #######
 
@@ -107,6 +107,7 @@ is_within_range <- function(granges, phast){
 # packages previously installed in user's machine. Uses as parameters the
 # package name and its type (GScore is hardcoded in server.R)
 .loadAnnotationPackageObject <- function(pkgName) {
+  
   annotObj <- NULL
   
   if(options[row.names(options)==pkgName,"Installed"]){
@@ -123,9 +124,12 @@ is_within_range <- function(granges, phast){
 }
 
 .installAnnotPkg <-  function(pkgName){
+  
   if(options[row.names(options)==pkgName,"BiocManagerInstall"]){
     BiocManager::install(pkgName, update=FALSE)
   } else {
     getGScores(pkgName)
   }
+  
+  options <<- GenomicScores::availableGScores()
 }
