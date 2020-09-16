@@ -82,7 +82,8 @@ server <- function(input, output, session) {
           footer = tagList(
             actionButton("install.apkgs", "OK"),
             shinyjs::hidden(actionButton("refresh", "Refresh")),
-            modalButton("Quit")
+            span(id="cancel", modalButton("Cancel")),
+            shinyjs::showElement("cancel")
           )
         )
       )
@@ -109,6 +110,7 @@ server <- function(input, output, session) {
       shinyjs::html(id = "install.progress", html = m$message, add = TRUE)},
     error = function(m) {
       shinyjs::html(id = "install.progress", html = m$message, add = TRUE)})
+    shinyjs::hideElement("cancel")
     shinyjs::show("refresh")
     })
   
@@ -124,7 +126,7 @@ server <- function(input, output, session) {
   output$webOptions <- renderUI({
     req(input$webOrBed=="web")
     tagList(
-      textInput("granges", "Genomic Range", placeholder = "chr22:50967020-50967025"),
+      textInput("granges", "Genomic Range", placeholder = "chromosome:initial-final"),
       radioButtons("indOrRange", "Output type",
                    choices = list("Genomic range" = "range", "Individual positions" = "individual"))
     )

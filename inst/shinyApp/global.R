@@ -1,11 +1,16 @@
 # Global options, make DT::rendertable print NA values as 'NA'
 options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
+# Global variable that stores the database from availableGscores()
 options <- GenomicScores::availableGScores()
 
+# Global Options for annotationHub: this way, user will not be prompted
+# to confirm downloads or to create the .cache folder
 AnnotationHub::setAnnotationHubOption("MAX_DOWNLOADS", 600)
+AnnotationHub::setAnnotationHubOption("ASk", FALSE)
 
-##### General functions #######
+
+############### GENERAL FUNCTIONS #################
 
 ## imports BED files uploaded by the user through
 ## the shiny app. it only reads the first three
