@@ -1,5 +1,9 @@
 server <- function(input, output, session) {
   
+  # This will funciton as a flag for the download buttons:
+  # if the gscores object has errors, the buttons will not be printed
+  areThereErrors <- reactiveValues("Yes" = FALSE)
+  
   ################## UI HIDE AND SHOW  ##################
   
   # change inputs for 'web' or 'bed' options
@@ -115,13 +119,13 @@ server <- function(input, output, session) {
     })
   
   
+  # Observer for the "refresh" button: it will reload the session with a js function
   observeEvent(input$refresh, {
     removeModal()
     shinyjs::runjs("{history.go(0)}")
   })
   
 
-  
   #### render web parameters and choose between range or individual
   output$webOptions <- renderUI({
     req(input$webOrBed=="web")
@@ -141,11 +145,11 @@ server <- function(input, output, session) {
   
   ### render download buttons
   output$down_btn <- renderUI({
-    req(gsObject)
+    req(areThereErrors$Yes==TRUE)
     fluidRow(
-             downloadButton("dwn_bed", "Download BED"),
-             downloadButton("dwn_csv", "Download CSV")
-             )
+      downloadButton("dwn_bed", "Download BED"),
+      downloadButton("dwn_csv", "Download CSV"))
+    
   })
   
   ################# REACTIVE CORE VALUES #######################
@@ -164,51 +168,61 @@ server <- function(input, output, session) {
     readBed(input$upload$datapath)
   })
   
+  granges <- reactive({
+    req(input$granges, annotPackage())
+    validate(need(try(GRanges(input$granges), silent=TRUE), 
+      "Error: The character vector to convert to a GRanges object must contain strings of
+      the form 'chr:start-end' or 'chr:start-end:strand', or 'chr:pos' or 'chr:pos:strand'. 
+      'start', 'end' and 'pos' must be numeric.
+      Note that '..' is a valid alternate start/end separator. 
+      Strand can be '+', '-', '*', or missing."))
+    granges <- GRanges(input$granges)
+    validate(is_smaller(start(granges), end(granges)))
+    validate(is_within_range(granges, annotPackage()))
+    return(granges)
+  })
+  
+
+  
   #### GRanges object from the selected annotPkg with added GScores ####
   gsObject <- eventReactive(input$run, {
-    req(input$annotPackage)
-    granges <- tryCatch({
-      GRanges(input$granges)
-    }, error = function(err){
-      stop(print(paste("There is an error with the GRange object:\n", err)))
-      return(NULL)
-    })
+    req(annotPackage(), granges())
+    areThereErrors$Yes <- FALSE      # reset the error flag to FALSE
     annot.pkg <- annotPackage()
+    granges <- granges()
     if(is.null(input$populations)) {
       population <- defaultPopulation(annot.pkg)
     } else {
       population <- input$populations
     }
     
-    switch(input$webOrBed,
+    gsObject <- switch(input$webOrBed,
            web ={
              req(input$indOrRange)
-             validate(is_smaller(start(granges), end(granges)))
-             validate(is_within_range(granges, annot.pkg))
              
              tryCatch({
+               
                switch(input$indOrRange,
                       individual = GenomicScores::gscores(annot.pkg, 
                                                           GRanges(seqnames=seqnames(granges), 
-                                                                  IRanges(start(granges):end(granges), width=1)),
+                                                                  IRanges(start(granges):end(granges),
+                                                                          width=1)),
                                                           pop = population),
-                      range = GenomicScores::gscores(annot.pkg, granges, pop = population)
-               )
-             }, error = function(err) {
-               return(NULL)
-             })
-           },
+                      range = GenomicScores::gscores(annot.pkg, granges, pop = population))
+               }, error = function(err) return(NULL))},
+           
            bed = {
              req(uploadedBed())
              tryCatch({
                GenomicScores::gscores(annot.pkg, uploadedBed(), pop = population)
-             }, error=function(err){
-               stop(print(paste("There seems to be a problem with the bed file\n", err)))
-               return(NULL)
-             }
-             )
-           })
+               }, error=function(err){
+                 stop(print(paste("There seems to be a problem with the bed file\n", err)))
+                 return(NULL)})
+             })
     
+    areThereErrors$Yes <- TRUE      # error flag to TRUE if everything went ok
+    
+    return(gsObject)
     
   })
   

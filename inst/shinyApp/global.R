@@ -71,7 +71,6 @@ downloadFile <- function(dt, type){
 }
 
 
-
 # Validates if a Shiny input is in fact an integer number
 not_empty_or_char <- function(input){
   if(is.na(suppressWarnings(as.numeric(input)))){
