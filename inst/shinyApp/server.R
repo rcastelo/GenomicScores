@@ -203,18 +203,18 @@ server <- function(input, output, session) {
              tryCatch({
                
                switch(input$indOrRange,
-                      individual = GenomicScores::gscores(annot.pkg, 
+                      individual = gscores(annot.pkg, 
                                                           GRanges(seqnames=seqnames(granges), 
                                                                   IRanges(start(granges):end(granges),
                                                                           width=1)),
                                                           pop = population),
-                      range = GenomicScores::gscores(annot.pkg, granges, pop = population))
+                      range = gscores(annot.pkg, granges, pop = population))
                }, error = function(err) return(NULL))},
            
            bed = {
              req(uploadedBed())
              tryCatch({
-               GenomicScores::gscores(annot.pkg, uploadedBed(), pop = population)
+               gscores(annot.pkg, uploadedBed(), pop = population)
                }, error=function(err){
                  stop(print(paste("There seems to be a problem with the bed file\n", err)))
                  return(NULL)})

@@ -2,7 +2,7 @@
 options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
 # Global variable that stores the database from availableGscores()
-options <- GenomicScores::availableGScores()
+options <- availableGScores()
 
 # Global Options for annotationHub: this way, user will not be prompted
 # to confirm downloads or to create the .cache folder
@@ -135,5 +135,5 @@ is_within_range <- function(granges, phast){
     getGScores(pkgName)
   }
   
-  options <<- GenomicScores::availableGScores()
+  options <<- availableGScores()
 }
