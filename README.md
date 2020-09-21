@@ -1,7 +1,7 @@
 # GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor
 
 [![Bioconductor Time](https://bioconductor.org/shields/years-in-bioc/GenomicScores.svg)](https://bioconductor.org/packages/release/bioc/html/GenomicScores.html "How long has been GenomicScores in a release of Bioconductor")
-[![Bioconductor Downloads](https://bioconductor.org/shields/downloads/GenomicScores.svg)](https://bioconductor.org/packages/stats/bioc/GenomicScores.html "Ranking by number of downloads. A lower number means the package is downloaded more frequently. Determined within a package type (software, experiment, annotation, workflow) and uses the number of distinct IPs for the last 12 months")
+[![Bioconductor Downloads](https://bioconductor.org/shields/downloads/release/GenomicScores.svg)](https://bioconductor.org/packages/stats/bioc/GenomicScores.html "Ranking by number of downloads. A lower number means the package is downloaded more frequently. Determined within a package type (software, experiment, annotation, workflow) and uses the number of distinct IPs for the last 12 months")
 [![Support posts](https://bioconductor.org/shields/posts/GenomicScores.svg)](https://support.bioconductor.org/t/GenomicScores/ "Support site activity on GenomicScores, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
 <img align="right" src="https://raw.githubusercontent.com/Bioconductor/BiocStickers/master/GenomicScores/GenomicScores.png" height="200"/>
 
@@ -17,7 +17,7 @@
 
 The `GenomicScores` package facilitates an efficient storage and seamless access of genomic scores, and their integration into genome analysis workflows on top of R and Bioconductor. Users using these genomic scores should cite their original source included in the metadata of the scores and accessible through the function `citation()`. For citing `GenomicScores` as a software package, please use the following reference:
 
-   Puigdevall, P. and Castelo. R. GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor. _Bioinformatics, accepted_.
+   Puigdevall, P. and Castelo. R. GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor. _Bioinformatics_, 18:3208-3210, 2018.
 
 ## Installation
 
