@@ -1,11 +1,16 @@
 # Global options, make DT::rendertable print NA values as 'NA'
 options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 
+# Global variable that stores the database from availableGscores()
 options <- availableGScores()
 
-AnnotationHub::setAnnotationHubOption("MAX_DOWNLOADS", 100)
+# Global Options for annotationHub: this way, user will not be prompted
+# to confirm downloads or to create the .cache folder
+AnnotationHub::setAnnotationHubOption("MAX_DOWNLOADS", 600)
+AnnotationHub::setAnnotationHubOption("ASk", FALSE)
 
-##### General functions #######
+
+############### GENERAL FUNCTIONS #################
 
 ## imports BED files uploaded by the user through
 ## the shiny app. it only reads the first three
@@ -66,7 +71,6 @@ downloadFile <- function(dt, type){
 }
 
 
-
 # Validates if a Shiny input is in fact an integer number
 not_empty_or_char <- function(input){
   if(is.na(suppressWarnings(as.numeric(input)))){
@@ -107,6 +111,7 @@ is_within_range <- function(granges, phast){
 # packages previously installed in user's machine. Uses as parameters the
 # package name and its type (GScore is hardcoded in server.R)
 .loadAnnotationPackageObject <- function(pkgName) {
+  
   annotObj <- NULL
   
   if(options[row.names(options)==pkgName,"Installed"]){
@@ -123,9 +128,12 @@ is_within_range <- function(granges, phast){
 }
 
 .installAnnotPkg <-  function(pkgName){
+  
   if(options[row.names(options)==pkgName,"BiocManagerInstall"]){
     BiocManager::install(pkgName, update=FALSE)
   } else {
     getGScores(pkgName)
   }
+  
+  options <<- availableGScores()
 }

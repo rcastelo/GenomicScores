@@ -1,73 +1,12 @@
 server <- function(input, output, session) {
-
   
-  ################# REACTIVE CORE VALUES #######################
-  
-  ###### Annotation package object #####
-  annotPackage <- reactive({
-    req(input$annotPackage)
-    name <- input$annotPackage
-    if(name=="") return()
-    .loadAnnotationPackageObject(input$annotPackage)
-  })
-  
-  ##### Uploaded Bed file #####
-  uploadedBed<- reactive({
-    req(input$annotPackage, input$upload)
-    readBed(input$upload$datapath)
-  })
-  
-  #### GRanges object from the selected annotPkg with added GScores ####
-  gsObject <- eventReactive(input$run, {
-    req(input$annotPackage)
-    granges <- tryCatch({
-      GRanges(input$granges)
-    }, error = function(err){
-      stop(print(paste("There is an error with the GRange object:\n", err)))
-      return(NULL)
-    })
-    annot.pkg <- annotPackage()
-    if(is.null(input$populations)) {
-      population <- defaultPopulation(annot.pkg)
-    } else {
-      population <- input$populations
-      }
-    
-    switch(input$webOrBed,
-           web ={
-             req(input$indOrRange)
-             validate(is_smaller(start(granges), end(granges)))
-             validate(is_within_range(granges, annot.pkg))
-             
-             tryCatch({
-               switch(input$indOrRange,
-                      individual = gscores(annot.pkg, 
-                                           GRanges(seqnames=seqnames(granges), 
-                                                   IRanges(start(granges):end(granges), width=1)),
-                                           pop = population),
-                      range = gscores(annot.pkg, granges, pop = population)
-               )
-             }, error = function(err) {
-               return(NULL)
-             })
-           },
-           bed = {
-             req(uploadedBed())
-             tryCatch({
-               gscores(annot.pkg, uploadedBed(), pop = population)
-             }, error=function(err){
-               stop(print(paste("There seems to be a problem with the bed file\n", err)))
-               return(NULL)
-               }
-             )
-           })
-    
-    
-  })
-  
+  # This will funciton as a flag for the download buttons:
+  # if the gscores object has errors, the buttons will not be printed
+  areThereErrors <- reactiveValues("Yes" = FALSE)
   
   ################## UI HIDE AND SHOW  ##################
   
+  # change inputs for 'web' or 'bed' options
   observe({
     if(input$webOrBed == 'web'){
       shinyjs::showElement("webOptions")
@@ -78,8 +17,10 @@ server <- function(input, output, session) {
     }
   })
   
+  # deactivate 'run' button until there is any input in 
+  # input$granges and input$annotPackage
   observe({
-    if(isTruthy(input$granges)){
+    if(isTruthy(input$granges) && isTruthy(input$annotPackage) ){
       shinyjs::enable("run")
     } else {
       shinyjs::disable("run")
@@ -89,7 +30,9 @@ server <- function(input, output, session) {
 
   ################## GENERATE INPUTS  ######################## 
   
-
+  # Input for annotation pkgs, it's updated with choices in 
+  # 'Organism' and 'Category' selectInput
+  
   output$apkg <- renderUI({
     organism <- input$organism
     category <- input$category
@@ -101,11 +44,10 @@ server <- function(input, output, session) {
   })
   
   # this section generates the necessary css style in order to
-  # programmatically change the selectInput() choices' colors
+  # programmatically change the annot.pkgs colors
   
   output$css.apkgs <- renderUI({
     req(options)
-    options <- availableGScores()
     names <- row.names(options)
     tags$style(
       HTML(unlist(
@@ -125,6 +67,9 @@ server <- function(input, output, session) {
     )
   })
 
+  # Observer for input$annotPackage: if user clicks a red option, a new
+  # modal window appears that let's the user install the annot.pkg
+  
   observeEvent(input$annotPackage, {
     name <- input$annotPackage
     if(!name=="" && !(options[row.names(options)==name,]$Installed ||
@@ -141,46 +86,51 @@ server <- function(input, output, session) {
           footer = tagList(
             actionButton("install.apkgs", "OK"),
             shinyjs::hidden(actionButton("refresh", "Refresh")),
-            modalButton("Quit")
+            span(id="cancel", modalButton("Cancel")),
+            shinyjs::showElement("cancel")
           )
         )
       )
     }
   })
   
+  # Observer for the 'Ok' button in modal: this will call the .installAnnotPkg fun
+  # that will install the pkg or query it in AnnotHub()
   observeEvent(input$install.apkgs, {
     shinyjs::hideElement("install.apkgs")
-      withCallingHandlers({
-        shinyjs::html(id = "install.text", html = paste("
+    withCallingHandlers({
+      shinyjs::html(id = "install.text", html = paste("
         <p>Installation of <b>", input$annotPackage, "</b> in progress.<p>
         <p>This may take a while.</p>
         <p>You can check the progress on your R console.</p>"))
-        .installAnnotPkg(input$annotPackage)
-        shinyjs::html(id = "install.finished", html = "</br><p>Installation Finished</p>", add = TRUE)
-        shinyjs::html(id = "install.finished", html = "<p>Please take note: in order to use a new annotation package, 
+      .installAnnotPkg(input$annotPackage)
+      shinyjs::html(id = "install.finished", html = "</br><p>Installation Finished</p>", add = TRUE)
+      shinyjs::html(id = "install.finished", html = "<p>Please take note: in order to use a new annotation package, 
                       you must refresh this session</p>", add = TRUE)
-        },
-        message = function(m) {
-          shinyjs::html(id = "install.progress", html = m$message, add = TRUE)},
-        warning = function(m) {
-          shinyjs::html(id = "install.progress", html = m$message, add = TRUE)},
-        error = function(m) {
-          shinyjs::html(id = "install.progress", html = m$message, add = TRUE)})
+    },
+    message = function(m) {
+      shinyjs::html(id = "install.progress", html = m$message, add = TRUE)},
+    warning = function(m) {
+      shinyjs::html(id = "install.progress", html = m$message, add = TRUE)},
+    error = function(m) {
+      shinyjs::html(id = "install.progress", html = m$message, add = TRUE)})
+    shinyjs::hideElement("cancel")
     shinyjs::show("refresh")
     })
   
+  
+  # Observer for the "refresh" button: it will reload the session with a js function
   observeEvent(input$refresh, {
     removeModal()
     shinyjs::runjs("{history.go(0)}")
   })
   
 
-  
   #### render web parameters and choose between range or individual
   output$webOptions <- renderUI({
     req(input$webOrBed=="web")
     tagList(
-      textInput("granges", "Genomic Range", value = "chr22:50967020-50967025"),
+      textInput("granges", "Genomic Range", placeholder = "chromosome:initial-final"),
       radioButtons("indOrRange", "Output type",
                    choices = list("Genomic range" = "range", "Individual positions" = "individual"))
     )
@@ -195,11 +145,85 @@ server <- function(input, output, session) {
   
   ### render download buttons
   output$down_btn <- renderUI({
-    req(gsObject)
+    req(areThereErrors$Yes==TRUE)
     fluidRow(
-             downloadButton("dwn_bed", "Download BED"),
-             downloadButton("dwn_csv", "Download CSV")
-             )
+      downloadButton("dwn_bed", "Download BED"),
+      downloadButton("dwn_csv", "Download CSV"))
+    
+  })
+  
+  ################# REACTIVE CORE VALUES #######################
+  
+  ###### Annotation package object #####
+  annotPackage <- reactive({
+    req(input$annotPackage)
+    name <- input$annotPackage
+    if(name=="") return()
+    .loadAnnotationPackageObject(input$annotPackage)
+  })
+  
+  ##### Uploaded Bed file #####
+  uploadedBed<- reactive({
+    req(input$annotPackage, input$upload)
+    readBed(input$upload$datapath)
+  })
+  
+  granges <- reactive({
+    req(input$granges, annotPackage())
+    validate(need(try(GRanges(input$granges), silent=TRUE), 
+      "Error: The character vector to convert to a GRanges object must contain strings of
+      the form 'chr:start-end' or 'chr:start-end:strand', or 'chr:pos' or 'chr:pos:strand'. 
+      'start', 'end' and 'pos' must be numeric.
+      Note that '..' is a valid alternate start/end separator. 
+      Strand can be '+', '-', '*', or missing."))
+    granges <- GRanges(input$granges)
+    validate(is_smaller(start(granges), end(granges)))
+    validate(is_within_range(granges, annotPackage()))
+    return(granges)
+  })
+  
+
+  
+  #### GRanges object from the selected annotPkg with added GScores ####
+  gsObject <- eventReactive(input$run, {
+    req(annotPackage(), granges())
+    areThereErrors$Yes <- FALSE      # reset the error flag to FALSE
+    annot.pkg <- annotPackage()
+    granges <- granges()
+    if(is.null(input$populations)) {
+      population <- defaultPopulation(annot.pkg)
+    } else {
+      population <- input$populations
+    }
+    
+    gsObject <- switch(input$webOrBed,
+           web ={
+             req(input$indOrRange)
+             
+             tryCatch({
+               
+               switch(input$indOrRange,
+                      individual = gscores(annot.pkg, 
+                                                          GRanges(seqnames=seqnames(granges), 
+                                                                  IRanges(start(granges):end(granges),
+                                                                          width=1)),
+                                                          pop = population),
+                      range = gscores(annot.pkg, granges, pop = population))
+               }, error = function(err) return(NULL))},
+           
+           bed = {
+             req(uploadedBed())
+             tryCatch({
+               gscores(annot.pkg, uploadedBed(), pop = population)
+               }, error=function(err){
+                 stop(print(paste("There seems to be a problem with the bed file\n", err)))
+                 return(NULL)})
+             })
+    
+    areThereErrors$Yes <- TRUE      # error flag to TRUE if everything went ok
+    
+    return(gsObject)
+    
   })
   
   
