@@ -33,15 +33,27 @@ server <- function(input, output, session) {
   # Input for annotation pkgs, it's updated with choices in 
   # 'Organism' and 'Category' selectInput
   
-  output$apkg <- renderUI({
+  observe({
     organism <- input$organism
     category <- input$category
+    
     options <- if(organism=="All") options else options[which(options$Organism==organism),]
     options <- if(category=="All") options else options[which(options$Category==category),]
-    tags$div(id="cssref", 
-        selectInput("annotPackage", "Select an Annotation Package",
-                choices = c("Choose a package" = "", row.names(options))))
+    
+    updateSelectInput(session, "annotPackage",
+                      choices = c("Choose a package" = "", row.names(options))
+    )
   })
+  
+  # output$apkg <- renderUI({
+  #   organism <- input$organism
+  #   category <- input$category
+  #   options <- if(organism=="All") options else options[which(options$Organism==organism),]
+  #   options <- if(category=="All") options else options[which(options$Category==category),]
+  #   tags$div(id="cssref", 
+  #       selectInput("annotPackage", "Select an Annotation Package",
+  #               choices = c("Choose a package" = "", row.names(options))))
+  # })
   
   # this section generates the necessary css style in order to
   # programmatically change the annot.pkgs colors
@@ -160,13 +172,13 @@ server <- function(input, output, session) {
     name <- input$annotPackage
     if(name=="") return()
     .loadAnnotationPackageObject(input$annotPackage)
-  })
+  })  %>% bindCache(input$annotPackage)
   
   ##### Uploaded Bed file #####
   uploadedBed<- reactive({
     req(input$annotPackage, input$upload)
     readBed(input$upload$datapath)
-  })
+  })  %>% bindCache(input$annotPackage, input$upload)
   
   granges <- reactive({
     req(input$granges, annotPackage())
@@ -180,12 +192,12 @@ server <- function(input, output, session) {
     validate(is_smaller(start(granges), end(granges)))
     validate(is_within_range(granges, annotPackage()))
     return(granges)
-  })
+  }) %>% bindCache(input$granges, annotPackage())
   
 
   
   #### GRanges object from the selected annotPkg with added GScores ####
-  gsObject <- eventReactive(input$run, {
+  gsObject <- reactive({
     req(annotPackage(), granges())
     areThereErrors$Yes <- FALSE      # reset the error flag to FALSE
     annot.pkg <- annotPackage()
@@ -199,15 +211,12 @@ server <- function(input, output, session) {
     gsObject <- switch(input$webOrBed,
            web ={
              req(input$indOrRange)
-             
              tryCatch({
-               
                switch(input$indOrRange,
                       individual = gscores(annot.pkg, 
-                                                          GRanges(seqnames=seqnames(granges), 
-                                                                  IRanges(start(granges):end(granges),
-                                                                          width=1)),
-                                                          pop = population),
+                                           GRanges(seqnames=seqnames(granges), 
+                                                   IRanges(start(granges):end(granges),width=1)),
+                                           pop = population),
                       range = gscores(annot.pkg, granges, pop = population))
                }, error = function(err) return(NULL))},
            
@@ -224,7 +233,9 @@ server <- function(input, output, session) {
     
     return(gsObject)
     
-  })
+  }) %>%
+    bindCache(annotPackage(), granges(), input$indOrRange) %>%
+    bindEvent(input$run)
   
   
   
