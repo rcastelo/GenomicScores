@@ -21,7 +21,6 @@ ui <- fluidPage(
             tags$div(id="cssref", 
                      selectInput("annotPackage", "Select an Annotation Package",
                                  choices = NULL)),
-            # uiOutput("apkg"), 
             uiOutput("pop"),
             radioButtons("webOrBed", "Input genomic coordinates",
                          choices = list("Manually" = "web", "Uploading BED file" = "bed")),
