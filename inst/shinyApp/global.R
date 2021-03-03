@@ -70,7 +70,6 @@ downloadFile <- function(dt, type){
   )
 }
 
-
 # Validates if a Shiny input is in fact an integer number
 not_empty_or_char <- function(input){
   if(is.na(suppressWarnings(as.numeric(input)))){
@@ -79,14 +78,12 @@ not_empty_or_char <- function(input){
 }
 
 
-
 # Validates if Shiny inputs for genomic ranges are integer numbers
 is_smaller <- function(rStart, rEnd){
   if(as.numeric(rEnd) < as.numeric(rStart)){
     "ERROR: Ending position must be bigger or equal than Starting position"
   } else { NULL }
 }
-
 
 
 # Validates if a GRange object created with Shiny inputs (name, rStart and rEnd)

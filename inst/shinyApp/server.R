@@ -18,9 +18,11 @@ server <- function(input, output, session) {
   })
   
   # deactivate 'run' button until there is any input in 
-  # input$granges and input$annotPackage
+  # input$granges and input$annotPackage or 
+  # input$upload and input%annotPackage
   observe({
-    if(isTruthy(input$granges) && isTruthy(input$annotPackage) ){
+    if((isTruthy(input$granges) && isTruthy(input$annotPackage)) ||
+       (isTruthy(input$upload) && isTruthy(input$annotPackage))){
       shinyjs::enable("run")
     } else {
       shinyjs::disable("run")
@@ -33,14 +35,16 @@ server <- function(input, output, session) {
   # Input for annotation pkgs, it's updated with choices in 
   # 'Organism' and 'Category' selectInput
   
-  output$apkg <- renderUI({
+  observe({
     organism <- input$organism
     category <- input$category
+    
     options <- if(organism=="All") options else options[which(options$Organism==organism),]
     options <- if(category=="All") options else options[which(options$Category==category),]
-    tags$div(id="cssref", 
-        selectInput("annotPackage", "Select an Annotation Package",
-                choices = c("Choose a package" = "", row.names(options))))
+    
+    updateSelectInput(session, "annotPackage",
+                      choices = c("Choose a package" = "", row.names(options))
+    )
   })
   
   # this section generates the necessary css style in order to
@@ -125,6 +129,13 @@ server <- function(input, output, session) {
     shinyjs::runjs("{history.go(0)}")
   })
   
+  ### render selectinput with population options
+  output$pop <- renderUI({
+    req(annotPackage())
+    selectInput("populations", "Select an available population", multiple = TRUE,
+                choices = populations(annotPackage()))
+  })
+  
 
   #### render web parameters and choose between range or individual
   output$webOptions <- renderUI({
@@ -136,12 +147,7 @@ server <- function(input, output, session) {
     )
   })
   
-  ### render selectinput with population options
-  output$pop <- renderUI({
-    req(annotPackage())
-    selectInput("populations", "Select an available population", multiple = TRUE,
-                choices = populations(annotPackage()))
-  })
+
   
   ### render download buttons
   output$down_btn <- renderUI({
@@ -160,32 +166,44 @@ server <- function(input, output, session) {
     name <- input$annotPackage
     if(name=="") return()
     .loadAnnotationPackageObject(input$annotPackage)
-  })
+  })  %>% bindCache(input$annotPackage)
   
   ##### Uploaded Bed file #####
   uploadedBed<- reactive({
     req(input$annotPackage, input$upload)
     readBed(input$upload$datapath)
-  })
+  }) # %>% bindCache(input$annotPackage, input$upload)
   
+  ### GRanges Object ###
   granges <- reactive({
-    req(input$granges, annotPackage())
-    validate(need(try(GRanges(input$granges), silent=TRUE), 
+    req(annotPackage())
+    areThereErrors$Yes <- FALSE
+    if(input$webOrBed=="web"){
+      req(input$granges)
+      validate(need(try(GRanges(input$granges), silent=TRUE),
       "Error: The character vector to convert to a GRanges object must contain strings of
-      the form 'chr:start-end' or 'chr:start-end:strand', or 'chr:pos' or 'chr:pos:strand'. 
+      the form 'chr:start-end' or 'chr:start-end:strand', or 'chr:pos' or 'chr:pos:strand'.
       'start', 'end' and 'pos' must be numeric.
-      Note that '..' is a valid alternate start/end separator. 
+      Note that '..' is a valid alternate start/end separator.
       Strand can be '+', '-', '*', or missing."))
-    granges <- GRanges(input$granges)
-    validate(is_smaller(start(granges), end(granges)))
-    validate(is_within_range(granges, annotPackage()))
+      granges <- GRanges(input$granges)
+      validate(is_smaller(start(granges), end(granges)))
+      validate(is_within_range(granges, annotPackage()))
+      if(input$indOrRange=="individual"){
+        granges <- GRanges(seqnames=seqnames(granges), IRanges(start(granges):end(granges),width=1))
+      }
+    } else {
+      req(uploadedBed())
+      granges <- uploadedBed()
+    }
+    areThereErrors$Yes <- TRUE
     return(granges)
   })
   
 
   
   #### GRanges object from the selected annotPkg with added GScores ####
-  gsObject <- eventReactive(input$run, {
+  gsObject <- reactive({
     req(annotPackage(), granges())
     areThereErrors$Yes <- FALSE      # reset the error flag to FALSE
     annot.pkg <- annotPackage()
@@ -196,38 +214,16 @@ server <- function(input, output, session) {
       population <- input$populations
     }
     
-    gsObject <- switch(input$webOrBed,
-           web ={
-             req(input$indOrRange)
-             
-             tryCatch({
-               
-               switch(input$indOrRange,
-                      individual = gscores(annot.pkg, 
-                                                          GRanges(seqnames=seqnames(granges), 
-                                                                  IRanges(start(granges):end(granges),
-                                                                          width=1)),
-                                                          pop = population),
-                      range = gscores(annot.pkg, granges, pop = population))
-               }, error = function(err) return(NULL))},
-           
-           bed = {
-             req(uploadedBed())
-             tryCatch({
-               gscores(annot.pkg, uploadedBed(), pop = population)
-               }, error=function(err){
-                 stop(print(paste("There seems to be a problem with the bed file\n", err)))
-                 return(NULL)})
-             })
+   gsObject <- gscores(annot.pkg, granges, pop=population)
     
     areThereErrors$Yes <- TRUE      # error flag to TRUE if everything went ok
     
     return(gsObject)
     
-  })
-  
-  
-  
+  }) %>%  
+    bindCache(annotPackage(), input$populations, granges())  %>%
+    bindEvent(input$run)
+
   ################## OUTPUT TEXT AND TABLES ############################## 
 
   ### Annotation Package
