@@ -603,6 +603,9 @@ setMethod("gscores", c("GScores", "character"),
     return(ans)
 
   mcols(ranges) <- cbind(mcols(ranges), ans)
+  seqlevels(ranges) <- seqlevels(object)
+  seqinfo(ranges) <- seqinfo(object)
+
   ranges
 }
 
@@ -771,6 +774,9 @@ setMethod("gscores", c("GScores", "character"),
     return(ans)
 
   mcols(ranges) <- cbind(mcols(ranges), ans)
+  seqlevels(ranges) <- seqlevels(object)
+  seqinfo(ranges) <- seqinfo(object)
+
   ranges
 }
 
