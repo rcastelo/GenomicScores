@@ -5,6 +5,7 @@ import(GenomicRanges)
 
 importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
 
+importMethodsFrom(BiocFileCache, bfcinfo)
 importMethodsFrom(Biostrings, match)
 importMethodsFrom(GenomeInfoDb, "seqinfo<-",
                                 seqlevels,
@@ -26,26 +27,38 @@ importMethodsFrom(IRanges, start,
                            which,
                            order,
                            togroup,
-                           values,
                            findOverlaps,
                            as.vector,
                            coverage,
                            Views,
                            viewMeans)
 importMethodsFrom(AnnotationHub, query,
-                                 cache)
+                                 cache,
+                                 hubCache)
+importMethodsFrom(DelayedArray, seed)
+
+importFrom(stats, setNames)
+
+importFrom(rhdf5, h5ls)
+
+importFrom(HDF5Array, HDF5Array)
 
 importFrom(utils, installed.packages,
                   data,
                   packageDescription,
                   capture.output,
                   as.person,
-                  bibentry)
+                  bibentry,
+                  read.csv)
 
 importFrom(XML, xmlGetAttr,
                 htmlTreeParse)
 
 importFrom(Biobase, createPackage)
+
+importFrom(BiocManager, available)
+
+importFrom(BiocFileCache, BiocFileCache)
 
 importFrom(GenomeInfoDb, seqnames,
                          keepStandardChromosomes,
@@ -66,7 +79,8 @@ importFrom(IRanges, IRanges,
 importFrom(Biostrings, DNA_BASES)
 
 importFrom(AnnotationHub, AnnotationHub,
-                          getAnnotationHubOption)
+                          getAnnotationHubOption,
+                          setAnnotationHubOption)
 
 S3method(citation, GScores)
 
@@ -81,6 +95,7 @@ exportMethods(citation,
               score,
               scores,
               gscores,
+              rgscores,
               qfun,
               dqfun,
               seqinfo,
@@ -93,8 +108,8 @@ exportMethods(citation,
               "defaultPopulation<-",
               gscoresTag,
               "gscoresTag<-",
-              gscoresGroup,
-              "gscoresGroup<-",
+              gscoresCategory,
+              "gscoresCategory<-",
               nsites,
               show)
 

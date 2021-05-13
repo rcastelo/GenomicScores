@@ -3,22 +3,25 @@ Type: Package
 Title: Infrastructure to work with genomewide position-specific scores
 Description: Provide infrastructure to store and access genomewide
         position-specific scores within R and Bioconductor.
-Version: 1.11.5
+Version: 2.3.4
 Authors@R: c(person("Robert", "Castelo", role=c("aut", "cre"),
         email="robert.castelo@upf.edu"), person("Pau", "Puigdevall",
-        role="ctb", email="pau.puigdevall@upf.edu"))
+        role="ctb", email="pau.puigdevall@upf.edu"), person("Pablo",
+        "Rodríguez", role="ctb", email="pablosebastian.rodriguez@upf.edu"))
 License: Artistic-2.0
 Depends: R (>= 3.5), S4Vectors (>= 0.7.21), GenomicRanges, methods,
         BiocGenerics (>= 0.13.8)
-Imports: utils, XML, Biobase, IRanges (>= 2.3.23), Biostrings,
-         GenomeInfoDb, AnnotationHub
-Suggests: BiocStyle, knitr, rmarkdown, BSgenome.Hsapiens.UCSC.hg19,
+Imports: stats, utils, XML, Biobase, BiocManager, BiocFileCache,
+         IRanges (>= 2.3.23), Biostrings, GenomeInfoDb, AnnotationHub,
+         rhdf5, DelayedArray, HDF5Array
+Suggests: RUnit, BiocStyle, knitr, rmarkdown, BSgenome.Hsapiens.UCSC.hg19,
           phastCons100way.UCSC.hg19, MafDb.1Kgenomes.phase1.hs37d5,
           SNPlocs.Hsapiens.dbSNP144.GRCh37, VariantAnnotation,
           TxDb.Hsapiens.UCSC.hg19.knownGene, gwascat, RColorBrewer,
-          shiny, shinythemes, shinyjs, shinycustomloader, data.table, DT
+          shiny, shinythemes, shinyjs, shinycustomloader, data.table,
+          DT, magrittr
 VignetteBuilder: knitr
 URL: https://github.com/rcastelo/GenomicScores
 BugReports: https://github.com/rcastelo/GenomicScores/issues
 Encoding: UTF-8
-biocViews: Infrastructure, Genetics, Annotation, Sequencing, Coverage
+biocViews: Infrastructure, Genetics, Annotation, Sequencing, Coverage, AnnotationHubSoftware

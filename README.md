@@ -1,8 +1,10 @@
 # GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor
 
 [![Bioconductor Time](https://bioconductor.org/shields/years-in-bioc/GenomicScores.svg)](https://bioconductor.org/packages/release/bioc/html/GenomicScores.html "How long has been GenomicScores in a release of Bioconductor")
-[![Bioconductor Downloads](https://bioconductor.org/shields/downloads/GenomicScores.svg)](https://bioconductor.org/packages/stats/bioc/GenomicScores.html "Ranking by number of downloads. A lower number means the package is downloaded more frequently. Determined within a package type (software, experiment, annotation, workflow) and uses the number of distinct IPs for the last 12 months")
+[![Bioconductor Downloads](https://bioconductor.org/shields/downloads/release/GenomicScores.svg)](https://bioconductor.org/packages/stats/bioc/GenomicScores.html "Ranking by number of downloads. A lower number means the package is downloaded more frequently. Determined within a package type (software, experiment, annotation, workflow) and uses the number of distinct IPs for the last 12 months")
 [![Support posts](https://bioconductor.org/shields/posts/GenomicScores.svg)](https://support.bioconductor.org/t/GenomicScores/ "Support site activity on GenomicScores, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
+[![R-CMD-check-bioc](https://github.com/rcastelo/GenomicScores/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/rcastelo/GenomicScores/actions?query=workflow%3AR-CMD-check-bioc)
+[![codecov.io](https://codecov.io/github/rcastelo/GenomicScores/coverage.svg?branch=master)](https://codecov.io/github/rcastelo/GenomicScores?branch=master)
 <img align="right" src="https://raw.githubusercontent.com/Bioconductor/BiocStickers/master/GenomicScores/GenomicScores.png" height="200"/>
 
 **Current build status**
@@ -17,26 +19,22 @@
 
 The `GenomicScores` package facilitates an efficient storage and seamless access of genomic scores, and their integration into genome analysis workflows on top of R and Bioconductor. Users using these genomic scores should cite their original source included in the metadata of the scores and accessible through the function `citation()`. For citing `GenomicScores` as a software package, please use the following reference:
 
-   Puigdevall, P. and Castelo. R. GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor. _Bioinformatics, accepted_.
+   Puigdevall, P. and Castelo. R. GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor. _Bioinformatics_, 18:3208-3210, 2018.
 
 ## Installation
 
 This is the __development__ version of the R/Bioconductor package GenomicScores. This version is unstable and should be used only to test new features. If you are looking for the __release__ version of this package please go to its package release landing page at [https://bioconductor.org/packages/GenomicScores](https://bioconductor.org/packages/GenomicScores) and follow the instructions there to install it.
 
-If you were really looking for this development version, then to install it you
-need first to install the development version of R that you can find at [https://cran.r-project.org](https://cran.r-project.org) and then type the following instructions from the R shell:
+If you were really looking for this development version, then to install it you If you were really looking for this development version, then to install it you need first to install the [development version of Bioconductor](https://bioconductor.org/developers/how-to/useDevel) and then type the following line from the R shell:
 
 ```r
-install.packages("BiocManager")
-BiocManager::install("GenomicScores", version="devel")
+BiocManager::install("GenomicScores", version = "devel")
 ```
 
-Alternatively, you can install it from GitHub using the [devtools](https://github.com/hadley/devtools "devtools") package.
+Alternatively, you can install it from GitHub using the [remotes](https://github.com/r-lib/remotes "remotes") package.
 
 ```r
-install.packages("devtools")
-library(devtools)
-install_github("rcastelo/GenomicScores")
+remotes::install_github("rcastelo/GenomicScores")
 ```
 
 ## Questions, bug reports and issues
@@ -44,5 +42,13 @@ install_github("rcastelo/GenomicScores")
 For questions and bug reports regarding the __release__ version of **GenomicScores**
 please use the [Bioconductor support site](https://support.bioconductor.org "Bioconductor support site").
 For bug reports and issues regarding this __development__ version of **GenomicScores**
-please use the GitHub issues link at the top-right of this page
-([https://github.com/rcastelo/GenomicScores/issues](https://github.com/rcastelo/GenomicScores/issues)).
+please use the GitHub issues  [tab](https://github.com/rcastelo/GenomicScores/issues) at the top-left of this page.
+
+## Contributing
+
+Contributions to the software codebase of GenomicScores are welcome as long as contributors abide to the
+terms of the [Bioconductor Contributor Code of Conduct](https://bioconductor.org/about/code-of-conduct).
+If you want to contribute to the development of GenomicScores please open an
+[issue](https://github.com/rcastelo/GenomicScores/issues) to start discussing your suggestion or, in case of a
+bugfix or a straightforward feature, directly a
+[pull request](https://github.com/rcastelo/GenomicScores/pulls).

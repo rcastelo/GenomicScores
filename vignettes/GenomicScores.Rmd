@@ -400,20 +400,19 @@ Consider the following example in which we are interested in MAF values for vari
 with _eye color_. We can start by fetching the corresponding variant identifers from the GWAS
 catalog using the `r Biocpkg("gwascat")` package, as follows.
 
-```{r, message=FALSE}
+```{r, eval=FALSE, message=FALSE}
 library(gwascat)
-data(ebicat37)
-eyersids <- unique(subsetByTraits(ebicat37, tr="Eye color")$SNPS)
+
+gwascat <- makeCurrentGwascat()
+eyersids <- unique(subsetByTraits(gwascat, tr="Eye color")$SNPS)
+```
+```{r, echo=FALSE}
+eyersids <- readRDS(file.path(system.file("extdata", package="GenomicScores"),
+                              "eyersids.rds"))
+```
+```{r}
 eyersids
 ```
-
-<!--
-While we could directly interrogate a `MafDb` object with these identifiers and the function
-`mafById()`, that query relies on a specific dbSNP annotation used by the MAF data producer to
-annotate variants, which may not be the most up date nor may assign identifiers to every
-variant. From this perspective, it is safer to first query the genomic position of the variant
-identifiers with a recent release of dbSNP, as follows.
--->
 
 We query the genomic position of the variant identifier through the
 `r Biocpkg("SNPlocs.Hsapiens.dbSNP144.GRCh37")` package, which stores the
@@ -428,7 +427,7 @@ rng
 
 Finally, fetch the MAF values on those positions.
 
-```{r}
+```{r, message=FALSE}
 eyecolormafs <- gscores(mafdb, rng, pop=c("AF", "EUR_AF", "AFR_AF"))
 eyecolormafs
 ```
@@ -437,7 +436,7 @@ Sometimes, data producers may annotate identifiers to genomic scores,
 such as dbSNP rs identifiers to MAF values. In such a case, we can directly
 attempt to fetch genomic scores using those identifiers as follows.
 
-```{r}
+```{r, message=FALSE}
 gscores(mafdb, eyersids, pop=c("AF", "EUR_AF", "AFR_AF"))
 ```
 
@@ -475,7 +474,7 @@ Let's load one of the sample VCF files that form part of the
 
 ```{r}
 fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-vcf <- readVcf(fl, "hg19")
+vcf <- readVcf(fl)##, "hg19")
 seqlevelsStyle(vcf)
 txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
 seqlevelsStyle(txdb)

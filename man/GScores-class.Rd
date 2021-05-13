@@ -29,10 +29,10 @@
 \alias{gscoresTag<-,GScores,character-method}
 \alias{gscoresTag<-}
 \alias{gscoresTag}
-\alias{gscoresGroup,GScores-method}
-\alias{gscoresGroup<-,GScores,character-method}
-\alias{gscoresGroup<-}
-\alias{gscoresGroup}
+\alias{gscoresCategory,GScores-method}
+\alias{gscoresCategory<-,GScores,character-method}
+\alias{gscoresCategory<-}
+\alias{gscoresCategory}
 \alias{gscoresNonSNRs,GScores-method}
 \alias{gscoresNonSNRs}
 \alias{citation,missing-method}
@@ -202,7 +202,7 @@
       \code{defaultPopulation(x)}: get or set the default population of scores.
     }
     \item{}{
-      \code{gscoresGroup(x)}: get or set the genomic scores group label.
+      \code{gscoresCategory(x)}: get or set the genomic scores category label.
     }
     \item{}{
       \code{gscoresTag(x)}: get or set the genomic scores tag label.

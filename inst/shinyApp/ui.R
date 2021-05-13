@@ -2,7 +2,8 @@ ui <- fluidPage(
     theme = shinythemes::shinytheme("spacelab"),
     shinyjs::useShinyjs(),
     tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+        tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
+        uiOutput("css.apkgs")
     ),
     titlePanel(div(h2("GenomicScores WebApp", align="left"),
                tags$img(src="GenomicScores.png", align="right", height=75, width=75)),
@@ -11,14 +12,23 @@ ui <- fluidPage(
     sidebarLayout(
         
         sidebarPanel(
-            selectInput("annotPackage", "Select a GScores object",
-                        choices = c("Choose an installed annotation package" = "", 
-                                    avAnnotations())),
+            selectInput("organism", "Select an Organism",
+                        choices = c("All" = "All", unique(options$Organism)),
+                        selected = "All"),
+            selectInput("category", "Select a Category",
+                        choices = c("All" = "All", unique(options$Category)),
+                        selected = "All"),
+            tags$div(id="cssref", 
+                     selectInput("annotPackage", "Select an Annotation Package",
+                                 choices = NULL)),
             uiOutput("pop"),
             radioButtons("webOrBed", "Input genomic coordinates",
                          choices = list("Manually" = "web", "Uploading BED file" = "bed")),
             uiOutput("webOptions"),
             fileInput("upload", "Upload your Bed format file"),
+            fluidRow(
+                actionButton("run", "Run"),
+                actionButton("quit", "Quit")),
             width = 3
             
         ),
@@ -28,18 +38,14 @@ ui <- fluidPage(
                         tabPanel("GScore",
                                  fluidRow(id="info",
                                           column(6,
-                                                 verbatimTextOutput("annotPackageInfo")
+                                                 shinycustomloader::withLoader(verbatimTextOutput("annotPackageInfo"))
                                           ),
                                           column(6,
-                                                 verbatimTextOutput("citation")
+                                                 shinycustomloader::withLoader(verbatimTextOutput("citation"))
                                           )
                                  ),
-                                 shinycustomloader::withLoader(DT::dataTableOutput("printGsWeb")),
-                                 downloadButton("dwn_web_bed", "Download BED"),
-                                 downloadButton("dwn_web_csv", "Download CSV"),
-                                 shinycustomloader::withLoader(DT::dataTableOutput("printGsBed")),
-                                 downloadButton("dwn_bed_bed", "Download BED"),
-                                 downloadButton("dwn_bed_csv", "Download CSV")
+                                 shinycustomloader::withLoader(DT::dataTableOutput("printGs")),
+                                 uiOutput("down_btn")
                                  ),
                         tabPanel("About",
                                  includeMarkdown("about.md")),
