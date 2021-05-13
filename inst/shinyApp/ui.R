@@ -30,8 +30,12 @@ ui <- dashboardPage(
         uiOutput("webOptions"),
         fileInput("upload", "Upload your Bed format file"),
         fluidRow(
-            actionButton("run", "Run", icon = icon("cog"), class = "run-btn"),
-            actionButton("quit", "Quit", icon = icon("times"), class = "cls-btn"))
+            column(
+                width = 12, align = "left", 
+                actionButton("run", "Run", icon = icon("cog"), class = "run-btn"),
+                actionButton("quit", "Quit", icon = icon("times"), class = "cls-btn")) 
+            )
+            
     ),
     
     dashboardBody(
