@@ -5,7 +5,7 @@ server <- function(input, output, session) {
   areThereErrors <- reactiveValues("Yes" = FALSE)
   
   ################## UI HIDE AND SHOW  ##################
-  
+
   # change inputs for 'web' or 'bed' options
   observe({
     if(input$webOrBed == 'web'){
