@@ -15,25 +15,31 @@ ui <- dashboardPage(
             tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
             uiOutput("css.apkgs")
         ),
-        selectInput("organism", "Select an Organism",
+        br(),
+        selectInput("organism", "Organism",
                     choices = c("All" = "All", unique(options$Organism)),
                     selected = "All"),
-        selectInput("category", "Select a Category",
+        selectInput("category", "Category",
                     choices = c("All" = "All", unique(options$Category)),
                     selected = "All"),
         tags$div(id="cssref",
-                 selectInput("annotPackage", "Select an Annotation Package",
+                 selectInput("annotPackage", "Annotation Package",
                              choices = NULL)),
         uiOutput("pop"),
-        radioButtons("webOrBed", "Input genomic coordinates",
+        br(), 
+        br(),
+        radioButtons("webOrBed", "Genomic Coordinates",
                      choices = list("Manually" = "web", "Uploading BED file" = "bed")),
         uiOutput("webOptions"),
-        fileInput("upload", "Upload your Bed format file"),
+        fileInput("upload", "Select your Bed format file"),
+        br(),
         fluidRow(
             column(
-                width = 12, align = "left", 
-                actionButton("run", "Run", icon = icon("cog"), class = "run-btn"),
-                actionButton("quit", "Quit", icon = icon("times"), class = "cls-btn")) 
+                width = 12, align = "center", 
+                actionButton("run", "RUN", icon = icon("cog"), 
+                             class = "run-btn", width = "60%"),
+                actionButton("quit", "QUIT", icon = icon("times"),
+                             class = "cls-btn" , width = "60%")) 
             )
             
     ),
