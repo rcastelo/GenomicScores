@@ -5,7 +5,7 @@ server <- function(input, output, session) {
   areThereErrors <- reactiveValues("Yes" = FALSE)
   
   ################## UI HIDE AND SHOW  ##################
-  
+
   # change inputs for 'web' or 'bed' options
   observe({
     if(input$webOrBed == 'web'){
@@ -129,10 +129,10 @@ server <- function(input, output, session) {
     shinyjs::runjs("{history.go(0)}")
   })
   
-  ### render selectinput with population options
+  ### render selectInput with population options
   output$pop <- renderUI({
     req(annotPackage())
-    selectInput("populations", "Select an available population", multiple = TRUE,
+    selectInput("populations", "Populations", multiple = TRUE,
                 choices = populations(annotPackage()))
   })
   
@@ -153,9 +153,13 @@ server <- function(input, output, session) {
   output$down_btn <- renderUI({
     req(areThereErrors$Yes==TRUE)
     fluidRow(
-      downloadButton("dwn_bed", "Download BED"),
-      downloadButton("dwn_csv", "Download CSV"))
-    
+      column(
+        width = 12,
+        align = "center",
+        downloadButton("dwn_bed", "BED file"),
+        downloadButton("dwn_csv", "CSV file")
+        )
+      )
   })
   
   ################# REACTIVE CORE VALUES #######################
