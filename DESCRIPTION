@@ -3,7 +3,7 @@ Type: Package
 Title: Infrastructure to work with genomewide position-specific scores
 Description: Provide infrastructure to store and access genomewide
         position-specific scores within R and Bioconductor.
-Version: 2.3.5
+Version: 2.3.6
 Authors@R: c(person("Robert", "Castelo", role=c("aut", "cre"),
         email="robert.castelo@upf.edu"), person("Pau", "Puigdevall",
         role="ctb", email="pau.puigdevall@upf.edu"), person("Pablo",
@@ -19,7 +19,7 @@ Suggests: RUnit, BiocStyle, knitr, rmarkdown, BSgenome.Hsapiens.UCSC.hg19,
           SNPlocs.Hsapiens.dbSNP144.GRCh37, VariantAnnotation,
           TxDb.Hsapiens.UCSC.hg19.knownGene, gwascat, RColorBrewer,
           shiny, shinyjs, shinycustomloader, data.table, DT, magrittr,
-		  shinydashboard
+		      shinydashboard
 VignetteBuilder: knitr
 URL: https://github.com/rcastelo/GenomicScores
 BugReports: https://github.com/rcastelo/GenomicScores/issues
