@@ -8,3 +8,18 @@ authors:
 - family-names: Castelo
   given-names: Robert
 title: GenomicScores
+references:
+  - type: article
+    scope: "Cite this article if you need to reference the GenomicScores package, but overall, please cite the corresponding genomic scores source."
+    authors:
+    - family-names: Puigdevall
+      given-names: Pau
+    - family-names: Castelo
+      given-names: Robert
+    title: "GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor"
+    year: 2018
+    journal: Bioinformatics
+    volume: 18
+    start: 3208
+    end: 3210
+    doi: "10.1093/bioinformatics/bty311"
