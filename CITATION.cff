@@ -17,9 +17,3 @@ references:
     - family-names: Castelo
       given-names: Robert
     title: GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor
-    year: 2018
-    journal: Bioinformatics
-    volume: 18
-    start: 3208
-    end: 3210
-    doi: 10.1093/bioinformatics/bty311
