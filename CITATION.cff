@@ -2,9 +2,9 @@ cff-version: 1.2.0
 message: If you use this software, please cite the article referenced below.
 title: GenomicScores
 authors:
-  - family-names: Puigdevall
-    given-names: Pau
-  - family-names: Rodriguez
-    given-names: Pablo Sebastian
-  - family-names: Castelo
-    given-names: Robert
+- family-names: Puigdevall
+  given-names: Pau
+- family-names: Rodriguez
+  given-names: Pablo Sebastian
+- family-names: Castelo
+  given-names: Robert
