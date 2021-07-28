@@ -8,12 +8,3 @@ authors:
     given-names: Pablo Sebastian
   - family-names: Castelo
     given-names: Robert
-references:
-  - type: article
-    scope: Cite this article if you need to reference the GenomicScores package, but overall, please cite the corresponding genomic scores source.
-    authors:
-    - family-names: Puigdevall
-      given-names: Pau
-    - family-names: Castelo
-      given-names: Robert
-    title: GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor
