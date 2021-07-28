@@ -1,25 +1,32 @@
+--- 
+authors: 
+  - 
+    family-names: Puigdevall
+    given-names: Pau
+  - 
+    family-names: Rodriguez
+    given-names: "Pablo Sebastian"
+  - 
+    family-names: Castelo
+    given-names: Robert
 cff-version: "1.1.0"
 message: "If you use this software, please cite the article referenced below."
-authors:
-- family-names: Puigdevall
-  given-names: Pau
-- family-names: Rodriguez
-  given-names: Pablo Sebastian
-- family-names: Castelo
-  given-names: Robert
-title: GenomicScores
-references:
-  - type: article
-    scope: "Cite this article if you need to reference the GenomicScores package, but overall, please cite the corresponding genomic scores source."
-    authors:
-    - family-names: Puigdevall
-      given-names: Pau
-    - family-names: Castelo
-      given-names: Robert
-    title: "GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor"
-    year: 2018
-    journal: Bioinformatics
-    volume: 18
-    start: 3208
+references: 
+  - 
+    authors: 
+      - 
+        family-names: Puigdevall
+        given-names: Pau
+      - 
+        family-names: Castelo
+        given-names: Robert
+    doi: 10.1093/bioinformatics/bty311
     end: 3210
-    doi: "10.1093/bioinformatics/bty311"
+    journal: Bioinformatics
+    scope: "Cite this article if you need to reference the GenomicScores package, but overall, please cite the corresponding genomic scores source."
+    start: 3208
+    title: "GenomicScores: seamless access to genomewide position-specific scores from R and Bioconductor"
+    type: article
+    volume: 18
+    year: 2018
+title: GenomicScores
