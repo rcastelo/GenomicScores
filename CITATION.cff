@@ -1,0 +1,18 @@
+cff-version: 1.1.0
+message: Please cite the following works when using this software.
+authors:
+  - family-names: Puigdevall
+    given-names: Pau
+  - family-names: Castelo
+    given-names: Robert
+doi: 10.1093/BIOINFORMATICS/BTY311
+identifiers:
+  - type: doi
+    value: 10.1093/BIOINFORMATICS/BTY311
+  - type: other
+    value: urn:issn:1367-4803
+  - type: other
+    value: pmid:29718111
+title: >-
+  GenomicScores: seamless access to genomewide position-specific scores from R
+  and Bioconductor
