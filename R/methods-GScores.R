@@ -300,6 +300,16 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
               genome(ranges) <- genome(x)
             }
 
+            ord <- 1:length(ranges)
+            if (is.unsorted(ranges)) {
+              ord <- order(ranges)
+              ranges <- ranges[ord]
+              if (length(ref) > 0 && length(alt) > 0) {
+                ref <- ref[ord]
+                alt <- alt[ord]
+              }
+            }
+
             ans <- NULL
             if (type == "snrs")
               ans <- .scores_snrs(x, ranges, pop, summaryFun, quantized,
@@ -307,6 +317,10 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
             else
               ans <- .scores_nonsnrs(x, ranges, pop, quantized, scores.only,
                                      ref, alt, minoverlap, caching)
+            if (is(ans, "DFrame"))
+              ans[ord, ] <- ans
+            else ## GRanges
+              ans[ord] <- ans
 
             ans
           })
