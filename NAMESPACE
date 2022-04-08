@@ -41,7 +41,8 @@ importFrom(stats, setNames)
 
 importFrom(rhdf5, h5ls)
 
-importFrom(HDF5Array, HDF5Array)
+importFrom(HDF5Array, HDF5Array,
+                      writeHDF5Array)
 
 importFrom(utils, installed.packages,
                   data,

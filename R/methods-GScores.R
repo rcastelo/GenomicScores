@@ -548,8 +548,11 @@ setMethod("gscores", c("GScores", "character"),
   }
 
   missingMask <- !pop %in% names(gscopops)
-  for (popname in pop[missingMask])
+  for (popname in pop[missingMask]) {
     gscopops[[popname]] <- List() ## RleList(compress=FALSE)
+    if (hdf5Backend(object)) ## HDF5 backend, fetch common metadata from first population
+      metadata(gscopops[[popname]]) <- metadata(gscopops[[1]])
+  }
   anyMissing <- any(missingMask)
 
   ans <- DataFrame(as.data.frame(matrix(NA_real_, nrow=length(ranges),
