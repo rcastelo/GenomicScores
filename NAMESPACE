@@ -39,7 +39,11 @@ importMethodsFrom(DelayedArray, seed)
 
 importFrom(stats, setNames)
 
-importFrom(rhdf5, h5ls)
+importFrom(rhdf5, h5ls,
+                  h5createFile,
+                  h5createGroup)
+
+importFrom(DelayedArray, RleArray)
 
 importFrom(HDF5Array, HDF5Array,
                       writeHDF5Array)

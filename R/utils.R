@@ -5,7 +5,6 @@
 ##            inputpath - path where the RDS files
 ##            outputpath - path where to store the resulting HDF5 files
 .makeMafH5 <- function(prefix, inputpath, outputpath) {
-  require(HDF5Array)
   
   ## get populations
   data_pops <- list.files(path=inputpath, pattern=prefix)
@@ -21,7 +20,7 @@
   ## retrieve common metadata, i.e., discarding chromosome-specific metadata
   first_file <- list.files(path=inputpath, pattern=prefix, full.names=TRUE)[1]
   if (!file.exists(first_file))
-    stop(sprintf("cannot access any file starting with prefix %s in %s.", prefix, intputpath))
+    stop(sprintf("cannot access any file starting with prefix %s in %s.", prefix, inputpath))
 
   first_chrom <- readRDS(first_file)
   chrspecificmetadata <- c("seqname", "ecdf", "max_abs_error", "maskREF")
