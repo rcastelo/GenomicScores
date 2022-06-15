@@ -30,7 +30,8 @@
              links = function() links)
     }
     h1 <- getLinks()
-    htmlTreeParse(dname, handlers = h1)
+    doc <- httr::content(httr::GET(dname))
+    htmlTreeParse(doc, handlers = h1)
     res <- h1$links()
     res <- res[!(res %in% c("?C=N;O=D", "?C=M;O=A", "?C=S;O=A", "?C=D;O=A",
                             "/download/current/"))]
