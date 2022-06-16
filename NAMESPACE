@@ -17,8 +17,7 @@ importMethodsFrom(GenomeInfoDb, "seqinfo<-",
                                 genome,
                                 "genome<-",
                                 provider,
-                                providerVersion,
-                                releaseName)
+                                providerVersion)
 importMethodsFrom(IRanges, start,
                            width,
                            flank,
