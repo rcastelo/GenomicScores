@@ -42,7 +42,7 @@
   avgs <- readRDS(system.file("extdata", "avgs.rds", package="GenomicScores"))
 
   if (use.internet) {
-    baseUrl <- "http://functionalgenomics.upf.edu/annotationhub"
+    baseUrl <- "https://functionalgenomics.upf.edu/annotationhub"
     if (!.testConnection(baseUrl)) {
       stop(sprintf("No internet connection to %s", baseUrl))
     } else {
@@ -96,11 +96,13 @@ availableGScores <- function(use.internet=FALSE) {
   ip <- rownames(installed.packages())
 
   ## the BioC core team wants that the newly added AH GenomicScores resources
-  ## also have a lightweight annotation package, but that package does not
-  ## create any GScores object at loading time, so by now we removed it
-  ## hardcoding the pakage name from the list of GenomicScores annotation
+  ## also have corresponding lightweight annotation packages, but those packages
+  ## do not create any GScores object at loading time, so by now we removed them
+  ## hardcoding the package names from the list of GenomicScores annotation
   ## packages available through install.
-  ip <- setdiff(ip, "phastCons30way.UCSC.hg38")
+  lightweightpkgs <- c("phastCons30way.UCSC.hg38", "phastCons35way.UCSC.mm39",
+                       "phyloP35way.UCSC.mm39")
+  ip <- setdiff(ip, lightweightpkgs)
 
   cached <- setdiff(ahpkgs$Name[ahpkgs$Cached], ip)
 
