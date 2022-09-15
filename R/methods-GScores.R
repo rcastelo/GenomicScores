@@ -1077,3 +1077,207 @@ setMethod("rgscores", signature(n="integer", object="GScores"),
 
             gsco
           })
+
+
+## functions to find out genomic scores within genomic ranges
+## feature request by https://github.com/rcastelo/GenomicScores/issues/20
+setMethod("wgscores", c("GScores", "GenomicRanges"),
+          function(x, ranges, ...) {
+            ## default non-generic arguments
+            paramNames <- c("pop", "type", "caching")
+            pop <- defaultPopulation(x)
+            type <- "snrs"
+            caching <- TRUE
+
+            ## get arguments
+            arglist <- list(...)
+            mask <- nchar(names(arglist)) == 0
+            if (any(mask))
+              names(arglist)[mask] <- paste0("X", 1:sum(mask))
+
+            mask <- names(arglist) %in% paramNames
+            if (any(!mask))
+                stop(sprintf("unused argument (%s)", names(arglist)[!mask]))
+            list2env(arglist, envir=sys.frame(sys.nframe()))
+
+            if (!type %in% c("snrs", "nonsnrs"))
+              stop("argument 'type' must be either 'snrs' (default) or 'nonsnrs'.")
+
+            mask <- pop %in% populations(x)
+            if (any(!mask))
+              stop(sprintf("scores population %s is not present in %s. Please use 'populations()' to find out the available ones.",
+                           pop[!mask], name(x)))
+
+            ## adapt to sequence style and genome version from the input
+            ## GScores object, thus assuming positions are based on the same
+            ## genome even though might be differently specified
+            ## (i.e., hg19 vs hs37d5 or hg38 vs GRCh38)
+            if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(x))) == 0)
+              seqlevelsStyle(ranges) <- seqlevelsStyle(x)[1]
+            commonSeqs <- intersect(seqlevels(ranges), seqlevels(x))
+            if (any(is.na(genome(ranges)))) {
+              genome(ranges) <- genome(x)
+            } else if (any(genome(ranges)[commonSeqs] != genome(x)[commonSeqs])) {
+              message(sprintf("assuming %s represent the same genome build between query ranges and the GScores object, respectively.",
+                              paste(c(unique(genome(ranges)[commonSeqs]),
+                                      unique(genome(x)[commonSeqs])),
+                                    collapse=" and ")))
+              genome(ranges) <- genome(x)
+            }
+
+            if (is.unsorted(ranges))
+              ranges <- sort(ranges)
+
+            ans <- NULL
+            if (type == "snrs")
+              ans <- .which_scores_snrs(x, ranges, pop, caching)
+            else
+              ans <- .which_scores_nonsnrs(x, ranges, pop, caching)
+
+            if (is.unsorted(ans))
+              ans <- sort(ans)
+
+            ans
+          })
+
+.which_scores_snrs <- function(object, ranges, pop, caching=TRUE) {
+  objectname <- deparse(substitute(object))
+  if (length(ranges) == 0)
+    return(numeric(0))
+
+  snames <- unique(as.character(runValue(seqnames(ranges))))
+  if (any(!snames %in% seqnames(object)))
+    stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
+                 paste(snames[!snames %in% seqnames(object)], collapse=", "),
+                 genome(object)[1]))
+
+  gscopops <- get(object@data_pkgname, envir=object@.data_cache)
+  if (all(names(gscopops) %in% seqlevels(object))) { ## temporary fix for annotations w/o populations
+    tmp <- gscopops
+    gscopops <- list()
+    gscopops[[defaultPopulation(object)]] <- List() ## RleList(tmp, compress=FALSE)
+    assign(object@data_pkgname, gscopops, envir=object@.data_cache)
+  }
+
+  missingMask <- !pop %in% names(gscopops)
+  for (popname in pop[missingMask]) {
+    gscopops[[popname]] <- List() ## RleList(compress=FALSE)
+    if (GenomicScores:::hdf5Backend(object)) ## HDF5 backend, fetch common metadata from first population
+      metadata(gscopops[[popname]]) <- metadata(gscopops[[1]])
+  }
+  anyMissing <- any(missingMask)
+
+  ans <- vector(mode="list", length=length(pop))
+  names(ans) <- pop
+  for (popname in pop) {
+    missingMask <- !snames %in% names(gscopops[[popname]])
+    anyMissing <- anyMissing || any(missingMask)
+    if (any(missingMask))
+      gscopops[[popname]] <- .fetch_scores_snrs(object, objectname, gscopops[[popname]],
+                                                popname, snames[missingMask])
+
+    mdata <- metadata(gscopops[[popname]]) ## metadata in List object of HDF5 pkgs
+    if ("Rle" %in% class(gscopops[[popname]][[1]]))
+      mdata <- metadata(gscopops[[popname]][[1]])
+
+    sco <- .rleWhichValues(gscopops[[popname]], ranges, mdata)
+    mcols(sco)[[popname]] <- sco$score
+    mcols(sco)[["score"]] <- NULL
+
+    ans[[popname]] <- sco
+  }
+
+  if (anyMissing && caching)
+    assign(object@data_pkgname, gscopops, envir=object@.data_cache)
+  rm(gscopops)
+
+  ans <- lapply(ans, function(x) {
+                  seqlevels(x) <- seqlevels(object)
+                  seqinfo(x) <- seqinfo(object)
+                  x
+                })
+  ans <- Reduce(merge, ans)
+  ans
+}
+
+.rleWhichValues <- function(rlelst, gr, mdata) {
+
+  seqlevels(gr) <- names(rlelst)
+  ans <- list()
+
+  tmpans <- NA_real_
+  ord <- order(seqnames(gr)) ## store ordering below in 'split()'
+  startbyseq <- split(start(gr), seqnames(gr), drop=TRUE)
+  widthbyseq <- split(width(gr), seqnames(gr), drop=TRUE)
+  f <- function(r, p, w)
+         sapply(seq_along(p),
+                function(i, r, p, w) {
+                  p[i] + which(r[p[i]:(p[i]+w[i]-1)] != raw(w[i])) - 1
+                },
+                r, p, w)
+
+  tmpans <- lapply(mapply(f, rlelst[names(startbyseq)], startbyseq, widthbyseq,
+                   SIMPLIFY=FALSE), as.vector)
+  tmpans <- lapply(tmpans, unlist)
+
+  ans <- tmpans[ord]
+  ans <- GRanges(rep(names(ans), lengths(ans)),
+                 IRanges(start=unlist(ans, use.names=FALSE), width=1))
+
+  if (length(ans) > 0)
+    ans$score <- .rleGetValues(rlelst, ans, mdata, mean)
+  else
+    ans$score <- numeric(0)
+  ans
+}
+
+.which_scores_nonsnrs <- function(object, ranges, pop, caching=TRUE) {
+  objectname <- deparse(substitute(object))
+  gscononsnrs<- get(sprintf("%s.nonsnvs", name(object)), envir=object@.data_cache)
+
+  if (length(intersect(seqlevelsStyle(ranges), seqlevelsStyle(object))) == 0)
+    seqlevelsStyle(ranges) <- seqlevelsStyle(object)[1]
+
+  snames <- unique(as.character(runValue(seqnames(ranges))))
+  if (any(!snames %in% seqnames(object)))
+    stop(sprintf("Sequence names %s in 'ranges' not present in reference genome %s.",
+                 paste(snames[!snames %in% seqnames(object)], collapse=", "),
+                 providerVersion(genomeDescription(object))))
+
+  missingSeqMask <- !snames %in% names(gscononsnrs)
+  anyMissing <- any(missingSeqMask)
+  allpopnames <- character(0)
+  if (length(gscononsnrs) > 0)
+    allpopnames <- colnames(mcols(gscononsnrs[[1]]))
+  missingPopMask <- !pop %in% allpopnames
+  anyMissing <- anyMissing || any(missingPopMask)
+
+  if (any(missingSeqMask) || any(missingPopMask)) ## if genomic scores belong to queried sequences that are not cached, load them
+    gscononsnrs <- .fetch_scores_nonsnrs(object, objectname, gscononsnrs,
+                                         pop[missingPopMask], snames[missingSeqMask])
+
+  ans <- list()
+
+  ov <- findOverlaps(ranges, unlist(gscononsnrs), minoverlap=0L, type="any")
+  sHits <- subjectHits(ov)
+
+  if (length(ov) > 0) {
+    ans <- unlist(gscononsnrs)[sHits]
+    mcols(ans)[setdiff(allpopnames, pop)] <- NULL
+    q <- mcols(ans)
+    .dequantizer <- metadata(gscononsnrs)$dqfun
+    dqargs <- metadata(gscononsnrs)$dqfun_args
+    lappargs <- c(list(X=q, FUN=.dequantizer), dqargs)
+    mcols(ans) <- DataFrame(do.call("lapply", lappargs))
+  }
+
+  if (anyMissing && caching)
+    assign(sprintf("%s.nonsnvs", name(object)), gscononsnrs, envir=object@.data_cache)
+  rm(gscononsnrs)
+
+  ## mcols(ranges) <- cbind(mcols(ranges), ans)
+  ## seqlevels(ranges) <- seqlevels(object)
+  ## seqinfo(ranges) <- seqinfo(object)
+
+  ans
+}
