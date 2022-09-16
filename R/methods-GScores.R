@@ -264,9 +264,13 @@ setMethod("gscores", c("GScores", "GenomicRanges"),
 
             ## get arguments
             arglist <- list(...)
+            if (is.null(names(arglist)))
+              names(arglist) <- rep("", length(arglist))
+
             mask <- nchar(names(arglist)) == 0
             if (any(mask))
-              names(arglist)[mask] <- paste0("X", 1:sum(mask))
+              stop(sprintf("optional argument(s) in position(s) %s should be named",
+                           paste(2+which(mask), collapse=", ")))
 
             mask <- names(arglist) %in% paramNames
             if (any(!mask))

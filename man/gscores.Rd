@@ -23,7 +23,7 @@ Functions to access genomic gscores through \code{GScores} objects.
                 scores, e.g., dbSNP 'rs' identifiers in the case of some
                 \code{MafDb.*} packages.}
   \item{...}{In the call to the \code{gscores}() method one can additionally
-             set the following arguments:
+             specify the following optional parameters:
              \itemize{
                \item{pop: }{Character string vector specifying the scores
                             populations to query, when there is more than one.
