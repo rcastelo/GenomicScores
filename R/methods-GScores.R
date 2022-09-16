@@ -219,8 +219,7 @@ setMethod("hdf5Backend", "GScores", function(x) x@data_hdf5)
                         function(x)
                           HDF5Array(path(seed(x)),
                                     name=sprintf("%s/%s",
-                                                 sub("/scores", "",
-                                                     seed(x)@name, metadataID))))
+                                                 sub("/scores", "", seed(x)@name), metadataID)))
   else
     rlelst <- endoapply(rlelst, function(x) metadata(x)[[metadataID]])
 
