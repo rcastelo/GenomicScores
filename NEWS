@@ -1,3 +1,18 @@
+CHANGES IN VERSION 2.10.0
+-------------------------
+
+USER VISIBLE CHANGES
+
+    o Added two new score sets and corresponding metadata for mm39: phastCons35way.UCSC.mm39 and phyloP35way.UCSC.mm39.
+
+    o Added new method 'wgscores()' to find which genomic scores are present in a given set of genomic ranges. Feature request by https://github.com/rcastelo/GenomicScores/issues/20
+
+    o Improved error messages about optional arguments without name or with a mispecified name in the call to 'gscores()'.
+
+BUG FIXES
+
+    o Bugfix for parameters 'ref' and 'alt' when used with HDF5 backends.
+
 CHANGES IN VERSION 2.8.0
 ------------------------
 
