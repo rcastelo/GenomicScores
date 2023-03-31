@@ -126,10 +126,9 @@
 
 \section{Constructor}{
   \describe{
-    \item{}{
-      \code{GScores(provider, provider_version, download_url,
-            download_date, reference_genome, data_pkgname, data_dirpath,
-            data_serialized_objnames, default_pop, data_tag)}:
+    \item{\code{GScores(provider, provider_version, download_url,
+                download_date, reference_genome, data_pkgname, data_dirpath,
+                data_serialized_objnames, default_pop, data_tag)}:}{
       Creates a \code{GScores} object. In principle, the end-user needs not to
       call this function.
       \describe{
@@ -163,66 +162,48 @@
 
 \section{Accessors}{
   \describe{
-    \item{}{
-      \code{name(x)}: get the name of the set of genomic scores.
+    \item{\code{name(x)}:}{ get the name of the set of genomic scores.
     }
-    \item{}{
-      \code{type(x)}: get the substring of the name of the set of genomic
+    \item{\code{type(x)}:}{ get the substring of the name of the set of genomic
       scores comprised between the first character until the first period. This
       should typically match the type of genomic scores such as,
       \code{phastCons}, \code{phyloP}, etc.
     }
-    \item{}{
-      \code{provider(x)}: get the data provider.
+    \item{\code{provider(x)}:}{ get the data provider.
     }
-    \item{}{
-      \code{providerVersion(x)}: get the provider version.
+    \item{\code{providerVersion(x)}:}{ get the provider version.
     }
-    \item{}{
-      \code{organism(x)}: get the organism associated with the genomic scores.
+    \item{\code{organism(x)}:}{ get the organism associated with the genomic scores.
     }
-    \item{}{
-      \code{seqlevelsStyle(x)}: get the genome sequence style.
+    \item{\code{seqlevelsStyle(x)}:}{ get the genome sequence style.
     }
-    \item{}{
-      \code{seqinfo(x)}: get the genome sequence information.
+    \item{\code{seqinfo(x)}:}{ get the genome sequence information.
     }
-    \item{}{
-      \code{seqnames(x)}: get the genome sequence names.
+    \item{\code{seqnames(x)}:}{ get the genome sequence names.
     }
-    \item{}{
-      \code{seqlengths(x)}: get the genome sequence lengths.
+    \item{\code{seqlengths(x)}:}{ get the genome sequence lengths.
     }
-    \item{}{
-      \code{populations(x)}: get the identifiers of the available scores
+    \item{\code{populations(x)}:}{ get the identifiers of the available scores
       populations. If only one scores population is available, then it shows
       only the term \code{default}.
     }
-    \item{}{
-      \code{defaultPopulation(x)}: get or set the default population of scores.
+    \item{\code{defaultPopulation(x)}:}{ get or set the default population of scores.
     }
-    \item{}{
-      \code{gscoresCategory(x)}: get or set the genomic scores category label.
+    \item{\code{gscoresCategory(x)}:}{ get or set the genomic scores category label.
     }
-    \item{}{
-      \code{gscoresTag(x)}: get or set the genomic scores tag label.
+    \item{\code{gscoresTag(x)}:}{ get or set the genomic scores tag label.
     }
-    \item{}{
-      \code{gscoresNonSNRs(x)}: get whether there are genomic scores associated
+    \item{\code{gscoresNonSNRs(x)}:}{ get whether there are genomic scores associated
       with non-single nucleotide ranges.
     }
-    \item{}{
-      \code{nsites(x)}: get the number of sites in the genome with genomic
+    \item{\code{nsites(x)}:}{ get the number of sites in the genome with genomic
       scores.
     }
-    \item{}{
-      \code{qfun(x)}: get the quantizer function.
+    \item{\code{qfun(x)}:}{ get the quantizer function.
     }
-    \item{}{
-      \code{dqfun(x)}: get the dequantizer function.
+    \item{\code{dqfun(x)}:}{ get the dequantizer function.
     }
-    \item{}{
-      \code{citation(x)}: get citation information for the genomic scores data
+    \item{\code{citation(x)}:}{ get citation information for the genomic scores data
       in the form of a \code{bibentry} object.
     }
   }
