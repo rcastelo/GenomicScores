@@ -22,8 +22,16 @@ output:
 bibliography: bibliography.bib
 ---
 
-```{r setup, echo=FALSE}
+```{r setup, echo=FALSE, cache=FALSE}
+library(knitr)
+
 options(width=80)
+knitr::opts_chunk$set(
+  collapse=TRUE,
+  comment="",
+  fig.align="center",
+  fig.wide=TRUE
+)
 ```
 
 # Getting started
@@ -115,7 +123,8 @@ information and metadata stored in a `GScores` object. To retrieve genomic score
 for specific positions we should use the function `gscores()`, as follows.
 
 ```{r}
-gscores(phast, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
+gscores(phast, GRanges(seqnames="chr22",
+                       IRanges(start=50967020:50967025, width=1)))
 ```
 
 The `r Biocpkg("GenomicScores")` package only loads the scores data from one
@@ -180,7 +189,8 @@ Finally, the phastCons score of a particular genomic position
 is retrieved exactly in the same we did with the annotation package.
 
 ```{r retrieve4, message=FALSE, cache=FALSE}
-gscores(phast, GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1)))
+gscores(phast, GRanges(seqnames="chr22",
+                       IRanges(start=50967020:50967025, width=1)))
 ```
 
 ## Building an annotation package from a GScores object
@@ -193,7 +203,8 @@ from a `GScores` object corresponding to a downloaded `AnnotationHub` resource.
 To do that we use the function `makeGScoresPackage()` as follows:
 
 ```{r eval=FALSE}
-makeGScoresPackage(phast, maintainer="Me <me@example.com>", author="Me", version="1.0.0")
+makeGScoresPackage(phast, maintainer="Me <me@example.com>",
+                   author="Me", version="1.0.0")
 ```
 ```{r echo=FALSE}
 cat("Creating package in ./phastCons100way.UCSC.hg19\n")
@@ -356,7 +367,7 @@ dqfun(phast)
 
 One particular type of genomic scores that are accessible through
 the `GScores` class is minor allele frequency (MAF) data.
-There are currently 17 annotation packages that store MAF values
+There are currently 15 annotation packages that store MAF values
 using the `r Biocpkg("GenomicScores")` package, named using the
 prefix `MafDb`; see Table \@ref(tab:tableMafDb) below.
 
@@ -366,8 +377,6 @@ Annotation Package          | Description
 `r Biocpkg("MafDb.1Kgenomes.phase1.GRCh38")` | MAF data from the 1000 Genomes Project Phase 1 for the human genome version GRCh38.
 `r Biocpkg("MafDb.1Kgenomes.phase3.hs37d5")` | MAF data from the 1000 Genomes Project Phase 3 for the human genome version GRCh37.
 `r Biocpkg("MafDb.1Kgenomes.phase3.GRCh38")` | MAF data from the 1000 Genomes Project Phase 3 for the human genome version GRCh38.
-`r Biocpkg("MafDb.ESP6500SI.V2.SSA137.hs37d5")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh37.
-`r Biocpkg("MafDb.ESP6500SI.V2.SSA137.GRCh38")` | MAF data from NHLBI ESP 6500 exomes for the human genome version GRCh38.
 `r Biocpkg("MafDb.ExAC.r1.0.hs37d5")` | MAF data from ExAC 60706 exomes for the human genome version GRCh37.
 `r Biocpkg("MafDb.ExAC.r1.0.GRCh38")` | MAF data from ExAC 60706 exomes for the human genome version GRCh38.
 `r Biocpkg("MafDb.ExAC.r1.0.nonTCGA.hs37d5")` | MAF data from ExAC 53105 nonTCGA exomes for the human genome version GRCh37.
@@ -376,7 +385,7 @@ Annotation Package          | Description
 `r Biocpkg("MafDb.gnomAD.r2.1.GRCh38")` | MAF data from gnomAD 15496 genomes for the human genome version GRCh38.
 `r Biocpkg("MafDb.gnomADex.r2.1.hs37d5")` | MAF data from gnomADex 123136 exomes for the human genome version GRCh37.
 `r Biocpkg("MafDb.gnomADex.r2.1.GRCh38")` | MAF data from gnomADex 123136 exomes for the human genome version GRCh38.
-`r Biocpkg("MafDb.gnomAD.r3.0.GRCh38")` | MAF data from gnomAD 71702 genomes for the human genome version GRCh38.
+`r Biocpkg("MafH5.gnomAD.v3.1.2.GRCh38")` | MAF data from gnomAD 76156 genomes for the human genome version GRCh38.
 `r Biocpkg("MafDb.TOPMed.freeze5.hg19")` | MAF data from NHLBI TOPMed 62784 genomes for the human genome version GRCh37.
 `r Biocpkg("MafDb.TOPMed.freeze5.hg38")` | MAF data from NHLBI TOPMed 62784 genomes for the human genome version GRCh38.
 
@@ -387,7 +396,7 @@ from which the MAF data were derived, while all MAF data were compressed using
 a precision of one significant figure for MAF < 0.1 and two significant figures for
 MAF >= 0.1.
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=FALSE}
 library(MafDb.1Kgenomes.phase1.hs37d5)
 
 mafdb <- MafDb.1Kgenomes.phase1.hs37d5
@@ -419,7 +428,7 @@ We query the genomic position of the variant identifier through the
 build 144 of the dbSNP database.
 
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=FALSE}
 library(SNPlocs.Hsapiens.dbSNP144.GRCh37)
 rng <- snpsById(SNPlocs.Hsapiens.dbSNP144.GRCh37, ids=eyersids)
 rng
@@ -464,7 +473,7 @@ For this purpose, we load the `r Biocpkg("VariantAnnotaiton")` and
 read a VCF file and annotate it, and the latter contains the gene annotations from UCSC
 that will be used in this process.
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE, cache=FALSE}
 library(VariantAnnotation)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 ```

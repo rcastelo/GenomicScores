@@ -497,12 +497,13 @@ setMethod("gscores", c("GScores", "character"),
   if (length(ref) > 0) {
     if (!class(ref) %in% c("character", "DNAStringSet", "DNAStringSetList")) {
       stop("'ref' argument must be either a character vector, a DNAStringSet or a DNAStringSetList object.")
-    } else if (class(ref) == "DNAStringSetList") {
+    } else if (is(ref, "DNAStringSetList")) {
       mask <- elementNROWS(ref) > 1
       if (any(mask)) {
-        ## stop("'ref' argument must contain only a single nucleotide per position.")
         ref <- unstrsplit(CharacterList(ref), sep=",")
         ref[mask] <- NA_character_
+        message(sprintf("%d multiallelic 'ref' alleles have been discarded.",
+                        sum(mask)))
       }
       ref <- unlist(ref)
     }
@@ -512,9 +513,10 @@ setMethod("gscores", c("GScores", "character"),
     } else if (class(alt) == "DNAStringSetList") {
       mask <- elementNROWS(alt) > 1
       if (any(mask)) {
-        ## stop("'alt' argument must contain only a single nucleotide per position.")
         alt <- unstrsplit(CharacterList(alt), sep=",")
         alt[mask] <- NA_character_
+        message(sprintf("%d multiallelic 'alt' alleles have been discarded.",
+                        sum(mask)))
       }
       alt <- unlist(alt)
     }
@@ -523,6 +525,55 @@ setMethod("gscores", c("GScores", "character"),
   list(ref=ref, alt=alt)
 }
 
+.filter_ambig_multinuc_ref_alt_args <- function(ref, alt) {
+  if (length(ref) != length(alt))
+    stop("'ref' and 'alt' arguments have different lengths.")
+
+  if (length(ref) > 0) {
+    stopifnot(class(ref) %in% c("character", "DNAStringSet")) ## QC
+
+    if (is(ref, "DNAStringSet"))
+      ref <- as.character(ref)
+    mask <- nchar(ref) > 1
+    if (any(mask)) {
+      ref[mask] <- NA_character_
+      message(sprintf("%d multinucleotide 'ref' alleles have been discarded.",
+                      sum(mask)))
+    }
+    mask <- !is.na(ref) & (!ref %in% DNA_BASES)
+    if (any(mask)) {
+      ref[mask] <- NA_character_
+      message(sprintf("%d ambiguous 'ref' alleles have been discarded.",
+                      sum(mask)))
+    }
+
+    if (is(alt, "DNAStringSet"))
+      alt <- as.character(alt)
+    mask <- nchar(alt) > 1
+    if (any(mask)) {
+      alt[mask] <- NA_character_
+      message(sprintf("%d multinucleotide 'alt' alleles have been discarded.",
+                      sum(mask)))
+    }
+    mask <- !is.na(alt) & (!alt %in% DNA_BASES)
+    if (any(mask)) {
+      alt[mask] <- NA_character_
+      message(sprintf("%d ambiguous 'alt' alleles have been discarded.",
+                      sum(mask)))
+    }
+
+    mask <- ref == alt
+    mask[is.na(mask)] <- FALSE
+    if (any(mask)) {
+      ref[mask] <- NA_character_
+      alt[mask] <- NA_character_
+      message(sprintf("%d identical 'ref' and 'alt' alleles have been discarded.",
+                      sum(mask)))
+    }
+  }
+
+  list(ref=ref, alt=alt)
+}
 ## assumes 'object' and 'ranges' have the same sequence "styles"
 .scores_snrs <- function(object, ranges, pop, summaryFun=mean, quantized=FALSE,
                          scores.only=FALSE, ref=character(0), alt=character(0),
@@ -583,14 +634,20 @@ setMethod("gscores", c("GScores", "character"),
 
   if (length(ref) > 0 && length(alt) > 0) {
     if (is.matrix(sco)) { ## if it's a matrix, then we have multiple scores per position
-      if (any(is.na(ref)) || any(is.na(alt)))
-        warning("'ref' or 'alt' arguments contain more than one allele per position, NAs introduced.")
-      mt.r <- match(ref, DNA_BASES)
-      mt.a <- match(alt, DNA_BASES)
-      mask <- mt.r < mt.a
+      ra <- .filter_ambig_multinuc_ref_alt_args(ref, alt)
+      ref <- ra$ref
+      alt <- ra$alt
+      rm(ra)
+      sco2 <- rep(NA_real_, length(ranges))
+      mask1 <- !is.na(ref) & !is.na(alt)
+      mt.r <- match(ref[mask1], DNA_BASES)
+      mt.a <- match(alt[mask1], DNA_BASES)
+      mask2 <- mt.r < mt.a
       idxcol <- mt.a
-      idxcol[mask] <- mt.a[mask] - 1L
-      sco <- sco[cbind(1:nrow(sco), idxcol)]
+      idxcol[mask2] <- mt.a[mask2] - 1L
+      sco2[mask1] <- sco[cbind(which(mask1), idxcol)]
+      sco <- sco2
+      rm(sco2)
     } else { # if it's not a matrix, then assume we have metadata associated with the scores
       maskREF <- as.logical(.rleGetMetaValues(gscopops[[popname]],
                                               ranges, "maskREF",
