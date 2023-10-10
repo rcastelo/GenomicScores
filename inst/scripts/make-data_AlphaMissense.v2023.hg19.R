@@ -1,5 +1,5 @@
 ## This file explains the steps to download and freeze the AlphaMissense scores
-## released in 2023 for the human genome version hg38. If you use these data on
+## released in 2023 for the human genome version hg19. If you use these data on
 ## your own research please cite the following publication:
 
 ## Cheng J, Novati G, Pan J, Bycroft C, Žemgulytė A, Applebaum T, Pritzel A,
@@ -9,19 +9,19 @@
 
 ## The data were downloaded from the following URL:
 ##
-## $ wget -c https://zenodo.org/record/8208688/files/AlphaMissense_hg38.tsv.gz
+## $ wget -c https://zenodo.org/record/8208688/files/AlphaMissense_hg19.tsv.gz
 ##
 ## Build tabix index
 ##
-## $ tabix -p vcf AlphaMissense_hg38.tsv.gz
+## $ tabix -p vcf AlphaMissense_hg19.tsv.gz
 ##
 ## The data were first splitted into tabix files per chromosome as follows:
 ##
 ## mkdir -p AM_by_chr
-## allchr=`tabix -l AlphaMissense_hg38.tsv.gz`
+## allchr=`tabix -l AlphaMissense_hg19.tsv.gz`
 ## for chr in $allchr ; do {
 ##   echo $chr
-##   tabix -h AlphaMissense_hg38.tsv.gz $chr | bgzip -c > AM_by_chr/$chr.tsv.gz
+##   tabix -h AlphaMissense_hg19.tsv.gz $chr | bgzip -c > AM_by_chr/$chr.tsv.gz
 ##   if [ -s AM_by_chr/$chr.tsv.gz ] ; then
 ##     tabix -p vcf AM_by_chr/$chr.tsv.gz
 ##   else
@@ -36,10 +36,10 @@ library(Rsamtools)
 library(GenomeInfoDb)
 library(GenomicRanges)
 library(GenomicScores)
-library(BSgenome.Hsapiens.UCSC.hg38)
+library(BSgenome.Hsapiens.UCSC.hg19)
 library(doParallel)
 
-downloadURL <- "https://zenodo.org/record/8208688/files/AlphaMissense_hg38.tsv.gz"
+downloadURL <- "https://zenodo.org/record/8208688/files/AlphaMissense_hg19.tsv.gz"
 datacitation <- bibentry(bibtype="Article",
                          author=c(person("Jun Cheng"), person("Guido Novati"),
                                   person("Joshua Pan"), person("Clare Bycroft"),
@@ -176,7 +176,7 @@ anorm_score_data <- function(dat) {
   ndat
 }
 
-tbx <- open(TabixFile("AlphaMissense_hg38.tsv.gz"))
+tbx <- open(TabixFile("AlphaMissense_hg19.tsv.gz"))
 tbxchr <- sortSeqlevels(seqnamesTabix(tbx))
 close(tbx)
 
@@ -233,7 +233,7 @@ foreach (chr=seqlevels(allchrgr)) %dopar% {
                           download_url=downloadURL,
                           download_date=format(Sys.Date(), "%b %d, %Y"),
                           reference_genome=refgenomeGD,
-                          data_pkgname="AlphaMissense.v2023.hg38",
+                          data_pkgname="AlphaMissense.v2023.hg19",
                           qfun=.quantizer,
                           qfun_args=list(n=101L, d=3L, na.zero=TRUE),
                           dqfun=.dequantizer,
@@ -241,9 +241,9 @@ foreach (chr=seqlevels(allchrgr)) %dopar% {
                           valxpos=3L,
                           ecdf=Fn,
                           max_abs_error=max.abs.error)
-    saveRDS(obj, file=sprintf("AlphaMissense.%s.hg38.%s.rds",
+    saveRDS(obj, file=sprintf("AlphaMissense.%s.hg19.%s.rds",
                               metadata(obj)$provider_version, chr))
-    saveRDS(nsites, file=sprintf("AlphaMissense.%s.hg38.%s.nsites.rds",
+    saveRDS(nsites, file=sprintf("AlphaMissense.%s.hg19.%s.nsites.rds",
                                  metadata(obj)$provider_version, chr))
     rm(obj)
     gc()
