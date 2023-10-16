@@ -940,7 +940,8 @@ setMethod("show", "GScores",
               if (length(populations(object)) > 1) {
                 loadedsnrseqs <- names(snrobj[[1]])
                 loadedsnrpops <- names(snrobj)
-              }
+              } else if (length(populations(object)) == 1 && populations(object) == "default")
+                loadedsnrseqs <- names(snrobj[[1]])
             }
             if (ncol(mcols(nonsnrobj)) > 0)
               loadednonsnrpops <- colnames(mcols(nonsnrobj))

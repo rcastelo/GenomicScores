@@ -101,7 +101,9 @@ availableGScores <- function(use.internet=FALSE) {
   ## hardcoding the package names from the list of GenomicScores annotation
   ## packages available through install.
   lightweightpkgs <- c("phastCons30way.UCSC.hg38", "phastCons35way.UCSC.mm39",
-                       "phyloP35way.UCSC.mm39")
+                       "phyloP35way.UCSC.mm39", "cadd.v1.6.hg19",
+                       "cadd.v1.6.hg38", "AlphaMissense.v2023.hg19",
+                       "AlphaMissense.v2023.hg38")
   ip <- setdiff(ip, lightweightpkgs)
 
   cached <- setdiff(ahpkgs$Name[ahpkgs$Cached], ip)
