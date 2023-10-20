@@ -55,7 +55,7 @@
       avgs <- character(0)
       for (d in mainDirs) {
         subDirs <- .getSubDirs(paste(baseUrl, d, sep="/"))
-        subDirs <- sub("/", "", subDirs[grep(d, subDirs)])
+        subDirs <- sub("/", "", subDirs[grep(d, subDirs, ignore.case=TRUE)])
         avgs <- c(avgs, subDirs)
       }
     }
@@ -113,7 +113,8 @@ availableGScores <- function(use.internet=FALSE) {
   ## investing time checking through the internet
   avgsbmi <- readRDS(system.file("extdata", "avgsbmi.rds", package="GenomicScores"))
   if (use.internet)
-    avgsbmi <- BiocManager::available(pattern=paste(gspkgnames, collapse="|"))
+    avgsbmi <- setdiff(BiocManager::available(pattern=paste(gspkgnames, collapse="|")),
+                       lightweightpkgs)
 
   res <- data.frame(Organism=rep(NA, length(gspkgnames)),
                     Category=rep(NA, length(gspkgnames)),
