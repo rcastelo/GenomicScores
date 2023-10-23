@@ -10,7 +10,7 @@ Functions to explore genomic scores resources.
 }
 \usage{
 availableGScores(use.internet=FALSE)
-getGScores(x)
+getGScores(x, accept.license=FALSE)
 }
 \arguments{
   \item{x}{A\code{character} vector of length 1
@@ -21,6 +21,10 @@ getGScores(x)
                       resources are ready to be downloaded. By default,
                       i.e. \code{use.internet=FALSE}, this is not
                       checked to speed up the execution of this function.}
+  \item{accept.license}{A logical value specifying whether we accept
+                        the license under which we can use the requested
+                        data, when the data is distributed under such a
+                        license.}
 }
 \details{
 The function \code{availableGScores()} shows genomic score sets available as
@@ -64,7 +68,7 @@ position-specific scores from R and Bioconductor.
 availableGScores()
 
 \dontrun{
-gsco <- getGScores("cadd.v1.3.hg19")
+gsco <- getGScores("cadd.v1.6.hg19")
 }
 }
 \keyword{utilities}

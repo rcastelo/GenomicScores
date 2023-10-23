@@ -7,7 +7,10 @@ GScores <- function(provider, provider_version, download_url,
                     data_group=sub("\\..*$", "", data_pkgname),
                     data_tag=sub("\\..*$", "", data_pkgname),
                     data_nsites=NA_real_,
-                    data_hdf5=FALSE) {
+                    data_hdf5=FALSE,
+                    license="",
+                    license_url="",
+                    license_reqconsent=FALSE) {
   data_cache <- new.env(hash=TRUE, parent=emptyenv())
   data_pops <- list.files(path=data_dirpath, pattern=data_pkgname)
   data_nonsnrs <- length(grep("nonsnv", data_pops)) > 0
@@ -43,6 +46,9 @@ GScores <- function(provider, provider_version, download_url,
                  data_nonsnrs=data_nonsnrs,
                  data_nsites=data_nsites,
                  data_hdf5=data_hdf5,
+                 license=license,
+                 license_url=license_url,
+                 license_reqconsent=license_reqconsent,
                  .data_cache=data_cache)
 }
 
@@ -991,6 +997,12 @@ setMethod("show", "GScores",
                 cat("# maximum abs. error (def. pop.): ", signif(max.abs.error, 3), "\n", sep="")
               else
                 cat("# maximum abs. error: ", signif(max.abs.error, 3), "\n", sep="")
+            }
+            if (nchar(object@license) > 0) {
+              licensestr <- object@license
+              if (nchar(object@license_url) > 0)
+                licensestr <- sprintf("%s, see %s", object@license, object@license_url)
+              cat(sprintf("# license: %s\n", licensestr))
             }
             if (length(citation(object)) > 0)
               cat("# use 'citation()' to cite these data in publications\n")

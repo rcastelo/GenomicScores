@@ -27,5 +27,8 @@ setClass("GScores",
                                        data_nonsnrs="logical",
                                        data_nsites="numeric",
                                        data_hdf5="logical",
+                                       license="character",
+                                       license_url="character",
+                                       license_reqconsent="logical",
                                        ## place to cache the serialized objects
                                        .data_cache="environment"))

@@ -235,7 +235,9 @@ mcap <- GScores(provider=mdobj$provider,
                 data_pkgname=mdobj$data_pkgname,
                 data_dirpath="../inst/extdata",
                 data_serialized_objnames=c(mcap.v1.0.hg19.chr22.rds="mcap.v1.0.hg19.chr22.rds"),
-                data_tag="MCAP")
+                data_tag="MCAP",
+                license="", license_url="",
+                license_reqconsent=FALSE)
 gscopops <- get(mdobj$data_pkgname, envir=mcap@.data_cache)
 gscopops[["default"]] <- RleList(compress=FALSE)
 gscopops[["default"]][[mdobj$seqname]] <- obj
