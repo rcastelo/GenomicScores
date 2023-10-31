@@ -27,7 +27,7 @@ getGScores <- function(x, accept.license=FALSE) {
   ## load the first object to get the metadata
   obj <- ah[[1]]
   mdobj <- metadata(obj)
-  lic <- licurl <- character(0)
+  lic <- licurl <- ""
   licreqconsent <- FALSE
   if (!is.null(mdobj$license) && is.character(mdobj$license))
     lic <- mdobj$license
