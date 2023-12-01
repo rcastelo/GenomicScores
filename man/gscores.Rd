@@ -107,23 +107,23 @@ position-specific scores from R and Bioconductor.
 }
 \author{R. Castelo}
 \seealso{
-  \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
+  \code{\link[phastCons100way.UCSC.hg38]{phastCons100way.UCSC.hg38}}
   \code{\link[MafDb.1Kgenomes.phase1.hs37d5]{MafDb.1Kgenomes.phase1.hs37d5}}
 }
 \examples{
 ## one genomic range of width 5
-gr1 <- GRanges(seqnames="chr7", IRanges(start=117232380, width=5))
+gr1 <- GRanges(seqnames="chr22", IRanges(start=50528591, width=5))
 gr1
 
 ## five genomic ranges of width 1
-gr2 <- GRanges(seqnames="chr7", IRanges(start=117232380:117232384, width=1))
+gr2 <- GRanges(seqnames="chr22", IRanges(start=50528591:50528596, width=1))
 gr2
 
 ## accessing genomic gscores from an annotation package
-if (require(phastCons100way.UCSC.hg19)) {
+if (require(phastCons100way.UCSC.hg38)) {
   library(GenomicRanges)
 
-  gsco <- phastCons100way.UCSC.hg19
+  gsco <- phastCons100way.UCSC.hg38
   gsco
   gscores(gsco, gr1)
   score(gsco, gr1)

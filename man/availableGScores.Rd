@@ -61,14 +61,14 @@ position-specific scores from R and Bioconductor.
 \author{R. Castelo}
 \seealso{
   \code{\link{getGScores}()}
-  \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
+  \code{\link[phastCons100way.UCSC.hg38]{phastCons100way.UCSC.hg38}}
   \code{\link[MafDb.1Kgenomes.phase1.hs37d5]{MafDb.1Kgenomes.phase1.hs37d5}}
 }
 \examples{
 availableGScores()
 
 \dontrun{
-gsco <- getGScores("cadd.v1.6.hg19")
+gsco <- getGScores("cadd.v1.6.hg38")
 }
 }
 \keyword{utilities}

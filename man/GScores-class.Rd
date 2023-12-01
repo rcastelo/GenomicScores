@@ -218,53 +218,53 @@ position-specific scores from R and Bioconductor.
 \seealso{
   \code{\link{gscores}()}
   \code{\link{score}()}
-  \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
+  \code{\link[phastCons100way.UCSC.hg38]{phastCons100way.UCSC.hg38}}
 }
 \examples{
 ## one genomic range of width 5
-gr1 <- GRanges(seqnames="chr7", IRanges(start=117232380, width=5))
+gr1 <- GRanges(seqnames="chr22", IRanges(start=50528591, width=5))
 gr1
 
 ## five genomic ranges of width 1
-gr2 <- GRanges(seqnames="chr7", IRanges(start=117232380:117232384, width=1))
+gr2 <- GRanges(seqnames="chr22", IRanges(start=50528591:50528596, width=1))
 gr2
 
 ## supporting annotation packages with genomic scores
-if (require(phastCons100way.UCSC.hg19)) {
+if (require(phastCons100way.UCSC.hg38)) {
   library(GenomicRanges)
 
-  gsco <- phastCons100way.UCSC.hg19
-  gsco
-  gscores(gsco, gr1)
-  score(gsco, gr1)
-  gscores(gsco, gr2)
-  populations(gsco)
-  gscores(gsco, gr2, pop="DP2")
+  phast <- phastCons100way.UCSC.hg38
+  phast
+  gscores(phast, gr1)
+  score(phast, gr1)
+  gscores(phast, gr2)
+  populations(phast)
+  gscores(phast, gr2, pop="DP2")
 }
 
 ## supporting AnnotationHub resources
 \dontrun{
 availableGScores()
-gsco <- getGScores("phastCons100way.UCSC.hg19")
-gsco
-gscores(gsco, gr1)
+phast <- getGScores("phastCons100way.UCSC.hg38")
+phast
+gscores(phast, gr1)
 }
 
 ## metadata from a GScores object
-name(gsco)
-type(gsco)
-provider(gsco)
-providerVersion(gsco)
-organism(gsco)
-seqlevelsStyle(gsco)
-seqinfo(gsco)
-head(seqnames(gsco))
-head(seqlengths(gsco))
-gscoresTag(gsco)
-populations(gsco)
-defaultPopulation(gsco)
-qfun(gsco)
-dqfun(gsco)
-citation(gsco)
+name(phast)
+type(phast)
+provider(phast)
+providerVersion(phast)
+organism(phast)
+seqlevelsStyle(phast)
+seqinfo(phast)
+head(seqnames(phast))
+head(seqlengths(phast))
+gscoresTag(phast)
+populations(phast)
+defaultPopulation(phast)
+qfun(phast)
+dqfun(phast)
+citation(phast)
 }
 \keyword{methods}

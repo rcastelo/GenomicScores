@@ -3,7 +3,7 @@ title: "An introduction to the GenomicScores package"
 author:
 - name: Pau Puigdevall
   affiliation: 
-  - &id Dept. of Experimental and Health Sciences, Universitat Pompeu Fabra, Barcelona, Spain
+  - &id Dept. of Medicine and Life Sciences, Universitat Pompeu Fabra, Barcelona, Spain
 - name: Robert Castelo
   affiliation: *id
   email: robert.castelo@upf.edu
@@ -52,35 +52,48 @@ library(GenomicScores)
 
 Often, however, `r Biocpkg("GenomicScores")` will be automatically loaded when
 working with an annotation package that uses `r Biocpkg("GenomicScores")`, such
-as `r Biocpkg("phastCons100way.UCSC.hg19")`.
+as `r Biocpkg("phastCons100way.UCSC.hg38")`.
 
 # Genomewide position-specific scores
 
-Genomewide scores assign each genomic position a numeric value denoting an estimated measure of constraint or impact on variation at that position. They are commonly used to filter single nucleotide variants or assess the degree of constraint or functionality of genomic features. Genomic scores are built on the basis of different sources of information such as sequence homology, functional domains, physical-chemical changes of amino acid residues, etc.
+Genomewide scores assign each genomic position a numeric value denoting an
+estimated measure of constraint or impact on variation at that position. They
+are commonly used to filter single nucleotide variants or assess the degree of
+constraint or functionality of genomic features. Genomic scores are built on
+the basis of different sources of information such as sequence homology,
+functional domains, physical-chemical changes of amino acid residues, etc.
 
-One particular example of genomic scores are _phastCons scores_. They provide a measure of conservation obtained from genomewide alignments using the program [phast](http://compgen.cshl.edu/phast) (_Phylogenetic Analysis with Space/Time models_) from @siepel05. The `r Biocpkg("GenomicScores")` package allows one to retrieve these scores through annotation packages (Section \@ref(retrieval-of-genomic-scores-through-annotation-packages)) or as `r Biocpkg("AnnotationHub")` resources (Section \@ref(retrieval-of-genomic-scores-through-annotationhub-resources)).
+One particular example of genomic scores are _phastCons scores_. They provide a
+measure of conservation obtained from genomewide alignments using the program
+[phast](http://compgen.cshl.edu/phast) (_Phylogenetic Analysis with Space/Time models_)
+from @siepel05. The `r Biocpkg("GenomicScores")` package allows one to retrieve
+these scores through annotation packages (Section
+\@ref(availability-and-retrieval-of-genomic-scores)) or as
+`r Biocpkg("AnnotationHub")` resources (Section
+\@ref(genomic-scores-as-annotationhub-resources)).
 
 Often, genomic scores such as phastCons are used within workflows running on
-top of R and Bioconductor. The purpose of the `r Biocpkg("GenomicScores")` package is to enable
-an easy and interactive access to genomic scores within those workflows.
+top of R and Bioconductor. The purpose of the `r Biocpkg("GenomicScores")`
+package is to enable an easy and interactive access to genomic scores within
+those workflows.
 
 # Lossy storage of genomic scores with compressed vectors 
 
 Storing and accessing genomic scores within R is challenging when
 their values cover large regions of the genome, resulting in gigabytes
 of double-precision numbers. This is the case, for instance, for
-phastCons [@siepel05], CADD [@kircher14] or M-CAP [@jagadeesh16] scores.
+phastCons [@siepel05] or CADD [@kircher14].
 
-We address this problem by using _lossy compression_, also called _quantization_,
-coupled with run-length encoding (Rle) vectors. Lossy compression attempts to
-trade off precision for compression without compromising the scientific
-integrity of the data [@zender16].
+We address this problem by using _lossy compression_, also called
+_quantization_, coupled with run-length encoding (Rle) vectors. Lossy
+compression attempts to trade off precision for compression without
+compromising the scientific integrity of the data [@zender16].
 
 Sometimes, measurements and statistical estimates under certain models
 generate false precision. False precision is essentialy noise that wastes
-storage space and it is meaningless from the scientific point of view [@zender16].
-In those circumstances, lossy compression not only saves storage space, but
-also removes false precision.
+storage space and it is meaningless from the scientific point of view
+[@zender16]. In those circumstances, lossy compression not only saves storage
+space, but also removes false precision.
 
 The use of lossy compression leads to a subset of _quantized_ values much
 smaller than the original set of genomic scores, resulting in long runs of
@@ -91,59 +104,50 @@ further compressed using the implementation of Rle vectors available in the
 To enable a seamless access to genomic scores stored with quantized values
 in compressed vectors the `r Biocpkg("GenomicScores")` defines the `GScores`
 class of objects. This class manages the location, loading and dequantization
-of genomic scores stored separately on each chromosome.
+of genomic scores stored separately on each chromosome, while it also provides
+rich metadata on the provenance, citation and licensing of the original data.
 
-# Retrieval of genomic scores through annotation packages
+# Availability and retrieval of genomic scores
 
-There are currently four different annotation packages that store genomic
-scores and can be accessed using the `r Biocpkg("GenomicScores")` package;
-see Table \@ref(tab:tableGScores).
-
-Annotation Package          | Description
---------------------------- | --------------------------------------------------------------------------------------------
-`r Biocpkg("phastCons100way.UCSC.hg19")`   | phastCons scores derived from the alignment of the human genome (hg19) to other 99 vertebrate species.
-`r Biocpkg("phastCons100way.UCSC.hg38")`   | phastCons scores derived from the alignment of the human genome (hg38) to other 99 vertebrate species.
-`r Biocpkg("phastCons7way.UCSC.hg38")`     | phastCons scores derived from the alignment of the human genome (hg38) to other 6 mammal species.
-`r Biocpkg("fitCons.UCSC.hg19")`           | fitCons scores: fitness consequences of functional annotation for the human genome (hg19).
-
-: (\#tab:tableGScores) Bioconductor annotation packages storing genomic scores
-
-This is an example of how genomic scores can be retrieved using the
-`r Biocpkg("phastCons100way.UCSC.hg19")` package.
-Here, a `GScores` object is created when the package is loaded.
-
-```{r, message=FALSE, warning=FALSE, cache=FALSE}
-library(phastCons100way.UCSC.hg19)
-phast <- phastCons100way.UCSC.hg19
-class(phast)
-```
-
-The help page of the `GScores` class describes the different methods to access the
-information and metadata stored in a `GScores` object. To retrieve genomic scores
-for specific positions we should use the function `gscores()`, as follows.
+The access to genomic scores through `GScores` objects is available either
+through annotation packages or as `r Biocpkg("AnnotationHub")` resources. To
+find out what kind of genomic scores are available, through which mechanism,
+and in which organism, we may use the function `availableGScores()`.
 
 ```{r}
-gscores(phast, GRanges(seqnames="chr22",
-                       IRanges(start=50967020:50967025, width=1)))
+avgs <- availableGScores()
+avgs
 ```
 
-The `r Biocpkg("GenomicScores")` package only loads the scores data from one
-sequence to retrieve metadata and from the sequences that are being
-queried. Note that now the GScores object has loaded the scores from chr22.
+For example, if we want to use the phastCons conservation scores available
+through the annotation package `r Biocpkg("phastCons100way.UCSC.hg38")`, we
+should first install it (we only need to do this once).
+
+```{r, eval=FALSE}
+BiocManager::install("phastCons100way.UCSC.hg38")
+```
+Second, we should load the package, and a `GScores` object will be created and
+named after the package name, during the loading operation. It is often handy
+to shorten that name.
+
+```{r, message=FALSE, warning=FALSE, cache=FALSE}
+library(phastCons100way.UCSC.hg38)
+phast <- phastCons100way.UCSC.hg38
+class(phast)
+```
+Typing the name of the `GScores` object shows a summary of its contents and
+some of its metadata.
 
 ```{r}
 phast
 ```
-
-The bibliographic reference to cite the genomic scores stored in a `GScores`
-object can be accessed using the `citation()` method either on the package
-name or on the `GScores` object. The latter is implemented in the
-`r Biocpkg("GenomicScores")` package and provides a `bibentry` object.
+The bibliographic reference to cite the genomic score data stored in a `GScores`
+object can be accessed using the `citation()` method either on the package name
+(in case of annotation packages), or on the `GScores` object.
 
 ```{r}
 citation(phast)
 ```
-
 Other methods tracing provenance and other metadata are `provider()`,
 `providerVersion()`, `organism()` and `seqlevelsStyle()`; please consult
 the help page of the `GScores` class for a comprehensive list of available
@@ -155,50 +159,185 @@ providerVersion(phast)
 organism(phast)
 seqlevelsStyle(phast)
 ```
+To retrieve genomic scores for specific consecutive positions we should use the
+method `gscores()`, as follows.
 
-# Retrieval of genomic scores through AnnotationHub resources
-
-Another way to retrieve genomic scores is by using the `r Biocpkg("AnnotationHub")`,
-which is a web resource that provides a central location where genomic files
-(e.g., VCF, bed, wig) and other resources from standard (e.g., UCSC, Ensembl) and
-distributed sites, can be found. A Bioconductor `r Biocpkg("AnnotationHub")` web
-resource creates and manages a local cache of files retrieved by the user,
-helping with quick and reproducible access.
-
-The first step to retrieve genomic scores is to check the ones available to download.
-
-```{r, echo=FALSE}
-avgs <- readRDS(system.file("extdata", "avgs.rds", package="GenomicScores"))
-```
-```{r retrieve2, message=FALSE, cache=FALSE, eval=FALSE}
-availableGScores()
-```
-```{r, echo=FALSE}
-avgs
-```
-
-The selected resource can be downloaded with the function getGScores().
-After the resource is downloaded the first time, the cached copy will
-enable a quicker retrieval later.
-
-```{r retrieve3, message=FALSE, cache=FALSE, eval=FALSE}
-phast <- getGScores("phastCons100way.UCSC.hg19")
-```
-
-Finally, the phastCons score of a particular genomic position
-is retrieved exactly in the same we did with the annotation package.
-
-```{r retrieve4, message=FALSE, cache=FALSE}
+```{r}
 gscores(phast, GRanges(seqnames="chr22",
-                       IRanges(start=50967020:50967025, width=1)))
+                       IRanges(start=50528591:50528596, width=1)))
+```
+For a single position we may use this other `GRanges()` constructor.
+
+```{r}
+gscores(phast, GRanges("chr22:50528593"))
+```
+We may also retrieve the score values only with the method `score()`.
+
+```{r}
+score(phast, GRanges(seqnames="chr22",
+                     IRanges(start=50528591:50528596, width=1)))
+score(phast, GRanges("chr22:50528593"))
+```
+
+Let's illustrate how to retrieve phastCons scores using data from the GWAS
+catalog available through the Bioconductor package `r Biocpkg("gwascat")`. For
+the purpose of this vignette, we will filter the GWAS catalog data by (1)
+discarding entries with `NA` values in either chromosome name or position, or
+with multiple positions; (2) storing the data into a `GRanges` object, including
+the GWAS catalog columns `STRONGEST SNP-RISK ALLELE` and `MAPPED_TRAIT`, and the
+reference and alternate alleles, as metadata columns; (4) restricting variants
+to those located in chromosomes 20 to 22; and (3) excluding variants with
+multinucleotide alleles, or where reference and alternate alleles are identical.
+
+```{r, eval=FALSE}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(gwascat)
+
+gwc <- get_cached_gwascat()
+mask <- !is.na(gwc$CHR_ID) & !is.na(gwc$CHR_POS) &
+        !is.na(as.integer(gwc$CHR_POS))
+gwc <- gwc[mask, ]
+grstr <- sprintf("%s:%s-%s", gwc$CHR_ID, gwc$CHR_POS, gwc$CHR_POS)
+gwcgr <- GRanges(grstr, RISK_ALLELE=gwc[["STRONGEST SNP-RISK ALLELE"]],
+                 MAPPED_TRAIT=gwc$MAPPED_TRAIT)
+seqlevelsStyle(gwcgr) <- "UCSC"
+mask <- seqnames(gwcgr) %in% c("chr20", "chr21", "chr22")
+gwcgr <- gwcgr[mask]
+ref <- as.character(getSeq(Hsapiens, gwcgr))
+alt <- gsub("rs[0-9]+-", "", gwcgr$RISK_ALLELE)
+mask <- (ref %in% c("A", "C", "G", "T")) & (alt %in% c("A", "C", "G", "T")) &
+         nchar(alt) == 1 & ref != alt
+gwcgr <- gwcgr[mask]
+mcols(gwcgr)$REF <- ref[mask]
+mcols(gwcgr)$ALT <- alt[mask]
+```
+```{r, message=FALSE, echo=FALSE}
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(gwascat)
+gwcgr <- readRDS(system.file("extdata", "gwcgr_chr20-22_151123.rds",
+                             package="GenomicScores"))
+```
+```{r}
+gwcgr
+```
+Finally, let's obtain the phastCons scores for this GWAS catalog variant set,
+and examine their summary and cumulative distribution.
+
+```{r}
+pcsco <- score(phast, gwcgr)
+summary(pcsco)
+round(cumsum(table(na.omit(pcsco))) / sum(!is.na(pcsco)), digits=2)
+```
+We can observe that only 10% of the variants in chromosomes 20 to 22 have a
+conservation phastCons score above 0.5. Let's examine which traits have more
+fully conserved variants.
+
+```{r}
+xtab <- table(gwcgr$MAPPED_TRAIT[pcsco == 1])
+head(xtab[order(xtab, decreasing=TRUE)])
+```
+
+# Genomic scores as AnnotationHub resources
+
+The `r Biocpkg("AnnotationHub")` (AH), is a Bioconductor web resource that
+provides a central location where genomic files (e.g., VCF, bed, wig) and other
+resources from standard (e.g., UCSC, Ensembl) and distributed sites, can be
+found. An AH web resource creates and manages a local cache of files retrieved
+by the user, helping with quick and reproducible access.
+
+We can quickly check for the available AH resources by subsetting as follows
+the resources names from the previous table obtained with `availableGScores()`.
+
+```{r}
+rownames(avgs)[avgs$AnnotationHub]
+```
+The selected resource can be downloaded with the function getGScores(). After
+the resource is downloaded the first time, the cached copy will enable a quicker
+retrieval later. Let's download other conservation scores, the phyloP scores
+[@pollard2010detection], for human genome version hg38.
+
+```{r, echo=FALSE}
+obj20 <- readRDS(system.file("extdata", "phyloP100way.UCSC.hg38.chr20.rds",
+                             package="GenomicScores"))
+obj21 <- readRDS(system.file("extdata", "phyloP100way.UCSC.hg38.chr21.rds",
+                             package="GenomicScores"))
+obj22 <- readRDS(system.file("extdata", "phyloP100way.UCSC.hg38.chr22.rds",
+                             package="GenomicScores"))
+mdobj <- metadata(obj20)
+phylop <- GScores(provider=mdobj$provider,
+                  provider_version=mdobj$provider_version,
+                  download_url=mdobj$download_url,
+                  download_date=mdobj$download_date,
+                  reference_genome=mdobj$reference_genome,
+                  data_pkgname=mdobj$data_pkgname,
+                  data_dirpath="../inst/extdata",
+                  data_serialized_objnames=c(phyloP100way.UCSC.hg38.chr20.rds="phyloP100way.UCSC.hg38.chr20.rds",
+                                             phyloP100way.UCSC.hg38.chr21.rds="phyloP100way.UCSC.hg38.chr21.rds",
+                                             phyloP100way.UCSC.hg38.chr22.rds="phyloP100way.UCSC.hg38.chr22.rds"),
+                  data_tag="phyloP",
+                  license="", license_url="",
+                  license_reqconsent=FALSE)
+gscopops <- get(mdobj$data_pkgname, envir=phylop@.data_cache)
+gscopops[["default"]] <- RleList(compress=FALSE)
+gscopops[["default"]][[mdobj$seqname]] <- obj20
+assign(mdobj$data_pkgname, gscopops, envir=phylop@.data_cache)
+```
+```{r message=FALSE, cache=FALSE, eval=FALSE}
+phylop <- getGScores("phyloP100way.UCSC.hg38")
+```
+```{r}
+phylop
+```
+Let's retrieve the phyloP conservation scores for the previous set of GWAS
+catalog variants and compare them in Figure \@(fig:phastvsphylop).
+
+```{r phastvsphylop, fig.cap = "Comparison between phastCons and phyloP conservation scores. On the y-axis, phyloP scores as function of phastCons scores on the x-axis, for a set of GWAS catalog variant in the human chromosome 22.", fig.height=5, fig.wide=TRUE, echo=TRUE}
+ppsco <- score(phylop, gwcgr)
+plot(pcsco, ppsco, xlab="phastCons", ylab="phyloP",
+     cex.axis=1.2, cex.lab=1.5, las=1)
+```
+We may observe that the values match in a rather discrete manner due to the
+quantization of the scores. In the case of the phastCons annotation package
+`r Biocpkg("phastCons100way.UCSC.hg38")`, the `GScore` object gives access
+in fact to two score populations, the default one in which conservation scores
+are rounded to 1 decimal place, and an alternative one, named `DP2`, in which
+they are rounded to 2 decimal places. To figure out what are the available
+score populations in a `GScores` object, we should use the method
+`populations()`.
+
+```{r}
+populations(phast)
+```
+Whenever one of these populations is called `default`, this is the one used
+by default. In other cases we can find out which is the default population as
+follows:
+
+```{r}
+defaultPopulation(phast)
+```
+To use one of the available score populations we should use the argument `pop`
+in the corresponding method, as follows.
+
+```{r}
+pcsco2 <- score(phast, gwcgr, pop="DP2")
+head(pcsco2)
+```
+Figure \@ref(fig:phastvsphylop2) below shows again the comparison of phastCons
+and phyloP conservation scores, this time at the higher resolution provided by
+the phastCons scores rounded at two decimal places.
+
+```{r phastvsphylop2, fig.cap = "Comparison between phastCons and phyloP conservation scores at a higher resolution. On the y-axis, phyloP scores as function of phastCons scores on the x-axis, for a set of GWAS catalog variant in the human chromosome 22.", fig.height=5, fig.wide=TRUE, echo=TRUE}
+plot(pcsco2, ppsco, xlab="phastCons", ylab="phyloP",
+     cex.axis=1.2, cex.lab=1.5, las=1)
 ```
 
 ## Building an annotation package from a GScores object
 
 Retrieving genomic scores through `AnnotationHub` resources requires an internet
-connection and we may want to work with such resources offline. For that purpose,
-we can create ourselves an annotation package, such as
-[phastCons100way.UCSC.hg19](https://bioconductor.org/packages/phastCons100way.UCSC.hg19),
+connection and we may want to work with such resources offline, for instance in
+high-performance computing (HPC) environments. For that purpose, we can create
+ourselves an annotation package, such as
+[phastCons100way.UCSC.hg38](https://bioconductor.org/packages/phastCons100way.UCSC.hg38),
 from a `GScores` object corresponding to a downloaded `AnnotationHub` resource.
 To do that we use the function `makeGScoresPackage()` as follows:
 
@@ -207,7 +346,7 @@ makeGScoresPackage(phast, maintainer="Me <me@example.com>",
                    author="Me", version="1.0.0")
 ```
 ```{r echo=FALSE}
-cat("Creating package in ./phastCons100way.UCSC.hg19\n")
+cat("Creating package in ./phastCons100way.UCSC.hg38\n")
 ```
 
 An argument, `destDir`, which by default points to the current working
@@ -215,163 +354,13 @@ directory, can be used to change where in the filesystem the package is created.
 Afterwards, we should still build and install the package via, e.g.,
 `R CMD build` and `R CMD INSTALL`, to be able to use it offline.
 
-# Retrieval of multiple scores per genomic position
-
-Among the score sets available as
-[AnnotationHub](https://bioconductor.org/packages/AnnotationHub)
-web resources shown in the previous section, two of them, CADD [@kircher14] and
-M-CAP [@jagadeesh16], provide multiple scores per genomic position that capture
-the tolerance to mutations of single nucleotides. Using M-CAP scores, we will
-illustrate how this type of scores are retrieved by default.
-
-```{r, echo=FALSE}
-obj <- readRDS(system.file("extdata", "mcap.v1.0.hg19.chr22.rds", package="GenomicScores"))
-mdobj <- metadata(obj)
-mcap <- GScores(provider=mdobj$provider,
-                provider_version=mdobj$provider_version,
-                download_url=mdobj$download_url,
-                download_date=mdobj$download_date,
-                reference_genome=mdobj$reference_genome,
-                data_pkgname=mdobj$data_pkgname,
-                data_dirpath="../inst/extdata",
-                data_serialized_objnames=c(mcap.v1.0.hg19.chr22.rds="mcap.v1.0.hg19.chr22.rds"),
-                data_tag="MCAP",
-                license="", license_url="",
-                license_reqconsent=FALSE)
-gscopops <- get(mdobj$data_pkgname, envir=mcap@.data_cache)
-gscopops[["default"]] <- RleList(compress=FALSE)
-gscopops[["default"]][[mdobj$seqname]] <- obj
-assign(mdobj$data_pkgname, gscopops, envir=mcap@.data_cache)
-```
-
-```{r, eval=FALSE}
-mcap <- getGScores("mcap.v1.0.hg19")
-```
-```{r}
-mcap
-citation(mcap)
-gr <- GRanges(seqnames="chr22", IRanges(50967020:50967025, width=1))
-gscores(mcap, gr)
-```
-
-The previous call to the `gscores()` method returns three scores per position
-corresponding to the M-CAP scores that estimate the tolerance of mutating the
-reference nucleotide at that position to each of the possible alternative
-alleles, in alphabetical order. One may directly retrieve the scores for
-combinations of reference and alternative alelles using the `ref` and `alt`
-arguments of the `gscores()` method. See the following example with the
-the previous genomic positions and some randomly selected alternative alleles.
-
-```{r, message=FALSE}
-library(BSgenome.Hsapiens.UCSC.hg19)
-
-refAlleles <- as.character(getSeq(Hsapiens, gr))
-altAlleles <- DNA_BASES[(match(refAlleles, DNA_BASES)) %% 4 + 1]
-cbind(REF=refAlleles, ALT=altAlleles)
-gscores(mcap, gr, ref=refAlleles, alt=altAlleles)
-```
-
-# Summarization of genomic scores
-
-The input genomic ranges to the `gscores()` method may have widths larger than one
-nucleotide. In those cases, and when there is only one score per position, the
-`gscores()` method calculates, by default, the arithmetic mean of the scores across
-each range.
-
-```{r}
-gr1 <- GRanges(seqnames="chr22", IRanges(start=50967020:50967025, width=1))
-gr1sco <- gscores(phast, gr1)
-gr1sco
-mean(gr1sco$default)
-gr2 <- GRanges("chr22:50967020-50967025")
-gscores(phast, gr2)
-```
-
-However, we may change the way in which scores from multiple-nucleotide ranges are
-summarized with the argument `summaryFun`, as follows.
-
-```{r}
-gscores(phast, gr2, summaryFun=max)
-gscores(phast, gr2, summaryFun=min)
-gscores(phast, gr2, summaryFun=median)
-```
-
-# Retrieval of quantized genomic scores
-
-The specific quantization and dequantization functions are stored as part of
-the metadata of a `GScores` object and they can be examined with the methods
-`qfun()` and `dqfun()`, respectively. The latter is called by the `gscores()`
-method to retrieve genomic scores.
-
-```{r}
-phastqfun <- qfun(phast)
-phastqfun
-phastdqfun <- dqfun(phast)
-phastdqfun
-```
-
-For single-nucleotide ranges, we can retrieve the quantized genomic scores
-using the argument `quantized=TRUE`.
-
-```{r}
-gr1sco <- gscores(phast, gr1, quantized=TRUE)
-gr1sco
-```
-
-Using the dequantization function we can obtain later the genomic scores.
-
-```{r}
-phastdqfun(gr1sco$default)
-```
-
-# Populations of scores
-
-A single `GScores` object may store multiple populations of scores of the same
-kind. One such case is when scores are stored with different precision levels.
-This is the case for the package `r Biocpkg("phastCons100way.UCSC.hg19")`, in
-which _phastCons_ scores are compressed rounding values to 1 and 2 decimal
-places. To figure out what are the available score populations in a `GScores`
-object we should use the method `populations()`:
-
-```{r}
-populations(phast)
-```
-
-Whenever one of these populations is called `default`, this is the one used
-by default. In other cases we can find out which is the default population as
-follows:
-
-```{r}
-defaultPopulation(phast)
-```
-
-To use one of the available score populations we should use the argument
-`pop` in the corresponding methods, as follows:
-
-
-```{r}
-gscores(phast, gr1, pop="DP2")
-qfun(phast, pop="DP2")
-dqfun(phast, pop="DP2")
-```
-
-We can also change the default scores population to use, as follows:
-
-```{r}
-defaultPopulation(phast) <- "DP2"
-phast
-gscores(phast, gr1)
-qfun(phast)
-dqfun(phast)
-```
-
 # Retrieval of minor allele frequency data
 
 One particular type of genomic scores that are accessible through
 the `GScores` class is minor allele frequency (MAF) data.
 There are currently 15 annotation packages that store MAF values
 using the `r Biocpkg("GenomicScores")` package, named using the
-prefix `MafDb`; see Table \@ref(tab:tableMafDb) below.
+prefix `MafDb` or `MafH5`; see Table \@ref(tab:tableMafDb) below.
 
 Annotation Package          | Description
 --------------------------- | --------------------------------------------------------------------------------------------
@@ -393,130 +382,189 @@ Annotation Package          | Description
 
 : (\#tab:tableMafDb) Bioconductor annotation packages storing MAF data.
 
-In this context, the scores populations correspond to populations of individuals
-from which the MAF data were derived, while all MAF data were compressed using
-a precision of one significant figure for MAF < 0.1 and two significant figures for
-MAF >= 0.1.
+In this type of package, the scores populations correspond to populations of
+individuals from which the MAF data were derived, and all MAF data were
+compressed using a precision of one significant figure for MAF < 0.1 and two
+significant figures for MAF >= 0.1. Let's load the MAF package for the
+release v3.1.2 of gnomAD [@karczewski2020mutational].
 
 ```{r, message=FALSE, warning=FALSE, cache=FALSE}
-library(MafDb.1Kgenomes.phase1.hs37d5)
+library(MafH5.gnomAD.v3.1.2.GRCh38)
 
-mafdb <- MafDb.1Kgenomes.phase1.hs37d5
-mafdb
+mafh5 <- MafH5.gnomAD.v3.1.2.GRCh38
+mafh5
 
-populations(mafdb)
+populations(mafh5)
 ```
+Let's retrieve the gnomAD MAF values for the previous GWAS catalog variant set
+and examine its distribution, and how many variants occur in less than 1% of
+all gnomAD populations and what fraction do they represent among the analyzed
+variants.
 
-Consider the following example in which we are interested in MAF values for variants associated
-with _eye color_. We can start by fetching the corresponding variant identifers from the GWAS
-catalog using the `r Biocpkg("gwascat")` package, as follows.
-
-```{r, eval=FALSE, message=FALSE}
-library(gwascat)
-
-gwascat <- makeCurrentGwascat()
-eyersids <- unique(subsetByTraits(gwascat, tr="Eye color")$SNPS)
-```
-```{r, echo=FALSE}
-eyersids <- readRDS(file.path(system.file("extdata", package="GenomicScores"),
-                              "eyersids.rds"))
-```
 ```{r}
-eyersids
+mafs <- score(mafh5, gwcgr, pop="AF_allpopmax")
+summary(mafs)
+sum(mafs < 0.01, na.rm=TRUE)
+sum(mafs < 0.01, na.rm=TRUE) / sum(!is.na(mafs))
 ```
 
-We query the genomic position of the variant identifier through the
-`r Biocpkg("SNPlocs.Hsapiens.dbSNP144.GRCh37")` package, which stores the
-build 144 of the dbSNP database.
+Finally, let's examine which traits have more such rare variants.
 
-
-```{r, message=FALSE, warning=FALSE, cache=FALSE}
-library(SNPlocs.Hsapiens.dbSNP144.GRCh37)
-rng <- snpsById(SNPlocs.Hsapiens.dbSNP144.GRCh37, ids=eyersids)
-rng
+```{r}
+xtab <- table(gwcgr$MAPPED_TRAIT[mafs < 0.01])
+head(xtab[order(xtab, decreasing=TRUE)])
 ```
 
-Finally, fetch the MAF values on those positions.
+# Retrieval of multiple scores per genomic position
 
-```{r, message=FALSE}
-eyecolormafs <- gscores(mafdb, rng, pop=c("AF", "EUR_AF", "AFR_AF"))
-eyecolormafs
+Among the score sets available as
+[AnnotationHub](https://bioconductor.org/packages/AnnotationHub)
+web resources shown in the previous section, some of them, such as CADD
+[@kircher14], M-CAP [@jagadeesh16] or AlphaMissense [@cheng2023accurate],
+provide multiple scores per genomic position that capture the tolerance to
+mutations of single nucleotides. Such type of scores, often used to establish
+the potential pathogenicity of variants, are sometimes released under some sort
+of license for a non-commercial use. In such cases, the function `getGScores()`
+will ask us interactively to accept the license. We can also set the argument
+`accept.license=TRUE` to accept it non-interactively. We will illustrate such
+a case using the AlphaMissense scores [@cheng2023accurate].
+
+```{r, echo=FALSE}
+obj20 <- readRDS(system.file("extdata", "AlphaMissense.v2023.hg38.chr20.rds",
+                             package="GenomicScores"))
+obj21 <- readRDS(system.file("extdata", "AlphaMissense.v2023.hg38.chr21.rds",
+                             package="GenomicScores"))
+obj22 <- readRDS(system.file("extdata", "AlphaMissense.v2023.hg38.chr22.rds",
+                             package="GenomicScores"))
+mdobj <- metadata(obj20)
+am23 <- GScores(provider=mdobj$provider,
+                provider_version=mdobj$provider_version,
+                download_url=mdobj$download_url,
+                download_date=mdobj$download_date,
+                reference_genome=mdobj$reference_genome,
+                data_pkgname=mdobj$data_pkgname,
+                data_dirpath="../inst/extdata",
+                data_serialized_objnames=c(AlphaMissense.v2023.hg38.chr20.rds="AlphaMissense.v2023.hg38.chr20.rds",
+                                           AlphaMissense.v2023.hg38.chr21.rds="AlphaMissense.v2023.hg38.chr21.rds",
+                                           AlphaMissense.v2023.hg38.chr22.rds="AlphaMissense.v2023.hg38.chr22.rds"),
+                data_tag="AlphaMissense",
+                license=mdobj$license,
+                license_url=mdobj$license_url,
+                license_reqconsent=TRUE)
+gscopops <- get(mdobj$data_pkgname, envir=am23@.data_cache)
+gscopops[["default"]] <- RleList(compress=FALSE)
+gscopops[["default"]][[mdobj$seqname]] <- obj20
+assign(mdobj$data_pkgname, gscopops, envir=am23@.data_cache)
 ```
 
-Sometimes, data producers may annotate identifiers to genomic scores,
-such as dbSNP rs identifiers to MAF values. In such a case, we can directly
-attempt to fetch genomic scores using those identifiers as follows.
+```{r, eval=FALSE}
+am23 <- getGScores("AlphaMissense.v2023.hg38")
+These data is shared under the license CC BY-NC-SA 4.0
+(see https://creativecommons.org/licenses/by-nc-sa/4.0),
+do you accept it? [y/n]: y
+```
+Let's retrieve the AlphaMissense scores for the reference and
+alternate alleles in our GWAS catalog variant set.
 
-```{r, message=FALSE}
-gscores(mafdb, eyersids, pop=c("AF", "EUR_AF", "AFR_AF"))
+```{r}
+am23
+amsco <- score(am23, gwcgr, ref=gwcgr$REF, alt=gwcgr$ALT)
+summary(amsco)
+```
+Using the cutoffs for AlphaMissense scores reported in [@cheng2023accurate] to
+classify variants into "likely benign", "ambiguous" and "likely pathogenic",
+and 0.01 and 0.1 as MAF cutoffs, let's cross-tabulate the proportions of these
+two factors.
+
+```{r}
+mask <- !is.na(amsco) & !is.na(mafs)
+amscofac <- cut(amsco[mask], breaks=c(0, 0.34, 0.56, 1))
+amscofac <- relevel(amscofac, ref="(0.56,1]")
+maffac <- cut(mafs[mask], breaks=c(0, 0.01, 0.1, 1))
+xtab <- table(maffac, amscofac)
+t(xtab)
+xtab <- t(xtab / rowSums(xtab))
+round(xtab, digits=2)
 ```
 
-The following code produces the barplot shown in Figure \@ref(fig:eyecolormafs)
-illustrating graphically the differences in MAF values from these variants
-between the three queried populations.
+Figure \@ref(fig:ChengEtAl2024Fig5b) below displays graphically these
+proportions in an analogous way to the one shown in Figure5B from
+@cheng2023accurate. While these proportions are quite different to the
+original figure, due to the much lower number of variants analyzed here,
+we still can see, like in [@cheng2023accurate], that the proportion of
+variants classified as _likely pathogenic_ by AlphaMissense scores is much
+larger for rare variants with MAF < 0.01 than for common variants with
+MAF > 0.01.
 
-```{r eyecolormafs, fig.cap = "Eye color MAFs. Minor allele frequencies (MAFs) of variants associated with eye color for global, european and african populations of the Phase 1 data from the 1000 Genomes Project.", fig.height=5, fig.wide = TRUE, echo=TRUE}
-par(mar=c(3, 5, 1, 1))
-mafpops <- c("AF", "EUR_AF", "AFR_AF")
-bp <- barplot(t(as.matrix(mcols(eyecolormafs)[, mafpops])), beside=TRUE,
-              col=c("darkblue", "darkgreen", "darkorange"),
-              ylim=c(0, 0.55), las=1, ylab="Minor allele frequency")
-axis(1, bp[2, ], 1:length(eyecolormafs))
-mtext("Variant", side=1, line=2)
-legend("topright", mafpops, fill=c("darkblue", "darkgreen", "darkorange"))
+```{r ChengEtAl2024Fig5b, echo=FALSE, height=5, width=7}
+par(mar=c(4, 5, 3, 1))
+barplot(xtab, horiz=TRUE, col=c("red", "royalblue", "gray"),
+        xlab="Proportion", ylab="MAF",
+        cex.axis=1.2, cex.names=1.2, cex.lab=1.5)
+par(xpd=TRUE)
+legend(0.17, 4.1, c("likely pathogenic", "likely benign", "ambiguous"),
+       fill=c("red", "royalblue", "gray"), inset=0.01, horiz=TRUE)
+par(xpd=FALSE)
+```
+
+# Summarization of genomic scores
+
+The input genomic ranges to the `gscores()` method may have widths larger than one
+nucleotide. In those cases, and when there is only one score per position, the
+`gscores()` method calculates, by default, the arithmetic mean of the scores across
+each range.
+
+```{r}
+gr1 <- GRanges(seqnames="chr22", IRanges(start=50528591:50528596, width=1))
+gr1sco <- gscores(phast, gr1)
+gr1sco
+mean(gr1sco$default)
+gr2 <- GRanges("chr22:50528591-50528596")
+gscores(phast, gr2)
+```
+
+However, we may change the way in which scores from multiple-nucleotide ranges are
+summarized with the argument `summaryFun`, as follows.
+
+```{r}
+gscores(phast, gr2, summaryFun=max)
+gscores(phast, gr2, summaryFun=min)
+gscores(phast, gr2, summaryFun=median)
 ```
 
 # Annotating variants with genomic scores
 
-A typical use case of the `r Biocpkg("GenomicScores")` package is in the context of annotating variants
-with genomic scores, such as phastCons conservation scores.
-For this purpose, we load the `r Biocpkg("VariantAnnotaiton")` and
-`r Biocpkg("TxDb.Hsapiens.UCSC.hg19.knownGene")` packages. The former will allow us to
-read a VCF file and annotate it, and the latter contains the gene annotations from UCSC
+A typical use case of the `r Biocpkg("GenomicScores")` package is in the context
+of annotating variants with genomic scores, such as phastCons conservation
+scores. For this purpose, we load the `r Biocpkg("VariantAnnotaiton")` and
+`r Biocpkg("TxDb.Hsapiens.UCSC.hg38.knownGene")` packages. The former will allow
+us annotate variants, and the latter contains the gene annotations from UCSC
 that will be used in this process.
 
 ```{r, message=FALSE, warning=FALSE, cache=FALSE}
 library(VariantAnnotation)
-library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 ```
 
-Let's load one of the sample VCF files that form part of the
-`r Biocpkg("VariantAnnotation")` package.
-
-```{r}
-fl <- system.file("extdata", "chr22.vcf.gz", package="VariantAnnotation")
-vcf <- readVcf(fl)
-seqlevelsStyle(vcf)
-txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-seqlevelsStyle(txdb)
-```
-
-Because the chromosome nomenclature from the VCF file (NCBI) is different 
-from the one with the gene annotations (UCSC) we use the `seqlevelsStyle()`
-function to force our variants having the chromosome nomenclature of the
-gene annotations.
-
-```{r}
-seqlevelsStyle(vcf) <- seqlevelsStyle(txdb)
-```
-
-We annotate the location of variants using the function `locateVariants()`
-from the `r Biocpkg("VariantAnnotation")` package.
+We annotate the location of previous set of filtered GWAS variants, using the
+function `locateVariants()` from the `r Biocpkg("VariantAnnotation")` package.
 
 ```{r, message=FALSE, warning=FALSE}
-loc <- locateVariants(vcf, txdb, AllVariants())
+loc <- locateVariants(gwcgr, txdb, AllVariants())
 loc[1:3]
 table(loc$LOCATION)
 ```
 
-Annotate phastCons conservation scores on the variants and store
+Now we annotate phastCons conservation scores on the variants and store
 those annotations as an additional metadata column of the `GRanges` object.
 For this specific purpose we should use the method `score()` that returns
-the genomic scores as a numeric vector instead as a metadata column in the
-input ranges object.
+the genomic scores as a numeric vector, instead of doing it as a metadata
+column in the input ranges object, done by the `gscores()` function.
 
 ```{r}
-loc$PHASTCONS <- score(phast, loc)
+loc$PHASTCONS <- score(phast, loc, pop="DP2")
 loc[1:3]
 ```
 
@@ -531,22 +579,25 @@ boxplot(x[mask], ylab="phastCons score", las=1, cex.axis=1.2, cex.lab=1.5, col="
 points(1:length(x[mask])+0.25, sapply(x[mask], mean, na.rm=TRUE), pch=23, bg="black")
 ```
 
-Next, we can annotate M-CAP and CADD scores as follows. Note that we need to take
-care to only query positions of single nucleotide variants, and using the `QUERYID`
-column of the annotations to fetch back reference and alternative alleles from the
-original VCF file container.
+Next, we can annotate AlphaMissense and CADD scores as follows. Note that we
+use the `QUERYID` column of the annotations to fetch back reference and
+alternative alleles from the original data container.
 
 ```{r}
-maskSNVs <- isSNV(vcf)[loc$QUERYID]
-loc$MCAP <- rep(NA_real_, length(loc))
-loc$MCAP[maskSNVs] <- score(mcap, loc[maskSNVs],
-                            ref=ref(vcf)[loc$QUERYID[maskSNVs]],
-                            alt=alt(vcf)[loc$QUERYID[maskSNVs]])
+loc$AM <- score(am23, loc,
+                ref=gwcgr$REF[loc$QUERYID],
+                alt=gwcgr$ALT[loc$QUERYID])
 ```
 
 ```{r, echo=FALSE}
-obj <- readRDS(system.file("extdata", "cadd.v1.3.hg19.chr22.rds", package="GenomicScores"))
-mdobj <- metadata(obj)
+obj20 <- readRDS(system.file("extdata", "cadd.v1.6.hg38.chr20.rds",
+                             package="GenomicScores"))
+obj21 <- readRDS(system.file("extdata", "cadd.v1.6.hg38.chr21.rds",
+                             package="GenomicScores"))
+obj22 <- readRDS(system.file("extdata", "cadd.v1.6.hg38.chr22.rds",
+                             package="GenomicScores"))
+
+mdobj <- metadata(obj20)
 cadd <- GScores(provider=mdobj$provider,
                 provider_version=mdobj$provider_version,
                 download_url=mdobj$download_url,
@@ -554,193 +605,34 @@ cadd <- GScores(provider=mdobj$provider,
                 reference_genome=mdobj$reference_genome,
                 data_pkgname=mdobj$data_pkgname,
                 data_dirpath="../inst/extdata",
-                data_serialized_objnames=c(cadd.v1.3.hg19.chr22.rds="cadd.v1.3.hg19.chr22.rds"),
+                data_serialized_objnames=c(cadd.v1.6.hg38.chr20.rds="cadd.v1.6.hg38.chr20.rds",
+                                           cadd.v1.6.hg38.chr21.rds="cadd.v1.6.hg38.chr21.rds",
+                                           cadd.v1.6.hg38.chr22.rds="cadd.v1.6.hg38.chr22.rds"),
                 data_tag="CADD")
 gscopops <- get(mdobj$data_pkgname, envir=cadd@.data_cache)
 gscopops[["default"]] <- RleList(compress=FALSE)
-gscopops[["default"]][[mdobj$seqname]] <- obj
+gscopops[["default"]][[mdobj$seqname]] <- obj20
 assign(mdobj$data_pkgname, gscopops, envir=cadd@.data_cache)
 ```
 
 ```{r}
-maskSNVs <- isSNV(vcf)[loc$QUERYID]
-loc$CADD <- rep(NA_real_, length(loc))
-loc$CADD[maskSNVs] <- score(cadd, loc[maskSNVs],
-                            ref=ref(vcf)[loc$QUERYID[maskSNVs]],
-                            alt=alt(vcf)[loc$QUERYID[maskSNVs]])
+cadd
+loc$CADD <- score(cadd, loc, ref=gwcgr$REF[loc$QUERYID], alt=gwcgr$ALT[loc$QUERYID])
 ```
 
-Using the code below we can produce the plot of Figure \@ref(fig:mcapvscadd) comparing
-CADD and M-CAP scores and labeling the location of the variants from which they are derived.
+Using the code below we can produce the plot of Figure \@ref(fig:am23vscadd) comparing
+AlphaMissense and CADD scores and labeling the location of the variants from
+which they are derived.
 
-```{r mcapvscadd, fig.cap = "Comparison of M-CAP and CADD scores. Values on the x- and y-axis are jittered to facilitate visualization.", echo = FALSE, fig.height=5, fig.width=7, dpi=100, echo=TRUE}
+```{r am23vscadd, fig.cap = "Comparison of AlphaMissense and CADD scores. Values on the y-axis are jittered to facilitate visualization.", echo = FALSE, fig.height=5, fig.width=7, dpi=100, echo=TRUE}
 library(RColorBrewer)
 par(mar=c(4, 5, 1, 1))
 hmcol <- colorRampPalette(brewer.pal(nlevels(loc$LOCATION), "Set1"))(nlevels(loc$LOCATION))
-plot(jitter(loc$MCAP, factor=2), jitter(loc$CADD, factor=2), pch=19,
-     col=hmcol, xlab="M-CAP scores", ylab="CADD scores",
+plot(loc$AM, jitter(loc$CADD, factor=2), pch=19,
+     col=hmcol, xlab="AlphaMissense scores", ylab="CADD scores",
      las=1, cex.axis=1.2, cex.lab=1.5, panel.first=grid())
 legend("bottomright", levels(loc$LOCATION), pch=19, col=hmcol, inset=0.01)
 ```
-Finally, we will show how to annotate MAF values on these variants. However,
-in this particular case, we should take care of the different sequence styles
-(UCSC vs NCBI) and genome version nomenclatures (hg19 vs. hs37d5) between the
-annotated variants and the `GScores` object.
-
-```{r}
-seqlevelsStyle(loc) <- seqlevelsStyle(mafdb)[1]
-seqinfo(loc, new2old=match(seqlevels(mafdb), seqlevels(loc))) <- seqinfo(mafdb)
-maskSNVs <- isSNV(vcf)[loc$QUERYID]
-loc$MAF[maskSNVs] <- gscores(mafdb, loc[maskSNVs])$AF
-loc$MAF[!maskSNVs] <- gscores(mafdb, loc[!maskSNVs], type="nonsnrs")$AF
-loc[1:3]
-```
-
-We also show that by providing reference and alternate alleles through
-the arguments `ref` and `alt`, we can obtain their individual allele
-frequencies. The current lossy compression of these values yields their
-correct asignment in the case of biallelic variants and an aproximation
-in the case of multiallelic ones.
-
-```{r}
-afs <- DataFrame(matrix(NA, nrow=length(loc), ncol=2,
-                        dimnames=list(NULL, c("AF_REF", "AF_ALT"))))
-afs[maskSNVs, ] <- score(mafdb, loc[maskSNVs],
-                         ref=ref(vcf)[loc$QUERYID[maskSNVs]],
-                         alt=alt(vcf)[loc$QUERYID[maskSNVs]])
-afs[!maskSNVs, ] <- score(mafdb, loc[!maskSNVs],
-                          ref=ref(vcf)[loc$QUERYID[!maskSNVs]],
-                          alt=alt(vcf)[loc$QUERYID[!maskSNVs]],
-                          type="nonsnrs")
-mcols(loc) <- cbind(mcols(loc), afs)
-loc[1:3]
-```
-
-# Comparison between lossy-compressed and original phastCons scores
-
-To have a sense of the extent of the trade-off between precision and compression in a specific case,
-we compare here original _phastCons_ scores with the ones obtained by rounding their precision to
-one significant figure, and stored in the annotation package `phastCons100way.UCSC.hg19`.
-Because _phastCons_  scores measure conservation, we sampled uniformly at random one
-thousand _phastCons_ scores from differently conserved regions, concretely CDS and 3'UTR.
-These sampled scores are included in this package to illustrate this comparison.
-Interestingly, among the _phastCons_ scores sampled from 1000 CDS positions,
-there are only 198 different values despite the apparently very high precision of some of them.
-
-```{r showpositions, message=FALSE, cache=FALSE}
-origpcscoCDS <- readRDS(system.file("extdata", "origphastCons100wayhg19CDS.rds", package="GenomicScores"))
-origpcscoCDS
-
-length(unique(origpcscoCDS$score))
-```
-
-We look more closely the number of significant figures of precision used in these original _phastCons_ scores.
-
-```{r}
-numDecimals <- function(x) {
-  spl <- strsplit(as.character(x+1), "\\.")
-  spl <- sapply(spl, "[", 2)
-  spl[is.na(spl)] <- ""
-  nchar(spl)
-}
-
-nd1 <- numDecimals(origpcscoCDS$score)
-table(nd1)
-```
-
-Similarly, in 3'UTR regions, only 209 unique phastCons scores are observed.
-
-```{r showpositions2, message=FALSE, cache=FALSE}
-origpcsco3UTRs <- readRDS(system.file("extdata", "origphastCons100wayhg193UTR.rds", package="GenomicScores"))
-origpcsco3UTRs
-
-length(table(origpcsco3UTRs$score))
-
-nd2 <- numDecimals(origpcsco3UTRs$score)
-table(nd2)
-```
-
-Reset the default scores population to the one that achieves more compression
-by rounding to 1 decimal place.
-
-```{r}
-defaultPopulation(phast) <- "default"
-phast
-```
-
-Retrieve the corresponding _phastCons_ scores stored in the annotation package.
-
-```{r}
-pkgpcscoCDS <- score(phast, origpcscoCDS)
-pkgpcsco3UTRs <- score(phast, origpcsco3UTRs)
-```
-
-In Figure \@ref(fig:plot2) we show a visual comparison between raw and rounded _phastCons_ scores.
-The two panels on top compare the whole range of scores observed in CDS (left) and 3'UTR (right) regions.
-However, the rounding effect can be better observed in the cumulative distributions shown in
-the panels at the bottom, again for CDS (left) and 3'UTR (right) regions.
-
-In these bottom panels, phastcons scores in CDS and 3'UTR regions display very different cumulative distributions.
-In CDS regions, most of the genomic scores (>60%) are found between the values of 0.9 and 1.0, while around 25% of
-the scores are found below 0.1. Indeed, these are the range of values where lossy compression loses more precison.
-The cumulative distribution of 3'UTR shows the same critical points, with the difference that most of scores are
-found below 0.1 (>70%).
-
-```{r plot2, fig.height=9, fig.width=8, dpi=100, fig.cap = "Original and lossy-compressed phastCons scores. Top panels (a, b): comparison of the distribution of values. Bottom panels (c, d): comparison of the cumulative distribution", echo = FALSE}
-labelPanel <- function(lab, font=2, cex=2, offsetx=0.05, offsety=0.05) {
-  par(xpd=TRUE)
-  w <- par("usr")[2] - par("usr")[1]
-  h <- par("usr")[4] - par("usr")[3]
-  text(par("usr")[1]-w*offsetx, par("usr")[4]+h*offsety, lab, font=font, cex=cex)
-  par(xpd=FALSE)
-}
-
-par(mfrow=c(2, 2), mar=c(4, 5, 2, 1))
-plot(origpcscoCDS$score, jitter(pkgpcscoCDS), pch=19, cex=1, cex.lab=1.2,
-     xaxt="n", yaxt="n", xlab="Original phastCons scores (CDS)",
-     ylab="Compressed phastCons scores (CDS)")
-axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
-abline(0, 1)
-labelPanel(letters[1])
-plot(origpcsco3UTRs$score, jitter(pkgpcsco3UTRs), pch=19, cex=1, cex.lab=1.2,
-     xaxt="n", yaxt="n", xlab="Original phastCons scores (3' UTR)",
-     ylab="Compressed phastCons scores (3' UTR)")
-axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
-abline(0, 1)
-labelPanel(letters[2])
-ForigCDS <- ecdf(origpcscoCDS$score)
-FpkgCDS <- ecdf(pkgpcscoCDS)
-plot(sort(origpcscoCDS$score), ForigCDS(sort(origpcscoCDS$score)), xaxt="n", yaxt="n", cex.lab=1.2,
-     pch=".", cex=4, xlab="phastCons scores (CDS)", ylab="F(x)", ylim=c(0, 1))
-axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
-points(sort(pkgpcscoCDS), FpkgCDS(sort(pkgpcscoCDS)), pch=19, cex=1)
-legend("topleft", c("Original score", "Rounded score"), pch=c(46, 19),
-       pt.cex=c(4, 1), inset=0.01, bg="white")
-labelPanel(letters[3])
-Forig3UTRs <- ecdf(origpcsco3UTRs$score)
-Fpkg3UTRs <- ecdf(pkgpcsco3UTRs)
-plot(sort(origpcsco3UTRs$score), Forig3UTRs(sort(origpcsco3UTRs$score)), xaxt="n", yaxt="n", cex.lab=1.2,
-     pch=".", cex=4, xlab="phastCons scores (3'UTR)", ylab="F(x)", ylim=c(0, 1))
-axis(1, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-axis(2, at=seq(0, 1, by=0.1), labels=seq(0, 1, by=0.1), las=1)
-abline(h=seq(0, 1, by=0.1), v=seq(0, 1, by=0.1), lty=3, col="gray")
-points(sort(pkgpcsco3UTRs), Fpkg3UTRs(sort(pkgpcsco3UTRs)), pch=19, cex=1)
-legend("topleft", c("Original score", "Rounded score"), pch=c(46, 19),
-       pt.cex=c(4, 1), inset=0.01, bg="white")
-labelPanel(letters[4])
-```
-
-The bottom plots in Figure \@ref(fig:plot2) also reveal that when the cumulative
-distribution is of interest, such as in the context of filtering genetic variants
-above or below certain threshold of conservation, the quantization of _phastCons_
-scores to 1 decimal place provides sufficient precision for a wide range of
-conservation values.
 
 # Session information
 

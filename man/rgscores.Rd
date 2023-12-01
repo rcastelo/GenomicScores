@@ -54,15 +54,15 @@ position-specific scores from R and Bioconductor.
 }
 \author{R. Castelo}
 \seealso{
-  \code{\link[phastCons100way.UCSC.hg19]{phastCons100way.UCSC.hg19}}
+  \code{\link[phastCons100way.UCSC.hg38]{phastCons100way.UCSC.hg38}}
   \code{\link[MafDb.1Kgenomes.phase1.hs37d5]{MafDb.1Kgenomes.phase1.hs37d5}}
 }
 \examples{
 ## accessing genomic gscores from an annotation package
-if (require(phastCons100way.UCSC.hg19)) {
+if (require(phastCons100way.UCSC.hg38)) {
   library(GenomicRanges)
 
-  phast <- phastCons100way.UCSC.hg19
+  phast <- phastCons100way.UCSC.hg38
   set.seed(123)
   rgscores(10L, phast, ranges=c("chr22", "chrY"))
 }

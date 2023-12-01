@@ -126,8 +126,8 @@ availableGScores <- function(use.internet=FALSE) {
                     stringsAsFactors=FALSE)
 
   ## read frozen GScores resources metadata
-  gsrm <- read.csv(gzfile(system.file("extdata", "GScoresResourcesMetadata.csv.gz",
-                               package="GenomicScores")), row.names=1)
+  gsrm <- read.csv(system.file("extdata", "GScoresResourcesMetadata.csv",
+                               package="GenomicScores"), row.names=1)
   stopifnot(all(colnames(gsrm) == c("Organism", "Category"))) ## QC
   mt <- match(rownames(gsrm), rownames(res))
   stopifnot(all(!is.na(mt))) ## QC

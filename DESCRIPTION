@@ -10,16 +10,16 @@ Authors@R: c(person("Robert", "Castelo", role=c("aut", "cre"),
         "Rodríguez", role="ctb", email="pablosebastian.rodriguez@upf.edu"))
 License: Artistic-2.0
 Depends: R (>= 3.5), S4Vectors (>= 0.7.21), GenomicRanges, methods,
-        BiocGenerics (>= 0.13.8)
+         BiocGenerics (>= 0.13.8)
 Imports: stats, utils, XML, httr, Biobase, BiocManager, BiocFileCache,
          IRanges (>= 2.3.23), Biostrings, GenomeInfoDb, AnnotationHub,
          rhdf5, DelayedArray, HDF5Array
-Suggests: RUnit, BiocStyle, knitr, rmarkdown, BSgenome.Hsapiens.UCSC.hg19,
-          phastCons100way.UCSC.hg19, MafDb.1Kgenomes.phase1.hs37d5,
-          SNPlocs.Hsapiens.dbSNP144.GRCh37, VariantAnnotation,
-          TxDb.Hsapiens.UCSC.hg19.knownGene, gwascat, RColorBrewer,
-          shiny, shinyjs, shinycustomloader, data.table, DT, magrittr,
-		      shinydashboard
+Suggests: RUnit, BiocStyle, knitr, rmarkdown, VariantAnnotation,
+          gwascat, RColorBrewer, shiny, shinyjs, shinycustomloader, data.table,
+          DT, magrittr, shinydashboard, BSgenome.Hsapiens.UCSC.hg38,
+          phastCons100way.UCSC.hg38, MafDb.1Kgenomes.phase1.hs37d5,
+          MafH5.gnomAD.v3.1.2.GRCh38, SNPlocs.Hsapiens.dbSNP144.GRCh37,
+          TxDb.Hsapiens.UCSC.hg38.knownGene
 VignetteBuilder: knitr
 URL: https://github.com/rcastelo/GenomicScores
 BugReports: https://github.com/rcastelo/GenomicScores/issues
