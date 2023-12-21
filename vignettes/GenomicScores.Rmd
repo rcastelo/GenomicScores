@@ -486,9 +486,8 @@ t(xtab)
 xtab <- t(xtab / rowSums(xtab))
 round(xtab, digits=2)
 ```
-
 Figure \@ref(fig:ChengEtAl2024Fig5b) below displays graphically these
-proportions in an analogous way to the one shown in Figure5B from
+proportions in an analogous way to the one shown in Figure 5B from
 @cheng2023accurate. While these proportions are quite different to the
 original figure, due to the much lower number of variants analyzed here,
 we still can see, like in [@cheng2023accurate], that the proportion of
@@ -496,7 +495,7 @@ variants classified as _likely pathogenic_ by AlphaMissense scores is much
 larger for rare variants with MAF < 0.01 than for common variants with
 MAF > 0.01.
 
-```{r ChengEtAl2024Fig5b, echo=FALSE, height=5, width=7}
+```{r ChengEtAl2024Fig5b, echo=FALSE, height=5, width=7, fig.cap="AlphaMissense predictions. Proportions of three ranges of AlphaMissense pathogenicity scores for three ranges of minor allele frequencies (MAF) derived from gnomAD, on data from the GWAS catalog. This figure is analogous to Figure 5B from @cheng2023accurate, but with much fewer variants."}
 par(mar=c(4, 5, 3, 1))
 barplot(xtab, horiz=TRUE, col=c("red", "royalblue", "gray"),
         xlab="Proportion", ylab="MAF",
