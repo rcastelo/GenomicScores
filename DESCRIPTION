@@ -3,7 +3,7 @@ Type: Package
 Title: Infrastructure to work with genomewide position-specific scores
 Description: Provide infrastructure to store and access genomewide
         position-specific scores within R and Bioconductor.
-Version: 2.21.0
+Version: 2.21.1
 Authors@R: c(person("Robert", "Castelo", role=c("aut", "cre"),
         email="robert.castelo@upf.edu"), person("Pau", "Puigdevall",
         role="ctb", email="pau.puigdevall@upf.edu"), person("Pablo",
@@ -12,8 +12,8 @@ License: Artistic-2.0
 Depends: R (>= 3.5), S4Vectors (>= 0.7.21), GenomicRanges, methods,
          BiocGenerics (>= 0.13.8)
 Imports: stats, utils, XML, httr, Biobase, BiocManager, BiocFileCache,
-         IRanges (>= 2.3.23), Biostrings, GenomeInfoDb, AnnotationHub,
-         rhdf5, DelayedArray, HDF5Array
+         IRanges (>= 2.3.23), Biostrings, Seqinfo, GenomeInfoDb (>= 1.45.5),
+         AnnotationHub, rhdf5, DelayedArray, HDF5Array
 Suggests: RUnit, BiocStyle, knitr, rmarkdown, VariantAnnotation,
           gwascat, RColorBrewer, shiny, shinyjs, shinycustomloader, data.table,
           DT, magrittr, shinydashboard, BSgenome.Hsapiens.UCSC.hg38,

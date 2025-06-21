@@ -3,21 +3,21 @@ import(BiocGenerics)
 import(S4Vectors)
 import(GenomicRanges)
 
-importClassesFrom(GenomeInfoDb, Seqinfo, GenomeDescription)
+importClassesFrom(Seqinfo, Seqinfo, GenomeDescription)
 
 importMethodsFrom(BiocFileCache, bfcinfo)
 importMethodsFrom(Biostrings, match)
-importMethodsFrom(GenomeInfoDb, "seqinfo<-",
-                                seqlevels,
-                                "seqlevels<-",
-                                seqlevelsStyle,
-                                "seqlevelsStyle<-",
-                                "isCircular",
-                                "isCircular<-",
-                                genome,
-                                "genome<-",
-                                provider,
-                                providerVersion)
+importMethodsFrom(Seqinfo, "seqinfo<-",
+                           seqlevels,
+                           "seqlevels<-",
+                           "isCircular",
+                           "isCircular<-",
+                           genome,
+                           "genome<-",
+                           provider,
+                           providerVersion)
+importMethodsFrom(GenomeInfoDb, seqlevelsStyle,
+                                "seqlevelsStyle<-")
 importMethodsFrom(IRanges, start,
                            width,
                            flank,
@@ -67,15 +67,16 @@ importFrom(BiocManager, available)
 
 importFrom(BiocFileCache, BiocFileCache)
 
-importFrom(GenomeInfoDb, seqnames,
-                         keepStandardChromosomes,
+importFrom(Seqinfo, seqnames,
+                    seqlengths,
+                    seqinfo,
+                    Seqinfo)
+
+importFrom(GenomeInfoDb, keepStandardChromosomes,
                          keepSeqlevels,
                          renameSeqlevels,
                          restoreSeqlevels,
-                         extractSeqlevelsByGroup,
-                         seqlengths,
-                         seqinfo,
-                         Seqinfo)
+                         extractSeqlevelsByGroup)
 
 importFrom(IRanges, IRanges,
                     IRangesList,
