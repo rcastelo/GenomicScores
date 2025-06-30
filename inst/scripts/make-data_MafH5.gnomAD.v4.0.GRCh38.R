@@ -4,34 +4,34 @@
 ## annotation package the gnomAD genome allele frequencies. If you use
 ## these data please cite the following publication:
 
-## Karczewski et al. The mutational constraint spectrum quantified from
-## variation in 141,456 humans. Nature, 581:434-443, 2020.
-## doi: https://doi.org/10.1038/s41586-020-2308-7
+## Chen et al. A genomic mutational constraint map using variation in 76,156
+## human genomes. Nature, 625:92-100, 2024.
+## doi: https://doi.org/10.1038/s41586-023-06045-0
 
-## See https://gnomad.broadinstitute.org/terms for further information
+## See https://gnomad.broadinstitute.org/policies for further information
 ## on using this data for your own research
 
 ## The data were downloaded from as follows:
 ##
 ## allchr=`seq 1 22`" X Y"
 ## for chr in $allchr ; do {
-##   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr$chr.vcf.bgz
-##   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/3.1.2/vcf/genomes/gnomad.genomes.v3.1.2.sites.chr$chr.vcf.bgz.tbi
+##   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.chr$chr.vcf.bgz
+##   wget https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.chr$chr.vcf.bgz.tbi
 ## } done
 
-## This script takes as argument a gnomAD v3.1.2 VCF file
+## This script takes as argument a gnomAD v4.0 VCF file
 ## and process its alternate allele frequency (AF) values
 ## to calculate minor allele frequencies (MAF) from the
 ## global population and the maximum MAF throughout all
 ## other populations, and store their quantized compressed
 ## version into RDS files
 
-stopifnot(BiocManager::version() == "3.15")
+stopifnot(BiocManager::version() == "3.18")
 
 args <- commandArgs(trailingOnly=TRUE)
 
 if (length(args) != 1) {
-  stop("make-data_MafH5.gnomAD.v3.1.2.GRCh38.R <VCFFILE>")
+  stop("make-data_MafH5.gnomAD.v4.0.GRCh38.R <VCFFILE>")
 }
 
 vcfFilename <- args[1]
@@ -45,7 +45,7 @@ suppressPackageStartupMessages(library(VariantAnnotation))
 suppressPackageStartupMessages(library(BSgenome.Hsapiens.UCSC.hg38))
 
 genomeversion <- "GRCh38"
-pkgname <- sprintf("MafH5.gnomAD.v3.1.2.%s", genomeversion)
+pkgname <- sprintf("MafH5.gnomAD.v4.0.%s", genomeversion)
 dir.create(pkgname)
 
 vcfHeader <- scanVcfHeader(vcfFilename)
@@ -56,13 +56,13 @@ stopifnot(all(seqlengths(vcfHeader)[commonseqnames] == seqlengths(Hsapiens)[comm
 
 downloadURL <- "https://gnomad.broadinstitute.org/downloads"
 citationdata <- bibentry(bibtype="Article",
-                         author=c(person("Konrad J Karczewski"), person("et al.")),
-                         title="The mutational constraint spectrum quantified from variation in 141,456 humans",
+                         author=c(person("Siwei Chen"), person("et al.")),
+                         title="A genomic mutational constraint map using variation in 76,156 human genomes",
                          journal="Nature",
-                         volume="581",
-                         pages="434-443",
-                         year="2020",
-                         doi="https://doi.org/10.1038/s41586-020-2308-7")
+                         volume="625",
+                         pages="92-100",
+                         year="2024",
+                         doi="https://doi.org/10.1038/s41586-023-06045-0")
 
 ## quantizer function. it maps input real-valued [0, 1] allele frequencies
 ## to positive integers [1, 255] so that each of them can be later
@@ -266,7 +266,7 @@ for (j in seq_along(AFcols)) {
       runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
                             provider="BroadInstitute",
-                            provider_version="v3.1.2",
+                            provider_version="v4.0",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -311,7 +311,7 @@ if (any(runValue(obj) != 0)) {
   runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
   metadata(obj) <- list(seqname=chr,
                         provider="BroadInstitute",
-                        provider_version="v3.1.2",
+                        provider_version="v4.0",
                         citation=citationdata,
                         download_url=downloadURL,
                         download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -441,7 +441,7 @@ for (j in seq_along(AFcols)) {
       runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
       metadata(obj) <- list(seqname=chr,
                             provider="BroadInstitute",
-                            provider_version="v3.1.2",
+                            provider_version="v4.0",
                             citation=citationdata,
                             download_url=downloadURL,
                             download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -486,7 +486,7 @@ if (any(runValue(obj) != 0)) {
   runValue(maskREFobj) <- as.raw(runValue(maskREFobj))
   metadata(obj) <- list(seqname=chr,
                         provider="BroadInstitute",
-                        provider_version="v3.1.2",
+                        provider_version="v4.0",
                         citation=citationdata,
                         download_url=downloadURL,
                         download_date=format(Sys.Date(), "%b %d, %Y"),
@@ -511,4 +511,5 @@ message(sprintf("Finished processing VCF file %s", basename(vcfFilename)))
 ## name of the directory storing the generated RDS files (i.e.,
 ## the variable 'pkgname' defined above).
 ##
-## GenomicScores:::.makeMafH5(pkgname, pkgname, pkgname)
+## prefix <- inputpath <- outputpath <- pkgname
+## GenomicScores:::.makeMafH5(prefix, inputpath, outputpath)
