@@ -1235,7 +1235,7 @@ setMethod("wgscores", c("GScores", "GenomicRanges"),
   missingMask <- !pop %in% names(gscopops)
   for (popname in pop[missingMask]) {
     gscopops[[popname]] <- List() ## RleList(compress=FALSE)
-    if (GenomicScores:::hdf5Backend(object)) ## HDF5 backend, fetch common metadata from first population
+    if (hdf5Backend(object)) ## HDF5 backend, fetch common metadata from first population
       metadata(gscopops[[popname]]) <- metadata(gscopops[[1]])
   }
   anyMissing <- any(missingMask)

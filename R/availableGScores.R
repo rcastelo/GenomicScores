@@ -130,7 +130,8 @@ availableGScores <- function(use.internet=FALSE) {
                                package="GenomicScores"), row.names=1)
   stopifnot(all(colnames(gsrm) == c("Organism", "Category"))) ## QC
   mt <- match(rownames(gsrm), rownames(res))
-  stopifnot(all(!is.na(mt))) ## QC
+  if (any(is.na(mt)))
+      stop("some resources metadata in extdata/GScoresResourcesMetadata.csv do not match filenames in scripts/make-data_*")
   res$Organism[mt] <- gsrm$Organism
   res$Category[mt] <- gsrm$Category
   ## if (any(res$Installed)) {

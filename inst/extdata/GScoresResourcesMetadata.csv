@@ -19,7 +19,7 @@ MafDb.gnomADex.r2.1.GRCh38,Homo sapiens,MAF
 MafDb.gnomADex.r2.1.hs37d5,Homo sapiens,MAF
 MafDb.TOPMed.freeze5.hg19,Homo sapiens,MAF
 MafDb.TOPMed.freeze5.hg38,Homo sapiens,MAF
-MafH5.gnomAD.v3.1.2.GRCh38,Homo sapiens,MAF
+MafH5.gnomAD.v4.0.GRCh38,Homo sapiens,MAF
 mcap.v1.0.hg19,Homo sapiens,Pathogenicity
 phastCons100way.UCSC.hg19,Homo sapiens,Conservation
 phastCons100way.UCSC.hg38,Homo sapiens,Conservation
