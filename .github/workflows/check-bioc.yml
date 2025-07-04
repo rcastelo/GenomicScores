@@ -24,6 +24,7 @@
 ## * OS: operating system
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - devel
