@@ -4,7 +4,7 @@
 [![Bioconductor Downloads](https://bioconductor.org/shields/downloads/release/GenomicScores.svg)](https://bioconductor.org/packages/stats/bioc/GenomicScores.html "Ranking by number of downloads. A lower number means the package is downloaded more frequently. Determined within a package type (software, experiment, annotation, workflow) and uses the number of distinct IPs for the last 12 months")
 [![Support posts](https://bioconductor.org/shields/posts/GenomicScores.svg)](https://support.bioconductor.org/t/GenomicScores/ "Support site activity on GenomicScores, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
 [![R-CMD-check-bioc](https://github.com/rcastelo/GenomicScores/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/rcastelo/GenomicScores/actions?query=workflow%3AR-CMD-check-bioc)
-[![codecov.io](https://codecov.io/github/rcastelo/GenomicScores/coverage.svg?branch=master)](https://codecov.io/github/rcastelo/GenomicScores?branch=master)
+[![codecov.io](https://codecov.io/github/rcastelo/GenomicScores/coverage.svg?branch=devel)](https://codecov.io/github/rcastelo/GenomicScores?branch=devel)
 <img align="right" src="https://raw.githubusercontent.com/Bioconductor/BiocStickers/master/GenomicScores/GenomicScores.png" height="200"/>
 
 **Current build status**
