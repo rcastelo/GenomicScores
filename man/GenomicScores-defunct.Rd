@@ -21,12 +21,12 @@
 
   \itemize{
     \item{\code{scores()}:  The \code{scores()} method has been replaced by the
-          \code{\link{gscores}()} and \code{\link{score}()} methods.}
+          \code{\link{gscores}()} and \code{\link[GenomicScores:gscores]{score}()} methods.}
     \item{\code{mafByOverlaps()}:  The \code{mafByOverlaps()} method has been
-          replaced by the \code{\link{gscores}()} and \code{\link{score}()}
+          replaced by the \code{\link{gscores}()} and \code{\link[GenomicScores:gscores]{score}()}
           methods.}
     \item{\code{mafById()}:  The \code{mafById()} method has been
-          replaced by the \code{\link{gscores}()} and \code{\link{score}()}
+          replaced by the \code{\link{gscores}()} and \code{\link[GenomicScores:gscores]{score}()}
           methods.}
   }
 }

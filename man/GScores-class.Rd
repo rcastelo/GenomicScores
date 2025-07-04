@@ -217,7 +217,7 @@ position-specific scores from R and Bioconductor.
 \author{R. Castelo}
 \seealso{
   \code{\link{gscores}()}
-  \code{\link{score}()}
+  \code{\link[GenomicScores:gscores]{score}()}
   \code{\link[phastCons100way.UCSC.hg38]{phastCons100way.UCSC.hg38}}
 }
 \examples{
