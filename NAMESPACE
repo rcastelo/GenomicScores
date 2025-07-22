@@ -72,11 +72,7 @@ importFrom(Seqinfo, seqnames,
                     seqinfo,
                     Seqinfo)
 
-importFrom(GenomeInfoDb, keepStandardChromosomes,
-                         keepSeqlevels,
-                         renameSeqlevels,
-                         restoreSeqlevels,
-                         extractSeqlevelsByGroup)
+importFrom(GenomeInfoDb, keepStandardChromosomes)
 
 importFrom(IRanges, IRanges,
                     IRangesList,
