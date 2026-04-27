@@ -1,3 +1,10 @@
+CHANGES IN VERSION 2.24.0
+-------------------------
+
+BUG FIXES
+
+    o Sanitize AnnotationHub resource filenames in annotation package creation with 'makeGScoresPackage()'.
+
 CHANGES IN VERSION 2.16.0
 -------------------------
 

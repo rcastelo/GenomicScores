@@ -86,7 +86,7 @@ makeGScoresPackage <- function(gsco, version, maintainer, author,
 
   data_files <- list.files(pattern=pkgname, path=data_dirpath, full.names=TRUE)
   source_data_files <- gsco@data_serialized_objnames
-  target_data_files <- names(gsco@data_serialized_objnames)
+  target_data_files <- basename(names(gsco@data_serialized_objnames))
   if (length(source_data_files) == 0 || length(target_data_files) == 0)
     stop("Cannot find data files")
 
