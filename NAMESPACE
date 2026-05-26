@@ -48,7 +48,6 @@ importFrom(HDF5Array, HDF5Array,
                       writeHDF5Array)
 
 importFrom(utils, installed.packages,
-                  data,
                   packageDescription,
                   capture.output,
                   as.person,
